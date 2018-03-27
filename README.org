@@ -1,0 +1,4 @@
+* An event based framework for simulation network of hybrid automaton.
+  The main contribution is the integration techniques, especially
+  combination of higher order Quantized state systems combined with
+  higher order Taylor series.
