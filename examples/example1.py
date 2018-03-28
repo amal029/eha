@@ -15,9 +15,11 @@ def ha(env, cstate=0):
     # The continous variables used in this ha
     x = 2                       # The initial value
     loc1_ode = ODE(env, lvalue=S.sympify('diff(x(t))'),
-                   rvalue=S.sympify('x(t)^2'))
+                   rvalue=S.sympify('x(t)^2'),
+                   ttol=10**-2)
     loc2_ode = ODE(env, S.sympify('diff(x(t))'),
-                   S.sympify('-x(t)^3'))
+                   S.sympify('-x(t)^3'),
+                   ttol=10**-2)
     loc1_FT = False
     loc2_FT = False
 
@@ -41,7 +43,7 @@ def ha(env, cstate=0):
             print('%7.4f %7.4f' % (curr_time, x))
             # XXX: Call the ODE class that will give the delta back iff
             # the calculated "x" is greater than the error.
-            if abs(x-10) > loc1_ode.error:
+            if abs(x-10) > loc1_ode.vtol:
                 delta = loc1_ode.delta(x, (10 - x))
             else:
                 # If within the error bound just make it 10
@@ -65,7 +67,7 @@ def ha(env, cstate=0):
             print('%7.4f %7.4f' % (curr_time, x))
             # If the output is outside the error margin then bother
             # recomputing a new delta.
-            if abs(x-1) > loc2_ode.error:
+            if abs(x-1) > loc2_ode.vtol:
                 delta = loc2_ode.delta(x, (1 - x))
             else:
                 # If within error bound then just make it the level.
