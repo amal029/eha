@@ -26,45 +26,52 @@ def ha(env, cstate=0):
 
     # The computations in location1
     # Returning state, delta, value, loc1_FT, loc2_FT
-    def location1(x, loc1_FT, loc2_FT):
+    def location1(x, loc1_FT, loc2_FT, prev_time):
         curr_time = env.now
         # The edge guard takes preference
         if x >= 10:
-            print('%7.4f %7.4f %d' % (curr_time, x, cstate))
-            print('b1')
-            return 1, 0, x, None, True
+            print('%7.4f %7.4f' % (curr_time, x))
+            return 1, 0, x, None, True, curr_time
         # The invariant
         elif x <= 10:
             # Compute the x value and print it.
             if not loc1_FT:
-                x = loc1_ode.compute(x, curr_time)
+                x = loc1_ode.compute(x, curr_time-prev_time)
                 loc1_FT = True
-            print('%7.4f %7.4f %d' % (curr_time, x, cstate))
-            print('b2')
-            # TODO: Call the ODE class that will give the delta back
-            delta = loc1_ode.delta(x, (10 - x))
-            print('predicted delta: ', delta)
-            return 0, delta, x, False, None
+            print('%7.4f %7.4f' % (curr_time, x))
+            # XXX: Call the ODE class that will give the delta back iff
+            # the calculated "x" is greater than the error.
+            if abs(x-10) > loc1_ode.error:
+                delta = loc1_ode.delta(x, (10 - x))
+            else:
+                # If within the error bound just make it 10
+                x = 10
+                delta = 0
+            return 0, delta, x, False, None, curr_time
         else:
             raise RuntimeError('Reached unreachable branch'
                                ' in location1')
 
     # The computations in location2
-    def location2(x, loc1_FT, loc2_FT):
+    def location2(x, loc1_FT, loc2_FT, prev_time):
         curr_time = env.now
         if x <= 1:
-            print('%7.4f %7.4f %d' % (curr_time, x, cstate))
-            print('b1')
-            return 0, 0, x, True, None
+            print('%7.4f %7.4f' % (curr_time, x))
+            return 0, 0, x, True, None, curr_time
         elif x >= 1:
             # TODO: Call the ODE class to get delta
             if not loc2_FT:
-                x = loc2_ode.compute(x, curr_time)
-            print('%7.4f %7.4f %d' % (curr_time, x, cstate))
-            print('b2')
-            delta = loc2_ode.delta(x, (1 - x))
-            print('predicted delta: ', delta)
-            return 1, delta, x, None, False
+                x = loc2_ode.compute(x, curr_time-prev_time)
+            print('%7.4f %7.4f' % (curr_time, x))
+            # If the output is outside the error margin then bother
+            # recomputing a new delta.
+            if abs(x-1) > loc2_ode.error:
+                delta = loc2_ode.delta(x, (1 - x))
+            else:
+                # If within error bound then just make it the level.
+                x = 1
+                delta = 0
+            return 1, delta, x, None, False, curr_time
         else:
             raise RuntimeError('Reached unreachable branch'
                                ' in location2')
@@ -75,10 +82,13 @@ def ha(env, cstate=0):
         1: location2
     }
 
+    prev_time = env.now
     while(True):
-        cstate, delta, x, loc1_FT, loc2_FT = switch_case[cstate](x,
-                                                                 loc1_FT,
-                                                                 loc2_FT)
+        (cstate, delta, x,
+         loc1_FT, loc2_FT, prev_time) = switch_case[cstate](x,
+                                                            loc1_FT,
+                                                            loc2_FT,
+                                                            prev_time)
         # This should always be the final statement in this function
         yield env.timeout(delta)
 
@@ -90,7 +100,7 @@ def main():
     env.process(ha(env))
     # Run the simulation until all events in the queue are processed.
     # Make it some number to halt simulation after sometime.
-    env.run()
+    env.run(until=30)
 
 
 if __name__ == '__main__':
