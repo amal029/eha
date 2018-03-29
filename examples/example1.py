@@ -15,7 +15,7 @@ def ha(env, cstate=0):
     # The continous variables used in this ha
     x = 2                       # The initial value
     loc1_ode = ODE(env, lvalue=S.sympify('diff(x(t))'),
-                   rvalue=S.sympify('x(t)^2'),
+                   rvalue=S.sympify('x(t)'),
                    ttol=10**-2)
     loc2_ode = ODE(env, S.sympify('diff(x(t))'),
                    S.sympify('-x(t)^3'),
@@ -31,23 +31,24 @@ def ha(env, cstate=0):
     def location1(x, loc1_FT, loc2_FT, prev_time):
         curr_time = env.now
         # The edge guard takes preference
-        if x >= 10:
+        if x >= 5:
             print('%7.4f %7.4f' % (curr_time, x))
             return 1, 0, x, None, True, curr_time
         # The invariant
-        elif x <= 10:
+        elif x <= 5:
             # Compute the x value and print it.
             if not loc1_FT:
                 x = loc1_ode.compute(x, curr_time-prev_time)
                 loc1_FT = True
-            print('%7.4f %7.4f' % (curr_time, x))
+            print('%7.7f %7.7f' % (curr_time, x))
             # XXX: Call the ODE class that will give the delta back iff
             # the calculated "x" is greater than the error.
-            if abs(x-10) > loc1_ode.vtol:
-                delta = loc1_ode.delta(x, (10 - x))
+            if abs(x-5) > loc1_ode.vtol:
+            # if x <= 5:
+                delta = loc1_ode.delta(x)
             else:
                 # If within the error bound just make it 10
-                x = 10
+                x = 5
                 delta = 0
             return 0, delta, x, False, None, curr_time
         else:
@@ -58,13 +59,13 @@ def ha(env, cstate=0):
     def location2(x, loc1_FT, loc2_FT, prev_time):
         curr_time = env.now
         if x <= 1:
-            print('%7.4f %7.4f' % (curr_time, x))
+            print('%7.7f %7.7f' % (curr_time, x))
             return 0, 0, x, True, None, curr_time
         elif x >= 1:
             # TODO: Call the ODE class to get delta
             if not loc2_FT:
                 x = loc2_ode.compute(x, curr_time-prev_time)
-            print('%7.4f %7.4f' % (curr_time, x))
+            print('%7.7f %7.7f' % (curr_time, x))
             # If the output is outside the error margin then bother
             # recomputing a new delta.
             if abs(x-1) > loc2_ode.vtol:

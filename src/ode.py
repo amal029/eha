@@ -48,7 +48,7 @@ class ODE:
         def get_d(q):
             # XXX: Note that partial derivatives are not supported. E.g.,
             # x'(t) = x(t) + y(t) is not supported for now.
-            d = S.Symbol('d', postive=True, real=True)
+            d = S.Symbol('d', positive=True, real=True)
             slope = ODE.replace(self.rvalue, self.lvalue.args[0], q)
             # XXX: Assumption that the time line is called "t"
             slope = self.rvalue.replace(self.lvalue.args[0], q).subs('t', d)
@@ -61,6 +61,7 @@ class ODE:
 
         d1 = get_d(q)
         d2 = get_d(q2)
+        # print('trying quanta: ', quanta)
         if abs(d1 - d2) <= self.ttol:
             # print(quanta, d1, d2)
             return d1
@@ -69,12 +70,14 @@ class ODE:
             # user defined error bounds then great. Else, half the
             # quanta and keep on doing this until number of iterations
             # is met. This is reducing the quanta in a geometric
-            # progression.
-            return self._taylor1(init, q, q2, (quanta/2), (count+1))
+            # progression. This is the same as RK-2(3) solver
+            newquanta = 0.8 * pow(self.ttol / abs(d1 - d2), 1.0/2)
+            quanta = newquanta if newquanta <= quanta else 0.5*quanta
+            return self._taylor1(init, q, q2, quanta, (count+1))
         else:
             raise RuntimeError('Could not find delta that satisfies '
-                               'the user specified error bound: %s'
-                               % self.ttol)
+                               'the user specified error bound: %s %s %s'
+                               % (self.ttol, d1, d2))
 
     def _taylor(self, init, q, q2, quanta):
         if self.torder == 1:
