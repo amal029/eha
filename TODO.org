@@ -2,3 +2,5 @@
   SCHEDULED: <2018-03-30 Fri> DEADLINE: <2018-03-30 Fri>
 * TODO Check how to handle x'(t) = x(t) + y(t) type ODEs, especially since they all need different quanta, so which quanta to take?
   SCHEDULED: <2018-03-30 Fri> DEADLINE: <2018-03-30 Fri>
+* TODO Check the problem with x' = 1, etc.
+* TODO Check what to do with imaginary roots and also negative roots.
