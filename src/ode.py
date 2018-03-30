@@ -51,48 +51,85 @@ class ODE:
         return (S.Add(init, (S.Mul(slope, (t - self.env.now)))))
 
     def _taylor1(self, init, q, q2, quanta, count):
-        # XXX: Assuming the root of the polynomial is *always* close to
-        # "0"
+        def compute_delta(part_poly, d, dl, quanta, ignore_imag=False):
+            polynomial1 = S.Add(part_poly, -quanta)
+            # XXX: Assumption that the time line is called "t"
+            polynomial1 = polynomial1.expand().subs('t', d)
+            # If "δ" vanishes after exapansion then just return None
+            if (type(polynomial1) is S.Float):
+                return None
+            polynomial1 = S.Poly(polynomial1)
+            soln = poly.polyroots([poly.mpf(a) for
+                                   a in polynomial1.all_coeffs()])
+            # XXX: This is carried out when this gets called from
+            # handle_imaginary_roots, because of numerical root finding,
+            # the imaginary component can still exist, but be very
+            # small.
+            if ignore_imag:
+                soln = [poly.re(a) for a in soln]
+            dl += [float(a) for a in soln
+                   if type(a) is poly.mpf and float(a) >= 0]
+            # The second polynomial
+            polynomial2 = S.Add(part_poly, quanta)
+            # XXX: Assumption that the time line is called "t"
+            polynomial2 = S.Poly(polynomial2.subs('t', d))
+            soln = poly.polyroots([poly.mpf(a) for
+                                   a in polynomial2.all_coeffs()])
+            # XXX: This is carried out when this gets called from
+            # handle_imaginary_roots, because of numerical root finding,
+            # the imaginary component can still exist, but be very
+            # small.
+            if ignore_imag:
+                soln = [poly.re(a) for a in soln]
+            dl += [float(a) for a in soln
+                   if type(a) is poly.mpf and float(a) >= 0]
+            return dl
+
+        def handle_imaginary_roots(part_poly, d):
+            part_poly = part_poly.subs('t', d).expand()
+            # XXX: Get all the coefficients
+            coeffs = S.Poly(part_poly).all_coeffs()
+            # Now get the new Δq
+            nquanta = abs(coeffs[2] - (pow(coeffs[1], 2)/(4.0*coeffs[0])))
+            # Solve and just ignore the imaginary part
+            return (compute_delta(part_poly, d, [], nquanta, ignore_imag=True),
+                    nquanta)
+
         def get_d(q):
             # XXX: Note that partial derivatives are not supported. E.g.,
             # x'(t) = x(t) + y(t) is not supported for now.
             d = S.Symbol('d', positive=True, real=True)
             slope = ODE.replace(self.rvalue, self.lvalue.args[0], q)
-            dl = []
-            polynomial1 = S.Add(S.Add(S.Add(S.Mul(d, slope), init), (-q)),
-                                -quanta)
-            # XXX: Assumption that the time line is called "t"
-            polynomial1 = polynomial1.subs('t', d).expand()
-            # print('poly: ', polynomial1)
-            polynomial1 = S.Poly(polynomial1.subs('t', d))
-            soln = poly.polyroots([poly.mpf(a) for
-                                   a in polynomial1.all_coeffs()])
-            dl += [float(a) for a in soln
-                   if type(a) is poly.mpf and float(a) >= 0]
-            # The second polynomial
-            polynomial2 = S.Add(S.Add(S.Add(S.Mul(d, slope), init), (-q)),
-                                quanta)
-            # XXX: Assumption that the time line is called "t"
-            polynomial2 = S.Poly(polynomial2.subs('t', d))
-            soln = poly.polyroots([poly.mpf(a) for
-                                   a in polynomial2.all_coeffs()])
-            dl += [float(a) for a in soln
-                   if type(a) is poly.mpf and float(a) >= 0]
-            # XXX: This should never happen!
-            if dl == []:
-                raise NoRealRoots('No real solution for: ', polynomial1,
-                                  polynomial2,
-                                  '{:.2e}'.format(quanta))
+            part_poly = S.Add(S.Add(S.Mul(d, slope), init), (-q))
+            dl = compute_delta(part_poly, d, [], quanta)
+            if dl is None:
+                return None     # The constant slope case
+            elif dl == []:
+                # XXX: We will try to handle quadratic polynomials
+                # giving imaginary only solutions.
+                nquanta = quanta
+                if S.degree(part_poly.subs('t', d).expand(), d) == 2:
+                    dl, nquanta = handle_imaginary_roots(part_poly, d)
+                if dl == []:
+                    raise NoRealRoots('No real positive root for: ',
+                                      S.Eq(part_poly.subs('t', d).expand(),
+                                           nquanta),
+                                      '{:.2e}'.format(nquanta))
             d = min(dl)
             return d
 
         d1 = get_d(q)
-        # print('doing q2: ', q2)
         d2 = get_d(q2)
-        # print('trying quanta: ', quanta)
-        if abs(d1 - d2) <= self.ttol:
+        if d2 is None:
+            d1s = '{:.2e}'.format(d1)
             quanta = '{:.2e}'.format(quanta)
-            print('chosen quanta: %s' % quanta)
+            print('chosen Δq: %s δ: %s' % (quanta, d1s))
+            return d1
+        elif abs(d1 - d2) <= self.ttol:
+            d1s = '{:.2e}'.format(d1)
+            d2s = '{:.2e}'.format(d2)
+            quanta = '{:.2e}'.format(quanta)
+            print('chosen Δq: %s δ1: %s δ2: %s' % (quanta, d1s, d2s))
             return d1
         elif count < self.iterations:
             # If the delta step results in output that is within the
@@ -107,7 +144,8 @@ class ODE:
         else:
             raise RuntimeError('Could not find delta that satisfies '
                                'the user specified error bound: '
-                               '%s %s %s %s %s %s'
+                               'ε: %s δ1: %s δ2: %s Q1: %s Q2: %s '
+                               'Δq: %s'
                                % (self.ttol, d1, d2, q, q2, quanta))
 
     def _taylor(self, init, q, q2, quanta):

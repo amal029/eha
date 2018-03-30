@@ -15,11 +15,11 @@ def ha(env, cstate=0):
     # The continous variables used in this ha
     x = 2                       # The initial value
     loc1_ode = ODE(env, lvalue=S.sympify('diff(x(t))'),
-                   rvalue=S.sympify('x(t)+1'),
-                   ttol=10**-2)
+                   rvalue=S.sympify('2*x(t)+1'),
+                   ttol=10**-2, iterations=100)
     loc2_ode = ODE(env, S.sympify('diff(x(t))'),
-                   S.sympify('-x(t)^3'),
-                   ttol=10**-2)
+                   S.sympify('-2'),
+                   ttol=10**-2, iterations=100)
     loc1_FT = False
     loc2_FT = False
 
