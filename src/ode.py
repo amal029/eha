@@ -12,7 +12,7 @@ class ODE:
 
     """
     def __init__(self, env, lvalue, rvalue, qorder=1, torder=1,
-                 iterations=20, vtol=10**-2, ttol=10**-2):
+                 iterations=20, vtol=10**-4, ttol=10**-2):
         """The quantized state order and taylor series order by default is 1.
         The maximum number of back-stepping iterations is 20 be default.
         The tolerance by default is 10^-2.
@@ -100,7 +100,10 @@ class ODE:
             # x'(t) = x(t) + y(t) is not supported for now.
             d = S.Symbol('d', positive=True, real=True)
             slope = ODE.replace(self.rvalue, self.lvalue.args[0], q)
-            part_poly = S.Add(S.Add(S.Mul(d, slope), init), (-q))
+            # XXX: IMP CHANGE!
+            # XXX: Here I am chaning QSS to compare with a constant
+            # level not qith "Q"
+            part_poly = S.Add(S.Add(S.Mul(d, slope), init), (-init))
             dl = compute_delta(part_poly, d, [], quanta)
             if dl is None:
                 return None     # The constant slope case
@@ -121,15 +124,15 @@ class ODE:
         d1 = get_d(q)
         d2 = get_d(q2)
         if d2 is None:
-            d1s = '{:.2e}'.format(d1)
-            quanta = '{:.2e}'.format(quanta)
-            print('chosen Δq: %s δ: %s' % (quanta, d1s))
+            # d1s = '{:.2e}'.format(d1)
+            # quanta = '{:.2e}'.format(quanta)
+            # print('chosen Δq: %s δ: %s' % (quanta, d1s))
             return d1
         elif abs(d1 - d2) <= self.ttol:
-            d1s = '{:.2e}'.format(d1)
-            d2s = '{:.2e}'.format(d2)
+            # d1s = '{:.2e}'.format(d1)
+            # d2s = '{:.2e}'.format(d2)
             quanta = '{:.2e}'.format(quanta)
-            print('chosen Δq: %s δ1: %s δ2: %s' % (quanta, d1s, d2s))
+            # print('chosen Δq: %s δ1: %s δ2: %s' % (quanta, d1s, d2s))
             return d1
         elif count < self.iterations:
             # If the delta step results in output that is within the

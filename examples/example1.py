@@ -15,11 +15,11 @@ def ha(env, cstate=0):
     # The continous variables used in this ha
     x = 2                       # The initial value
     loc1_ode = ODE(env, lvalue=S.sympify('diff(x(t))'),
-                   rvalue=S.sympify('2*x(t)+1'),
-                   ttol=10**-2, iterations=100)
+                   rvalue=S.sympify('x(t)+1'),
+                   ttol=10**-3, iterations=100)
     loc2_ode = ODE(env, S.sympify('diff(x(t))'),
-                   S.sympify('-2'),
-                   ttol=10**-2, iterations=100)
+                   S.sympify('-2*x(t)'),
+                   ttol=10**-3, iterations=100)
     loc1_FT = False
     loc2_FT = False
 
@@ -102,7 +102,7 @@ def main():
     env.process(ha(env))
     # Run the simulation until all events in the queue are processed.
     # Make it some number to halt simulation after sometime.
-    env.run(until=30)
+    env.run(until=3.5)
 
 
 if __name__ == '__main__':
