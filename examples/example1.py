@@ -44,8 +44,7 @@ def ha(env, cstate=0):
             # XXX: Call the ODE class that will give the delta back iff
             # the calculated "x" is greater than the error.
             if abs(x-5) > loc1_ode.vtol:
-            # if x <= 5:
-                delta = loc1_ode.delta(x)
+                delta = loc1_ode.delta(x, (5-x))
             else:
                 # If within the error bound just make it 10
                 x = 5

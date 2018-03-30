@@ -1,4 +1,10 @@
 import sympy as S
+# import numpy.polynomial.polynomial as poly
+import mpmath as poly
+
+
+class NoRealRoots(Exception):
+    pass
 
 
 class ODE:
@@ -9,7 +15,7 @@ class ODE:
                  iterations=20, vtol=10**-2, ttol=10**-2):
         """The quantized state order and taylor series order by default is 1.
         The maximum number of back-stepping iterations is 20 be default.
-        The error is default 10^-4.
+        The tolerance by default is 10^-2.
 
         """
         self.env = env
@@ -33,7 +39,7 @@ class ODE:
                                for a in expr.args])
 
     def compute(self, init, time):
-        q = self.get_q(init)
+        q = self.get_q(init, self.qorder)
         # XXX:
         slope = ODE.replace(self.rvalue, self.lvalue.args[0], q)
         slope = slope.subs('t', time)
@@ -45,25 +51,48 @@ class ODE:
         return (S.Add(init, (S.Mul(slope, (t - self.env.now)))))
 
     def _taylor1(self, init, q, q2, quanta, count):
+        # XXX: Assuming the root of the polynomial is *always* close to
+        # "0"
         def get_d(q):
             # XXX: Note that partial derivatives are not supported. E.g.,
             # x'(t) = x(t) + y(t) is not supported for now.
             d = S.Symbol('d', positive=True, real=True)
             slope = ODE.replace(self.rvalue, self.lvalue.args[0], q)
+            dl = []
+            polynomial1 = S.Add(S.Add(S.Add(S.Mul(d, slope), init), (-q)),
+                                -quanta)
             # XXX: Assumption that the time line is called "t"
-            slope = self.rvalue.replace(self.lvalue.args[0], q).subs('t', d)
-            polynomial = S.Eq(S.Mul(d, slope), quanta)
-            dl = S.solve(polynomial, d)
+            polynomial1 = polynomial1.subs('t', d).expand()
+            # print('poly: ', polynomial1)
+            polynomial1 = S.Poly(polynomial1.subs('t', d))
+            soln = poly.polyroots([poly.mpf(a) for
+                                   a in polynomial1.all_coeffs()])
+            dl += [float(a) for a in soln
+                   if type(a) is poly.mpf and float(a) >= 0]
+            # The second polynomial
+            polynomial2 = S.Add(S.Add(S.Add(S.Mul(d, slope), init), (-q)),
+                                quanta)
+            # XXX: Assumption that the time line is called "t"
+            polynomial2 = S.Poly(polynomial2.subs('t', d))
+            soln = poly.polyroots([poly.mpf(a) for
+                                   a in polynomial2.all_coeffs()])
+            dl += [float(a) for a in soln
+                   if type(a) is poly.mpf and float(a) >= 0]
+            # XXX: This should never happen!
             if dl == []:
-                raise RuntimeError('No real solution for: ', polynomial)
+                raise NoRealRoots('No real solution for: ', polynomial1,
+                                  polynomial2,
+                                  '{:.2e}'.format(quanta))
             d = min(dl)
             return d
 
         d1 = get_d(q)
+        # print('doing q2: ', q2)
         d2 = get_d(q2)
         # print('trying quanta: ', quanta)
         if abs(d1 - d2) <= self.ttol:
-            # print(quanta, d1, d2)
+            quanta = '{:.2e}'.format(quanta)
+            print('chosen quanta: %s' % quanta)
             return d1
         elif count < self.iterations:
             # If the delta step results in output that is within the
@@ -73,11 +102,13 @@ class ODE:
             # progression. This is the same as RK-2(3) solver
             newquanta = 0.8 * pow(self.ttol / abs(d1 - d2), 1.0/2)
             quanta = newquanta if newquanta <= quanta else 0.5*quanta
+            # print('new quanta: ', quanta)
             return self._taylor1(init, q, q2, quanta, (count+1))
         else:
             raise RuntimeError('Could not find delta that satisfies '
-                               'the user specified error bound: %s %s %s'
-                               % (self.ttol, d1, d2))
+                               'the user specified error bound: '
+                               '%s %s %s %s %s %s'
+                               % (self.ttol, d1, d2, q, q2, quanta))
 
     def _taylor(self, init, q, q2, quanta):
         if self.torder == 1:
@@ -86,13 +117,13 @@ class ODE:
         elif self.torder > 1:
             raise RuntimeError('Currently only first order taylor supported')
 
-    def get_q(self, init):
+    def get_q(self, init, order):
         # First calculate the q(t) given the qorder
-        if self.qorder == 1:
+        if order == 1:
             q = init
-        elif self.qorder == 2:
+        elif order == 2:
             q = self._delta2(init)
-        elif self.qorder > 2:
+        elif order > 2:
             raise RuntimeError('Curretly only upto QSS2 is supported')
         return q
 
@@ -102,8 +133,10 @@ class ODE:
         step-size that is within the user specified error.
 
         """
-        q = self.get_q(init)
-        q2 = self._delta2(init)
+        q = self.get_q(init, self.qorder)
+        q2 = self.get_q(init, self.qorder+1)
+        # DEBUG
+        # print('q: %s, q2: %s' % (q, q2))
         # Now do the taylor series
         delta = self._taylor(init, q, q2, quanta)
         # print('Computed delta: ', delta)
