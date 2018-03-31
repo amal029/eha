@@ -102,7 +102,7 @@ def main():
     env.process(ha(env))
     # Run the simulation until all events in the queue are processed.
     # Make it some number to halt simulation after sometime.
-    env.run(until=3.5)
+    env.run(until=2.5)
 
 
 if __name__ == '__main__':

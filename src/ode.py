@@ -59,6 +59,7 @@ class ODE:
             if (type(polynomial1) is S.Float):
                 return None
             polynomial1 = S.Poly(polynomial1)
+            # print(polynomial1)
             soln = poly.polyroots([poly.mpf(a) for
                                    a in polynomial1.all_coeffs()])
             # XXX: This is carried out when this gets called from
@@ -73,6 +74,7 @@ class ODE:
             polynomial2 = S.Add(part_poly, quanta)
             # XXX: Assumption that the time line is called "t"
             polynomial2 = S.Poly(polynomial2.subs('t', d))
+            # print(polynomial2)
             soln = poly.polyroots([poly.mpf(a) for
                                    a in polynomial2.all_coeffs()])
             # XXX: This is carried out when this gets called from
@@ -84,16 +86,6 @@ class ODE:
             dl += [float(a) for a in soln
                    if type(a) is poly.mpf and float(a) >= 0]
             return dl
-
-        def handle_imaginary_roots(part_poly, d):
-            part_poly = part_poly.subs('t', d).expand()
-            # XXX: Get all the coefficients
-            coeffs = S.Poly(part_poly).all_coeffs()
-            # Now get the new Δq
-            nquanta = abs(coeffs[2] - (pow(coeffs[1], 2)/(4.0*coeffs[0])))
-            # Solve and just ignore the imaginary part
-            return (compute_delta(part_poly, d, [], nquanta, ignore_imag=True),
-                    nquanta)
 
         def get_d(q):
             # XXX: Note that partial derivatives are not supported. E.g.,
@@ -108,20 +100,15 @@ class ODE:
             if dl is None:
                 return None     # The constant slope case
             elif dl == []:
-                # XXX: We will try to handle quadratic polynomials
-                # giving imaginary only solutions.
-                nquanta = quanta
-                if S.degree(part_poly.subs('t', d).expand(), d) == 2:
-                    dl, nquanta = handle_imaginary_roots(part_poly, d)
-                if dl == []:
-                    raise NoRealRoots('No real positive root for: ',
-                                      S.Eq(part_poly.subs('t', d).expand(),
-                                           nquanta),
-                                      '{:.2e}'.format(nquanta))
+                raise NoRealRoots('No real positive root for: ',
+                                  S.Eq(part_poly.subs('t', d).expand(),
+                                       quanta), '{:.2e}'.format(quanta))
             d = min(dl)
             return d
 
+        # print('getting δ1')
         d1 = get_d(q)
+        # print('getting δ2')
         d2 = get_d(q2)
         if d2 is None:
             # d1s = '{:.2e}'.format(d1)
@@ -129,10 +116,10 @@ class ODE:
             # print('chosen Δq: %s δ: %s' % (quanta, d1s))
             return d1
         elif abs(d1 - d2) <= self.ttol:
-            # d1s = '{:.2e}'.format(d1)
-            # d2s = '{:.2e}'.format(d2)
+            d1s = '{:.2e}'.format(d1)
+            d2s = '{:.2e}'.format(d2)
             quanta = '{:.2e}'.format(quanta)
-            # print('chosen Δq: %s δ1: %s δ2: %s' % (quanta, d1s, d2s))
+            print('chosen Δq: %s δ1: %s δ2: %s' % (quanta, d1s, d2s))
             return d1
         elif count < self.iterations:
             # If the delta step results in output that is within the
@@ -140,6 +127,7 @@ class ODE:
             # quanta and keep on doing this until number of iterations
             # is met. This is reducing the quanta in a geometric
             # progression. This is the same as RK-2(3) solver
+            # print('old quanta: ', quanta)
             newquanta = 0.8 * pow(self.ttol / abs(d1 - d2), 1.0/2)
             quanta = newquanta if newquanta <= quanta else 0.5*quanta
             # print('new quanta: ', quanta)
@@ -176,9 +164,15 @@ class ODE:
         """
         q = self.get_q(init, self.qorder)
         q2 = self.get_q(init, self.qorder+1)
-        # DEBUG
-        # print('q: %s, q2: %s' % (q, q2))
-        # Now do the taylor series
+        # XXX: This only works for LTI systems! What this says is that
+        # linear and quadratic equations will give the same solution for
+        # a very large δq value!. XXX: The below is done, because one
+        # will see these sudden jumps when the cont value appraoches the
+        # level.
+        slope = ODE.replace(self.rvalue, self.lvalue.args[0], q)
+        if not (abs((quanta - (slope*self.env.now))) > 0.05) and quanta > 0.1:
+            print('sub: ', abs((quanta - (slope*self.env.now))))
+            quanta = 0.1
         delta = self._taylor(init, q, q2, quanta)
         # print('Computed delta: ', delta)
         return delta
