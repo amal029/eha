@@ -13,8 +13,6 @@ class ODE:
 
     """
 
-    MAX_DELTA = 0.1
-
     def __init__(self, env, lvalue, rvalue, qorder=1, torder=1,
                  iterations=20, vtol=10**-4, ttol=10**-2):
         """The quantized state order and taylor series order by default is 1.
@@ -124,8 +122,8 @@ class ODE:
         elif abs(d1 - d2) <= self.ttol:
             d1s = '{:.2e}'.format(d1)
             d2s = '{:.2e}'.format(d2)
-            quanta = '{:.2e}'.format(quanta)
-            print('chosen Δq: %s δ1: %s δ2: %s' % (quanta, d1s, d2s))
+            pquanta = '{:.2e}'.format(quanta)
+            print('chosen Δq: %s δ1: %s δ2: %s' % (pquanta, d1s, d2s))
             return d1, quanta
         elif count < self.iterations:
             # If the delta step results in output that is within the
@@ -175,7 +173,7 @@ class ODE:
         # XXX: HACK for sudden jumps
         if (not (type(self.rvalue) is S.Float
                  or type(self.rvalue) is S.Integer) and
-            float(nquanta) > ODE.MAX_DELTA):
+            abs(float(nquanta) - quanta) == 0):
             print('halved the quanta')
             delta, _ = self._taylor(init, q, q2, quanta*0.5)
         return delta
