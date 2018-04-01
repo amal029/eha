@@ -1,6 +1,7 @@
 import sympy as S
 # import numpy.polynomial.polynomial as poly
 import mpmath as poly
+import warnings as W
 
 
 class NoRealRoots(Exception):
@@ -11,6 +12,7 @@ class ODE:
     """This class represents the ODEs and associated computation of time.
 
     """
+
     def __init__(self, env, lvalue, rvalue, qorder=1, torder=1,
                  iterations=20, vtol=10**-4, ttol=10**-2):
         """The quantized state order and taylor series order by default is 1.
@@ -92,10 +94,12 @@ class ODE:
             # x'(t) = x(t) + y(t) is not supported for now.
             d = S.Symbol('d', positive=True, real=True)
             slope = ODE.replace(self.rvalue, self.lvalue.args[0], q)
+            # print('slope: ', slope)
             # XXX: IMP CHANGE!
             # XXX: Here I am chaning QSS to compare with a constant
             # level not qith "Q"
             part_poly = S.Add(S.Add(S.Mul(d, slope), init), (-init))
+            # print('ppoly: ', part_poly)
             dl = compute_delta(part_poly, d, [], quanta)
             if dl is None:
                 return None     # The constant slope case
@@ -114,23 +118,24 @@ class ODE:
             # d1s = '{:.2e}'.format(d1)
             # quanta = '{:.2e}'.format(quanta)
             # print('chosen Δq: %s δ: %s' % (quanta, d1s))
-            return d1
+            return d1, quanta
         elif abs(d1 - d2) <= self.ttol:
             d1s = '{:.2e}'.format(d1)
             d2s = '{:.2e}'.format(d2)
             quanta = '{:.2e}'.format(quanta)
             print('chosen Δq: %s δ1: %s δ2: %s' % (quanta, d1s, d2s))
-            return d1
+            return d1, quanta
         elif count < self.iterations:
             # If the delta step results in output that is within the
             # user defined error bounds then great. Else, half the
             # quanta and keep on doing this until number of iterations
             # is met. This is reducing the quanta in a geometric
-            # progression. This is the same as RK-2(3) solver
-            # print('old quanta: ', quanta)
-            newquanta = 0.8 * pow(self.ttol / abs(d1 - d2), 1.0/2)
+            # progression.
+
+            # XXX: Adaptive Stepsize Runge-Kutta Integration William H.
+            # Press, and Saul A. Teukolsky
+            newquanta = d1 * pow(abs(self.ttol / (d1 - d2)), 1.0/2)
             quanta = newquanta if newquanta <= quanta else 0.5*quanta
-            # print('new quanta: ', quanta)
             return self._taylor1(init, q, q2, quanta, (count+1))
         else:
             raise RuntimeError('Could not find delta that satisfies '
@@ -164,17 +169,7 @@ class ODE:
         """
         q = self.get_q(init, self.qorder)
         q2 = self.get_q(init, self.qorder+1)
-        # XXX: This only works for LTI systems! What this says is that
-        # linear and quadratic equations will give the same solution for
-        # a very large δq value!. XXX: The below is done, because one
-        # will see these sudden jumps when the cont value appraoches the
-        # level.
-        slope = ODE.replace(self.rvalue, self.lvalue.args[0], q)
-        if not (abs((quanta - (slope*self.env.now))) > 0.05) and quanta > 0.1:
-            print('sub: ', abs((quanta - (slope*self.env.now))))
-            quanta = 0.1
-        delta = self._taylor(init, q, q2, quanta)
-        # print('Computed delta: ', delta)
+        delta, _ = self._taylor(init, q, q2, quanta)
         return delta
 
     def __str__(self):

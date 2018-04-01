@@ -15,11 +15,11 @@ def ha(env, cstate=0):
     # The continous variables used in this ha
     x = 2                       # The initial value
     loc1_ode = ODE(env, lvalue=S.sympify('diff(x(t))'),
-                   rvalue=S.sympify('x(t)+1'),
-                   ttol=10**-3, iterations=100)
+                   rvalue=S.sympify('50*x(t)+2'),
+                   ttol=10**-4, iterations=100)
     loc2_ode = ODE(env, S.sympify('diff(x(t))'),
                    S.sympify('-2*x(t)'),
-                   ttol=10**-3, iterations=100)
+                   ttol=10**-4, iterations=100)
     loc1_FT = False
     loc2_FT = False
 
@@ -33,6 +33,8 @@ def ha(env, cstate=0):
         # The edge guard takes preference
         if x >= 5:
             print('%7.4f %7.4f' % (curr_time, x))
+            # import sys
+            # sys.exit(1)
             return 1, 0, x, None, True, curr_time
         # The invariant
         elif x <= 5:
@@ -102,7 +104,7 @@ def main():
     env.process(ha(env))
     # Run the simulation until all events in the queue are processed.
     # Make it some number to halt simulation after sometime.
-    env.run(until=2.5)
+    env.run(until=5)
 
 
 if __name__ == '__main__':
