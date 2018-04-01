@@ -13,6 +13,8 @@ class ODE:
 
     """
 
+    MAX_DELTA = 0.1
+
     def __init__(self, env, lvalue, rvalue, qorder=1, torder=1,
                  iterations=20, vtol=10**-4, ttol=10**-2):
         """The quantized state order and taylor series order by default is 1.
@@ -169,7 +171,13 @@ class ODE:
         """
         q = self.get_q(init, self.qorder)
         q2 = self.get_q(init, self.qorder+1)
-        delta, _ = self._taylor(init, q, q2, quanta)
+        delta, nquanta = self._taylor(init, q, q2, quanta)
+        # XXX: HACK for sudden jumps
+        if (not (type(self.rvalue) is S.Float
+                 or type(self.rvalue) is S.Integer) and
+            float(nquanta) > ODE.MAX_DELTA):
+            print('halved the quanta')
+            delta, _ = self._taylor(init, q, q2, quanta*0.5)
         return delta
 
     def __str__(self):
