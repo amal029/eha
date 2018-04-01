@@ -16,10 +16,10 @@ def ha(env, cstate=0):
     x = 2                       # The initial value
     loc1_ode = ODE(env, lvalue=S.sympify('diff(x(t))'),
                    rvalue=S.sympify('50*x(t)+2'),
-                   ttol=10**-4, iterations=100)
+                   ttol=10**-3, iterations=100)
     loc2_ode = ODE(env, S.sympify('diff(x(t))'),
                    S.sympify('-2*x(t)'),
-                   ttol=10**-4, iterations=100)
+                   ttol=10**-3, iterations=100)
     loc1_FT = False
     loc2_FT = False
 

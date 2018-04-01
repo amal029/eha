@@ -13,6 +13,8 @@ class ODE:
 
     """
 
+    MAX_QUANTA = 1.0
+
     def __init__(self, env, lvalue, rvalue, qorder=1, torder=1,
                  iterations=20, vtol=10**-4, ttol=10**-2):
         """The quantized state order and taylor series order by default is 1.
@@ -53,7 +55,7 @@ class ODE:
         return (S.Add(init, (S.Mul(slope, (t - self.env.now)))))
 
     def _taylor1(self, init, q, q2, quanta, count):
-        def compute_delta(part_poly, d, dl, quanta, ignore_imag=False):
+        def compute_delta(part_poly, d, dl, quanta):
             polynomial1 = S.Add(part_poly, -quanta)
             # XXX: Assumption that the time line is called "t"
             polynomial1 = polynomial1.expand().subs('t', d)
@@ -64,29 +66,18 @@ class ODE:
             # print(polynomial1)
             soln = poly.polyroots([poly.mpf(a) for
                                    a in polynomial1.all_coeffs()])
-            # XXX: This is carried out when this gets called from
-            # handle_imaginary_roots, because of numerical root finding,
-            # the imaginary component can still exist, but be very
-            # small.
-            if ignore_imag:
-                soln = [poly.re(a) for a in soln]
             dl += [float(a) for a in soln
                    if type(a) is poly.mpf and float(a) >= 0]
-            # The second polynomial
-            polynomial2 = S.Add(part_poly, quanta)
-            # XXX: Assumption that the time line is called "t"
-            polynomial2 = S.Poly(polynomial2.subs('t', d))
-            # print(polynomial2)
-            soln = poly.polyroots([poly.mpf(a) for
-                                   a in polynomial2.all_coeffs()])
-            # XXX: This is carried out when this gets called from
-            # handle_imaginary_roots, because of numerical root finding,
-            # the imaginary component can still exist, but be very
-            # small.
-            if ignore_imag:
-                soln = [poly.re(a) for a in soln]
-            dl += [float(a) for a in soln
-                   if type(a) is poly.mpf and float(a) >= 0]
+            if quanta < 0:
+                # The second polynomial
+                polynomial2 = S.Add(part_poly, quanta)
+                # XXX: Assumption that the time line is called "t"
+                polynomial2 = S.Poly(polynomial2.subs('t', d))
+                # print(polynomial2)
+                soln = poly.polyroots([poly.mpf(a) for
+                                       a in polynomial2.all_coeffs()])
+                dl += [float(a) for a in soln
+                       if type(a) is poly.mpf and float(a) >= 0]
             return dl
 
         def get_d(q):
@@ -161,7 +152,7 @@ class ODE:
             raise RuntimeError('Curretly only upto QSS2 is supported')
         return q
 
-    def delta(self, init, quanta=0.1):
+    def delta(self, init, quanta=MAX_QUANTA):
         """This is the main function that returns back the delta step-size.
         Arguments: The initial value of the ode. Returns: The delta
         step-size that is within the user specified error.
@@ -173,7 +164,7 @@ class ODE:
         # XXX: HACK for sudden jumps
         if (not (type(self.rvalue) is S.Float
                  or type(self.rvalue) is S.Integer) and
-            abs(float(nquanta) - quanta) == 0):
+            float(nquanta) == quanta and quanta > ODE.MAX_QUANTA):
             print('halved the quanta')
             delta, _ = self._taylor(init, q, q2, quanta*0.5)
         return delta
