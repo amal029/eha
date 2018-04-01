@@ -1,7 +1,6 @@
 import sympy as S
 # import numpy.polynomial.polynomial as poly
 import mpmath as poly
-import warnings as W
 
 
 class NoRealRoots(Exception):
@@ -43,16 +42,27 @@ class ODE:
                                for a in expr.args])
 
     def compute(self, init, time):
-        q = self.get_q(init, self.qorder)
-        # XXX:
-        slope = ODE.replace(self.rvalue, self.lvalue.args[0], q)
+        # Now init is a dictionary of all the required initial values.
+        slope = self.rvalue
+        for k in init:
+            slope = ODE.replace(slope, k, init[k])
         slope = slope.subs('t', time)
-        return init + float(slope)*time
+        return init[self.lvalue.args[0]] + float(slope)*time
+
+    def _delta1(self, init):
+        slope = self.rvalue
+        for k in init:
+            slope = ODE.replace(slope, k, init[k])
+        return slope
 
     def _delta2(self, init):
-        slope = ODE.replace(self.rvalue, self.lvalue.args[0], init)
+        # slope = ODE.replace(self.rvalue, self.lvalue.args[0], init)
+        slope = self.rvalue
+        for k in init:
+            slope = ODE.replace(slope, k, init[k])
         t = S.Symbol('t')
-        return (S.Add(init, (S.Mul(slope, (t - self.env.now)))))
+        return (S.Add(init[self.lvalue.args[0]],
+                      (S.Mul(slope, (t - self.env.now)))))
 
     def _taylor1(self, init, q, q2, quanta, count):
         def compute_delta(part_poly, d, dl, quanta):
@@ -81,15 +91,11 @@ class ODE:
             return dl
 
         def get_d(q):
-            # XXX: Note that partial derivatives are not supported. E.g.,
-            # x'(t) = x(t) + y(t) is not supported for now.
             d = S.Symbol('d', positive=True, real=True)
-            slope = ODE.replace(self.rvalue, self.lvalue.args[0], q)
-            # print('slope: ', slope)
-            # XXX: IMP CHANGE!
-            # XXX: Here I am chaning QSS to compare with a constant
-            # level not qith "Q"
-            part_poly = S.Add(S.Add(S.Mul(d, slope), init), (-init))
+            # XXX: IMP CHANGE! Here I am chaning QSS to compare with a
+            # constant level not qith "Q". Note that q is the slope
+            # itself.
+            part_poly = S.Mul(d, q)
             # print('ppoly: ', part_poly)
             dl = compute_delta(part_poly, d, [], quanta)
             if dl is None:
@@ -145,7 +151,7 @@ class ODE:
     def get_q(self, init, order):
         # First calculate the q(t) given the qorder
         if order == 1:
-            q = init
+            q = self._delta1(init)
         elif order == 2:
             q = self._delta2(init)
         elif order > 2:
