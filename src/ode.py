@@ -1,5 +1,4 @@
 import sympy as S
-# import numpy.polynomial.polynomial as poly
 import mpmath as poly
 
 
