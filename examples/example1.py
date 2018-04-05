@@ -40,13 +40,15 @@ def ha(env, cstate=0):
         elif x <= 5:
             # Compute the x value and print it.
             if not loc1_FT:
-                x = loc1_ode.compute(x, curr_time-prev_time)
+                x = loc1_ode.compute({S.sympify('x(t)'): x},
+                                     curr_time-prev_time)
                 loc1_FT = True
             print('%7.7f %7.7f' % (curr_time, x))
             # XXX: Call the ODE class that will give the delta back iff
             # the calculated "x" is greater than the error.
             if abs(x-5) > loc1_ode.vtol:
-                delta = loc1_ode.delta(x, (5-x))
+                delta = loc1_ode.delta({S.sympify('x(t)'): x},
+                                       (5-x))
             else:
                 # If within the error bound just make it 10
                 x = 5
@@ -65,12 +67,14 @@ def ha(env, cstate=0):
         elif x >= 1:
             # TODO: Call the ODE class to get delta
             if not loc2_FT:
-                x = loc2_ode.compute(x, curr_time-prev_time)
+                x = loc2_ode.compute({S.sympify('x(t)'): x},
+                                     curr_time-prev_time)
             print('%7.7f %7.7f' % (curr_time, x))
             # If the output is outside the error margin then bother
             # recomputing a new delta.
             if abs(x-1) > loc2_ode.vtol:
-                delta = loc2_ode.delta(x, (1 - x))
+                delta = loc2_ode.delta({S.sympify('x(t)'): x},
+                                       (1 - x))
             else:
                 # If within error bound then just make it the level.
                 x = 1
