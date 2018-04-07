@@ -167,9 +167,9 @@ class ODE:
         q2 = self.get_q(init, self.qorder+1)
         delta, nquanta = self._taylor(init, q, q2, quanta)
         # XXX: HACK for sudden jumps
-        if (not (type(self.rvalue) is S.Float
-                 or type(self.rvalue) is S.Integer) and
-            float(nquanta) == quanta and quanta > ODE.MAX_QUANTA):
+        if ((not (type(self.rvalue) is S.Float
+                  or type(self.rvalue) is S.Integer) and
+             float(nquanta) == quanta and quanta > ODE.MAX_QUANTA)):
             print('halved the quanta')
             delta, _ = self._taylor(init, q, q2, quanta*0.5)
         return delta
