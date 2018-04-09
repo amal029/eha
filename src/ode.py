@@ -49,10 +49,10 @@ class ODE:
         return init[self.lvalue.args[0]] + float(slope)*time
 
     def _delta1(self, init):
-        slope = self.rvalue
-        for k in init:
-            slope = ODE.replace(slope, k, init[k])
-        return slope
+        # slope = self.rvalue
+        # for k in init:
+        #     slope = ODE.replace(slope, k, init[k])
+        return init[self.lvalue.args[0]]
 
     def _delta2(self, init):
         # slope = ODE.replace(self.rvalue, self.lvalue.args[0], init)
@@ -91,10 +91,14 @@ class ODE:
 
         def get_d(q):
             d = S.Symbol('d', positive=True, real=True)
+            # XXX: My rvalue can depend upon a whole vector os q's
+            slope = self.rvalue
+            for k in q:
+                slope = ODE.replace(slope, k, q[k])
             # XXX: IMP CHANGE! Here I am chaning QSS to compare with a
             # constant level not qith "Q". Note that q is the slope
             # itself.
-            part_poly = S.Mul(d, q)
+            part_poly = S.Mul(d, slope)
             # print('ppoly: ', part_poly)
             dl = compute_delta(part_poly, d, [], quanta)
             if dl is None:
@@ -157,21 +161,27 @@ class ODE:
             raise RuntimeError('Curretly only upto QSS2 is supported')
         return q
 
-    def delta(self, init, quanta=MAX_QUANTA):
+    def delta(self, init, other_odes=None, quanta=MAX_QUANTA):
         """This is the main function that returns back the delta step-size.
         Arguments: The initial value of the ode. Returns: The delta
         step-size that is within the user specified error.
 
         """
-        q = self.get_q(init, self.qorder)
-        q2 = self.get_q(init, self.qorder+1)
-        delta, nquanta = self._taylor(init, q, q2, quanta)
+        # These two are me
+        qs = {self.lvalue.args[0]: self.get_q(init, self.qorder)}
+        q2s = {self.lvalue.args[0]: self.get_q(init, self.qorder+1)}
+        # These are the other odes
+        if other_odes is not None:
+            for ode in other_odes:
+                qs[ode.lvalue.args[0]] = ode.get_q(init, ode.qorder)
+                q2s[ode.lvalue.args[0]] = ode.get_q(init, ode.qorder+1)
+        delta, nquanta = self._taylor(init, qs, q2s, quanta)
         # XXX: HACK for sudden jumps
         if ((not (type(self.rvalue) is S.Float
                   or type(self.rvalue) is S.Integer) and
              float(nquanta) == quanta and quanta > ODE.MAX_QUANTA)):
             print('halved the quanta')
-            delta, _ = self._taylor(init, q, q2, quanta*0.5)
+            delta, _ = self._taylor(init, qs, q2s, quanta*0.5)
         return delta
 
     def __str__(self):

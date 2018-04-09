@@ -60,7 +60,8 @@ def ha(env, cstate=0):
             if abs(x-5) > loc1_xode.vtol:
                 x_delta = loc1_xode.delta({S.sympify('y(t)'): y,
                                            S.sympify('x(t)'): x},
-                                          (5-x))
+                                          quanta=(5-x),
+                                          other_odes=[loc1_yode])
                 # DEBUG
                 print('xδ: ', x_delta)
             else:
@@ -71,7 +72,8 @@ def ha(env, cstate=0):
             if abs(y-3) > loc1_yode.vtol:
                 y_delta = loc1_yode.delta({S.sympify('y(t)'): y,
                                            S.sympify('x(t)'): x},
-                                          (3-y))
+                                          quanta=(3-y),
+                                          other_odes=[loc1_xode])
                 # DEBUG
                 print('yδ: ', y_delta)
             else:
@@ -105,7 +107,8 @@ def ha(env, cstate=0):
             if abs(x-1) > loc2_xode.vtol:
                 x_delta = loc2_xode.delta({S.sympify('y(t)'): y,
                                            S.sympify('x(t)'): x},
-                                          (1 - x))
+                                          quanta=(1 - x),
+                                          other_odes=[loc2_yode])
             else:
                 # If within error bound then just make it the level.
                 x = 1
@@ -114,7 +117,8 @@ def ha(env, cstate=0):
             if abs(y-1) > loc2_yode.vtol:
                 y_delta = loc2_yode.delta({S.sympify('y(t)'): y,
                                            S.sympify('x(t)'): x},
-                                          (1 - y))
+                                          quanta=(1 - y),
+                                          other_odes=[loc2_xode])
             else:
                 # If within error bound then just make it the level.
                 y = 1
