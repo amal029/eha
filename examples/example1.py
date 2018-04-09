@@ -48,7 +48,7 @@ def ha(env, cstate=0):
             # the calculated "x" is greater than the error.
             if abs(x-5) > loc1_ode.vtol:
                 delta = loc1_ode.delta({S.sympify('x(t)'): x},
-                                       (5-x))
+                                       quanta=(5-x))
             else:
                 # If within the error bound just make it 10
                 x = 5
@@ -74,7 +74,7 @@ def ha(env, cstate=0):
             # recomputing a new delta.
             if abs(x-1) > loc2_ode.vtol:
                 delta = loc2_ode.delta({S.sympify('x(t)'): x},
-                                       (1 - x))
+                                       quanta=(1 - x))
             else:
                 # If within error bound then just make it the level.
                 x = 1

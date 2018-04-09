@@ -68,6 +68,7 @@ class ODE:
             polynomial1 = S.Add(part_poly, -quanta)
             # XXX: Assumption that the time line is called "t"
             polynomial1 = polynomial1.expand().subs('t', d)
+            # print(polynomial1)
             # If "δ" vanishes after exapansion then just return None
             if (type(polynomial1) is S.Float):
                 return None
@@ -92,14 +93,15 @@ class ODE:
         def get_d(q):
             d = S.Symbol('d', positive=True, real=True)
             # XXX: My rvalue can depend upon a whole vector os q's
+            # TODO: Convert it into a taylor series
             slope = self.rvalue
             for k in q:
                 slope = ODE.replace(slope, k, q[k])
             # XXX: IMP CHANGE! Here I am chaning QSS to compare with a
             # constant level not qith "Q". Note that q is the slope
             # itself.
-            part_poly = S.Mul(d, slope)
-            # print('ppoly: ', part_poly)
+            # part_poly = S.Mul(d, slope)
+            print('ppoly: ', part_poly)
             dl = compute_delta(part_poly, d, [], quanta)
             if dl is None:
                 return None     # The constant slope case
