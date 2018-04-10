@@ -15,7 +15,7 @@ def ha(env, cstate=0):
     # The continous variables used in this ha
     x = 2                       # The initial value
     loc1_ode = ODE(env, lvalue=S.sympify('diff(x(t))'),
-                   rvalue=S.sympify('cos(x(t))+2'),
+                   rvalue=S.sympify('sin(cos(x(t)))+2'),
                    ttol=10**-3, iterations=100)
     loc2_ode = ODE(env, S.sympify('diff(x(t))'),
                    S.sympify('-2*x(t)'),

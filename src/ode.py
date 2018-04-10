@@ -12,12 +12,24 @@ class ODE:
     """
 
     MAX_QUANTA = 1.0
+    NUM_TERMS = 3               # This should be adjustable
+
+    TRIG_FUNCS = [S.sin, S.cos, S.tan, S.cot, S.sec, S.csc]
+    INV_TRIG_FUNCS = [S.asin, S.acos, S.atan, S.acot, S.asec, S.acsc, S.atan2]
+    HYPERBOLIC_FUNCS = [S.sinh, S.cosh, S.tanh, S.coth, S.sech, S.csch]
+    INV_HYPERBOLIC_FUNCS = [S.asinh, S.acosh, S.atanh, S.acoth, S.asech,
+                            S.acsch]
+    EXP_LOG = [S.exp, S.ln]
+    TRANSCEDENTAL_FUNCS = (TRIG_FUNCS + INV_TRIG_FUNCS + HYPERBOLIC_FUNCS +
+                           INV_HYPERBOLIC_FUNCS + EXP_LOG)
 
     def __init__(self, env, lvalue, rvalue, qorder=1, torder=1,
-                 iterations=20, vtol=10**-4, ttol=10**-2):
+                 iterations=20, vtol=10**-4, ttol=10**-2, taylor_expand=5,
+                 trans_funcs=[]):
         """The quantized state order and taylor series order by default is 1.
         The maximum number of back-stepping iterations is 20 be default.
-        The tolerance by default is 10^-2.
+        The tolerance by default is 10^-2. Taylor_expand gives the
+        number to terms that we expand transcendental function too.
 
         """
         self.env = env
@@ -28,6 +40,8 @@ class ODE:
         self.iterations = iterations
         self.vtol = vtol
         self.ttol = ttol
+        ODE.NUM_TERMS = taylor_expand
+        ODE.TRANSCEDENTAL_FUNCS += trans_funcs
 
     @staticmethod
     # XXX:
@@ -39,6 +53,25 @@ class ODE:
         else:
             return expr.func(*[ODE.replace(a, s, v)
                                for a in expr.args])
+
+    # XXX: Post order traversal
+    @staticmethod
+    def taylor_expand(expr, around=0):
+        if expr.args is ():
+            return expr
+        args = [ODE.taylor_expand(a) for a in expr.args]
+        if expr.func in ODE.TRANSCEDENTAL_FUNCS:
+            if len(args) != 1:
+                raise RuntimeError('Cannot create a taylor series '
+                                   'approximation of: ', expr)
+            else:
+                # XXX: Build the polynomial for arg
+                coeffs = poly.taylor(expr.func, around,
+                                     ODE.NUM_TERMS)[::-1]
+                coeffs = [(S.Mul(float(a), args[0])) for a in coeffs]
+                return S.Add(*coeffs)
+        else:
+            return expr.func(*args)
 
     def compute(self, init, time):
         # Now init is a dictionary of all the required initial values.
@@ -94,14 +127,15 @@ class ODE:
             d = S.Symbol('d', positive=True, real=True)
             # XXX: My rvalue can depend upon a whole vector os q's
             # TODO: Convert it into a taylor series
-            slope = self.rvalue
+            slope = ODE.taylor_expand(self.rvalue, self.taylor_expand)
+            # print('slope: ', slope)
             for k in q:
                 slope = ODE.replace(slope, k, q[k])
             # XXX: IMP CHANGE! Here I am chaning QSS to compare with a
             # constant level not qith "Q". Note that q is the slope
             # itself.
-            # part_poly = S.Mul(d, slope)
-            print('ppoly: ', part_poly)
+            part_poly = S.Mul(d, slope)
+            # print('ppoly: ', part_poly)
             dl = compute_delta(part_poly, d, [], quanta)
             if dl is None:
                 return None     # The constant slope case
