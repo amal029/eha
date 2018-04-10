@@ -127,7 +127,7 @@ class ODE:
             d = S.Symbol('d', positive=True, real=True)
             # XXX: My rvalue can depend upon a whole vector os q's
             # TODO: Convert it into a taylor series
-            slope = ODE.taylor_expand(self.rvalue, self.taylor_expand)
+            slope = ODE.taylor_expand(self.rvalue)
             # print('slope: ', slope)
             for k in q:
                 slope = ODE.replace(slope, k, q[k])
