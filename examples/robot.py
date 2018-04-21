@@ -16,13 +16,13 @@ def ha(env, cstate=0):
     delta = None               # None to cause failure
 
     # Some constants
-    v1 = 0.5
+    v1 = 0.005
     v2 = 0.4
     le = 2
 
     # The continous variables used in this ha
     x = 0                       # The initial value
-    y = 0                       # The initial value
+    y = 1                       # The initial value
     th = 0                       # The initial value
     ph = 1                       # The initial value
 
@@ -54,12 +54,12 @@ def ha(env, cstate=0):
                 S.sympify('ph(t)'): ph}
 
         # The edge guard takes preference
-        if ((y >= 2.8 or x >= 3.2) or (y <= -0.4 and x <= 2.8)):
+        if ((y >= 2.8 or x >= 3.2) or (y <= 0.8 and x <= 2.8)):
             print('%7.4f: %7.4f %7.4f %7.4f %7.4f' % (curr_time, x,
                                                       y, th, ph))
             return 1, 0, x, y, th, ph, None, True, curr_time
         # The invariant
-        elif not ((y >= 0.8 or x >= 3.2) or (y <= -0.4 and x <= 2.8)):
+        elif not ((y >= 2.8 or x >= 3.2) or (y <= 0.8 and x <= 2.8)):
             # Compute the x value and print it.
             if not loc1_FT:
                 x = loc1_ode_x.compute(vals, curr_time-prev_time)
@@ -86,20 +86,20 @@ def ha(env, cstate=0):
                 x = 2.8
                 dx = 0
 
-            if abs(y-0.4) > loc1_ode_x.vtol:
-                dy = loc1_ode_y.delta(vals, quanta=(abs(y-0.4)),
+            if abs(y-0.8) > loc1_ode_x.vtol:
+                dy = loc1_ode_y.delta(vals, quanta=(abs(0.4-y)),
                                       other_odes=[loc1_ode_x, loc1_ode_th,
                                                   loc1_ode_ph])
             else:
-                y = -0.4
+                y = 0.8
                 dy = 0
 
-            if abs(y-0.8) > loc1_ode_x.vtol:
-                dy = min(loc1_ode_y.delta(vals, quanta=(0.8-y),
+            if abs(y-2.8) > loc1_ode_x.vtol:
+                dy = min(loc1_ode_y.delta(vals, quanta=(2.8-y),
                                           other_odes=[loc1_ode_x, loc1_ode_th,
                                                       loc1_ode_ph]), dy)
             else:
-                y = 0.8
+                y = 2.8
                 dy = 0
             return 0, min(dx, dy), x, y, th, ph, False, None, curr_time
         else:
@@ -138,7 +138,7 @@ def main():
     env.process(ha(env))
     # Run the simulation until all events in the queue are processed.
     # Make it some number to halt simulation after sometime.
-    env.run(until=5)
+    env.run(until=15)
 
 
 if __name__ == '__main__':

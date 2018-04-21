@@ -110,7 +110,6 @@ class ODE:
             # XXX: Assumption that the time line is called "t"
             # print(polynomial1)
             polynomial1 = S.simplify(polynomial1.expand().subs('t', d)).evalf()
-            print(polynomial1)
             ppoly = polynomial1
             # XXX: Taking care of numerator and denominators after
             # expansion.
@@ -184,16 +183,18 @@ class ODE:
         d1 = get_d(q)
         # print('getting δ2')
         d2 = get_d(q2)
+        if d1 is None:
+            return S.oo, quanta
         if d2 is None:
             # d1s = '{:.2e}'.format(d1)
             # quanta = '{:.2e}'.format(quanta)
             # print('chosen Δq: %s δ: %s' % (quanta, d1s))
             return d1, quanta
         elif abs(d1 - d2) <= self.ttol:
-            # d1s = '{:.2e}'.format(d1)
-            # d2s = '{:.2e}'.format(d2)
-            # pquanta = '{:.2e}'.format(quanta)
-            # print('chosen Δq: %s δ1: %s δ2: %s' % (pquanta, d1s, d2s))
+            d1s = '{:.2e}'.format(d1)
+            d2s = '{:.2e}'.format(d2)
+            pquanta = '{:.2e}'.format(quanta)
+            print('chosen Δq: %s δ1: %s δ2: %s' % (pquanta, d1s, d2s))
             return d1, quanta
         elif count < self.iterations:
             # If the delta step results in output that is within the
@@ -211,7 +212,7 @@ class ODE:
             raise RuntimeError('Could not find delta that satisfies '
                                'the user specified error bound: '
                                'ε: %s δ1: %s δ2: %s Q1: %s Q2: %s '
-                               'Δq: %s'
+                               'Δq: %s. Increase interation count'
                                % (self.ttol, d1, d2, q, q2, quanta))
 
     def _taylor(self, init, q, q2, quanta):
