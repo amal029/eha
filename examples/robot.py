@@ -2,6 +2,7 @@
 
 import simpy
 import sympy as S
+import sys
 from src.ode import ODE
 
 step = 0
@@ -17,8 +18,8 @@ def ha(env, cstate=0):
     delta = None               # None to cause failure
 
     # Some constants
-    v1 = 30.0
-    v2 = -1.0
+    v1 = 30
+    v2 = -10.0
     le = 1
 
     # The continous variables used in this ha
@@ -55,12 +56,12 @@ def ha(env, cstate=0):
                 S.sympify('ph(t)'): ph}
 
         # The edge guard takes preference
-        if ((y >= 2.0 or x >= 3.2) or (y <= 0.8 and x <= 2.8)):
+        if ((y >= 1.8 and x <= 2.8) or (y <= 0.8 and x <= 2.8)):
             print('%7.4f: %7.4f %7.4f %7.4f %7.4f' % (curr_time, x,
                                                       y, th, ph))
             return 1, 0, x, y, th, ph, None, True, curr_time
         # The invariant
-        elif not ((y >= 2.0 or x >= 3.2) or (y <= 0.8 and x <= 2.8)):
+        elif not ((y >= 1.8 and x <= 2.8) or (y <= 0.8 and x <= 2.8)):
             # Compute the x value and print it.
             if not loc1_FT:
                 x = loc1_ode_x.compute(vals, curr_time-prev_time)
@@ -71,36 +72,38 @@ def ha(env, cstate=0):
             print('%7.4f: %7.4f %7.4f %7.4f %7.4f' % (curr_time, x,
                                                       y, th, ph))
             dx, dy = 0, 0
-            if abs(x-3.2) > loc1_ode_x.vtol:
-                dx = loc1_ode_x.delta(vals, quanta=(3.2-x),
-                                      other_odes=[loc1_ode_y, loc1_ode_th,
-                                                  loc1_ode_ph])
-            else:
-                x = 3.2
-                dx = 0
+            # if abs(x-3.2) > loc1_ode_x.vtol:
+            #     dx = loc1_ode_x.delta(vals, quanta=(3.2-x),
+            #                           other_odes=[loc1_ode_y, loc1_ode_th,
+            #                                       loc1_ode_ph])
+            # else:
+            #     x = 3.2
+            #     dx = 0
 
             if abs(x-2.8) > loc1_ode_x.vtol:
-                dx = min(loc1_ode_x.delta(vals, quanta=(2.8-x),
-                                          other_odes=[loc1_ode_y, loc1_ode_th,
-                                                      loc1_ode_ph]), dx)
+                dx = loc1_ode_x.delta(vals, quanta=(2.8-x),
+                                      other_odes=[loc1_ode_y, loc1_ode_th,
+                                                  loc1_ode_ph])
             else:
                 x = 2.8
                 dx = 0
 
             if abs(y-0.8) > loc1_ode_x.vtol:
-                dy = loc1_ode_y.delta(vals, quanta=(abs(0.4-y)),
+                dy = loc1_ode_y.delta(vals, quanta=(abs(0.8-y)),
                                       other_odes=[loc1_ode_x, loc1_ode_th,
                                                   loc1_ode_ph])
             else:
                 y = 0.8
                 dy = 0
 
-            if abs(y-2.0) > loc1_ode_x.vtol:
-                dy = min(loc1_ode_y.delta(vals, quanta=(2.8-y),
+            if abs(y-1.8) > loc1_ode_x.vtol:
+                # Purposely relaxing this value, else Python does not
+                # recurse correctly!
+                dy = min(loc1_ode_y.delta(vals, quanta=(1.8-y),
                                           other_odes=[loc1_ode_x, loc1_ode_th,
                                                       loc1_ode_ph]), dy)
             else:
-                y = 2.0
+                y = 1.8
                 dy = 0
             return 0, min(dx, dy), x, y, th, ph, False, None, curr_time
         else:
@@ -112,7 +115,6 @@ def ha(env, cstate=0):
         global step
         print('total steps: ', step+1)
         # Done
-        import sys
         sys.exit(1)
 
     # The dictionary for the switch statement.
@@ -137,6 +139,8 @@ def ha(env, cstate=0):
 def main():
     """
     """
+    # Need this for this example.
+    sys.setrecursionlimit(2000)
     env = simpy.Environment()
     env.process(ha(env))
     # Run the simulation until all events in the queue are processed.
