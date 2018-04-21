@@ -16,9 +16,9 @@ def ha(env, cstate=0):
     delta = None               # None to cause failure
 
     # Some constants
-    v1 = 0.005
-    v2 = 0.4
-    le = 2
+    v1 = 10.0
+    v2 = 10.0
+    le = 1
 
     # The continous variables used in this ha
     x = 0                       # The initial value
@@ -28,16 +28,16 @@ def ha(env, cstate=0):
 
     loc1_ode_x = ODE(env, lvalue=S.sympify('diff(x(t))'),
                      rvalue=S.sympify(S.sympify('cos(th(t))')*v1),
-                     ttol=10**-3, iterations=100)
+                     ttol=10**-3, iterations=1000)
     loc1_ode_y = ODE(env, S.sympify('diff(y(t))'),
                      S.sympify(S.sympify('sin(th(t))')*v1),
-                     ttol=10**-3, iterations=100)
+                     ttol=10**-3, iterations=1000)
     loc1_ode_th = ODE(env, S.sympify('diff(th(t))'),
                       S.sympify((S.sympify('tan(ph(t))')/le)*v1),
-                      ttol=10**-3, iterations=100)
+                      ttol=10**-3, iterations=1000)
     loc1_ode_ph = ODE(env, S.sympify('diff(ph(t))'),
                       S.sympify(v2),
-                      ttol=10**-3, iterations=100)
+                      ttol=10**-3, iterations=1000)
     loc1_FT = False
     loc2_FT = False
 
@@ -138,7 +138,7 @@ def main():
     env.process(ha(env))
     # Run the simulation until all events in the queue are processed.
     # Make it some number to halt simulation after sometime.
-    env.run(until=15)
+    env.run(until=3)
 
 
 if __name__ == '__main__':

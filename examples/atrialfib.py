@@ -308,7 +308,7 @@ def ha(env, cstate=0):
                                                             w, s, tau))
             return 3, 0, u, v, w, s, tau, None, True, None, None, curr_time
         # The invariant
-        elif u <= 0.3:
+        elif u <= 2.0:
             if not loc3_FT:
                 u = loc3_ode_u.compute(vals,
                                        curr_time-prev_time)
@@ -367,7 +367,7 @@ def main():
     env.process(ha(env))
     # Run the simulation until all events in the queue are processed.
     # Make it some number to halt simulation after sometime.
-    env.run(until=0.33)
+    env.run(until=1.6)
     print('total steps: ', step)
 
 

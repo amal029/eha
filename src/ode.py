@@ -11,7 +11,7 @@ class ODE:
 
     """
 
-    MAX_QUANTA = 1.0
+    MAX_QUANTA = 10**-2
     NUM_TERMS = 3               # This should be adjustable
 
     TRIG_FUNCS = [S.sin, S.cos, S.tan, S.cot, S.sec, S.csc]
@@ -191,10 +191,10 @@ class ODE:
             # print('chosen Δq: %s δ: %s' % (quanta, d1s))
             return d1, quanta
         elif abs(d1 - d2) <= self.ttol:
-            d1s = '{:.2e}'.format(d1)
-            d2s = '{:.2e}'.format(d2)
-            pquanta = '{:.2e}'.format(quanta)
-            print('chosen Δq: %s δ1: %s δ2: %s' % (pquanta, d1s, d2s))
+            # d1s = '{:.2e}'.format(d1)
+            # d2s = '{:.2e}'.format(d2)
+            # pquanta = '{:.2e}'.format(quanta)
+            # print('chosen Δq: %s δ1: %s δ2: %s' % (pquanta, d1s, d2s))
             return d1, quanta
         elif count < self.iterations:
             # If the delta step results in output that is within the
@@ -251,7 +251,7 @@ class ODE:
         if ((not (type(self.rvalue) is S.Float
                   or type(self.rvalue) is S.Integer) and
              float(nquanta) == quanta and quanta > ODE.MAX_QUANTA)):
-            print('halved the quanta')
+            # print('halved the quanta')
             delta, _ = self._taylor(init, qs, q2s, quanta*0.5)
         return delta
 
