@@ -67,9 +67,12 @@ class ODE:
                                    'approximation of: ', expr)
             else:
                 # XXX: Build the polynomial for arg
-                coeffs = poly.taylor(expr.func, around,
-                                     ODE.NUM_TERMS)[::-1]
-                coeffs = [(S.Mul(float(a), args[0])) for a in coeffs]
+                coeffs = poly.taylor(expr.func, around, ODE.NUM_TERMS)
+                # print(coeffs)
+                coeffs = [(S.Mul(float(a), S.Mul(*[args[0]
+                                                   for i in range(c)])))
+                          for c, a in enumerate(coeffs)]
+                # print(coeffs)
                 return S.Add(*coeffs)
         else:
             return expr.func(*args)
@@ -98,40 +101,70 @@ class ODE:
                       (S.Mul(slope, (t - self.env.now)))))
 
     def _taylor1(self, init, q, q2, quanta, count):
+        # XXX: CHECK IF THIS ALWAYS WORKS -- SEEMS TO
+        def is_den(x):
+            return (type(x) == S.Pow and x.args[1] == -1)
+
         def compute_delta(part_poly, d, dl, quanta):
             polynomial1 = S.Add(part_poly, -quanta)
             # XXX: Assumption that the time line is called "t"
-            polynomial1 = polynomial1.expand().subs('t', d)
             # print(polynomial1)
-            # If "δ" vanishes after exapansion then just return None
+            polynomial1 = S.simplify(polynomial1.expand().subs('t', d)).evalf()
+            print(polynomial1)
+            ppoly = polynomial1
+            # XXX: Taking care of numerator and denominators after
+            # expansion.
+            if type(polynomial1) == S.Mul:
+                if not is_den(polynomial1.args[0]):
+                    polynomial1 = polynomial1.args[0]  # Get just the numerator
+                else:
+                    polynomial1 = polynomial1.args[1]
+            # print('polynomial:', polynomial1)
+            # If "δ" vanishes after expansion then just return None
             if (type(polynomial1) is S.Float):
                 return None
             polynomial1 = S.Poly(polynomial1)
-            # print(polynomial1)
-            soln = poly.polyroots([poly.mpf(a) for
-                                   a in polynomial1.all_coeffs()])
+            try:
+                soln = poly.polyroots([poly.mpf(a) for
+                                       a in polynomial1.all_coeffs()])
+            except S.PolynomialError as e:
+                print('When trying to solve: ', ppoly)
+                raise e
             dl += [float(a) for a in soln
                    if type(a) is poly.mpf and float(a) >= 0]
-            if quanta < 0:
-                # The second polynomial
-                polynomial2 = S.Add(part_poly, quanta)
-                # XXX: Assumption that the time line is called "t"
-                polynomial2 = S.Poly(polynomial2.subs('t', d))
-                # print(polynomial2)
+            # The second polynomial
+            polynomial2 = S.Add(part_poly, quanta)
+            # XXX: Assumption that the time line is called "t"
+            polynomial2 = S.simplify(polynomial2.expand().subs('t', d)).evalf()
+            ppoly = polynomial2
+            # print(ppoly.args[0], ppoly.args[1])
+            if type(polynomial2) == S.Mul:
+                if not is_den(polynomial2.args[0]):
+                    polynomial2 = polynomial2.args[0]  # Get just the numerator
+                else:
+                    polynomial2 = polynomial2.args[1]
+            polynomial2 = S.poly(polynomial2)
+            try:
                 soln = poly.polyroots([poly.mpf(a) for
                                        a in polynomial2.all_coeffs()])
-                dl += [float(a) for a in soln
-                       if type(a) is poly.mpf and float(a) >= 0]
+            except S.PolynomialError as e:
+                print('When trying to solve: ', ppoly)
+                raise e
+            dl += [float(a) for a in soln
+                   if type(a) is poly.mpf and float(a) >= 0]
             return dl
 
         def get_d(q):
             d = S.Symbol('d', positive=True, real=True)
             # XXX: My rvalue can depend upon a whole vector os q's
             # TODO: Convert it into a taylor series
+            # print(self.rvalue, q)
             slope = ODE.taylor_expand(self.rvalue)
             # print('slope: ', slope)
+            # print(q)
             for k in q:
                 slope = ODE.replace(slope, k, q[k])
+            # print(slope)
             # XXX: IMP CHANGE! Here I am chaning QSS to compare with a
             # constant level not qith "Q". Note that q is the slope
             # itself.
@@ -157,10 +190,10 @@ class ODE:
             # print('chosen Δq: %s δ: %s' % (quanta, d1s))
             return d1, quanta
         elif abs(d1 - d2) <= self.ttol:
-            d1s = '{:.2e}'.format(d1)
-            d2s = '{:.2e}'.format(d2)
-            pquanta = '{:.2e}'.format(quanta)
-            print('chosen Δq: %s δ1: %s δ2: %s' % (pquanta, d1s, d2s))
+            # d1s = '{:.2e}'.format(d1)
+            # d2s = '{:.2e}'.format(d2)
+            # pquanta = '{:.2e}'.format(quanta)
+            # print('chosen Δq: %s δ1: %s δ2: %s' % (pquanta, d1s, d2s))
             return d1, quanta
         elif count < self.iterations:
             # If the delta step results in output that is within the
