@@ -16,8 +16,8 @@ def ha(env, cstate=0):
     delta = None               # None to cause failure
 
     # Some constants
-    v1 = 10.0
-    v2 = 10.0
+    v1 = 30.0
+    v2 = -1.0
     le = 1
 
     # The continous variables used in this ha
@@ -28,16 +28,16 @@ def ha(env, cstate=0):
 
     loc1_ode_x = ODE(env, lvalue=S.sympify('diff(x(t))'),
                      rvalue=S.sympify(S.sympify('cos(th(t))')*v1),
-                     ttol=10**-3, iterations=1000)
+                     ttol=10**-2, iterations=1000)
     loc1_ode_y = ODE(env, S.sympify('diff(y(t))'),
                      S.sympify(S.sympify('sin(th(t))')*v1),
-                     ttol=10**-3, iterations=1000)
+                     ttol=10**-2, iterations=1000)
     loc1_ode_th = ODE(env, S.sympify('diff(th(t))'),
                       S.sympify((S.sympify('tan(ph(t))')/le)*v1),
-                      ttol=10**-3, iterations=1000)
+                      ttol=10**-2, iterations=1000)
     loc1_ode_ph = ODE(env, S.sympify('diff(ph(t))'),
                       S.sympify(v2),
-                      ttol=10**-3, iterations=1000)
+                      ttol=10**-2, iterations=1000)
     loc1_FT = False
     loc2_FT = False
 
@@ -54,12 +54,12 @@ def ha(env, cstate=0):
                 S.sympify('ph(t)'): ph}
 
         # The edge guard takes preference
-        if ((y >= 2.8 or x >= 3.2) or (y <= 0.8 and x <= 2.8)):
+        if ((y >= 2.0 or x >= 3.2) or (y <= 0.8 and x <= 2.8)):
             print('%7.4f: %7.4f %7.4f %7.4f %7.4f' % (curr_time, x,
                                                       y, th, ph))
             return 1, 0, x, y, th, ph, None, True, curr_time
         # The invariant
-        elif not ((y >= 2.8 or x >= 3.2) or (y <= 0.8 and x <= 2.8)):
+        elif not ((y >= 2.0 or x >= 3.2) or (y <= 0.8 and x <= 2.8)):
             # Compute the x value and print it.
             if not loc1_FT:
                 x = loc1_ode_x.compute(vals, curr_time-prev_time)
@@ -94,12 +94,12 @@ def ha(env, cstate=0):
                 y = 0.8
                 dy = 0
 
-            if abs(y-2.8) > loc1_ode_x.vtol:
+            if abs(y-2.0) > loc1_ode_x.vtol:
                 dy = min(loc1_ode_y.delta(vals, quanta=(2.8-y),
                                           other_odes=[loc1_ode_x, loc1_ode_th,
                                                       loc1_ode_ph]), dy)
             else:
-                y = 2.8
+                y = 2.0
                 dy = 0
             return 0, min(dx, dy), x, y, th, ph, False, None, curr_time
         else:
@@ -107,9 +107,9 @@ def ha(env, cstate=0):
                                ' in location1')
 
     # Location 2 is end state in this example.
-    def location2(x, loc1_FT, loc2_FT, prev_time):
+    def location2(x, y, th, ph, loc1_FT, loc2_FT, prev_time):
         global step
-        print(step+1)
+        print('total steps: ', step+1)
         # Done
         import sys
         sys.exit(1)
@@ -128,6 +128,8 @@ def ha(env, cstate=0):
                                                             loc2_FT,
                                                             prev_time)
         # This should always be the final statement in this function
+        global step
+        step += 1
         yield env.timeout(delta)
 
 
@@ -138,7 +140,7 @@ def main():
     env.process(ha(env))
     # Run the simulation until all events in the queue are processed.
     # Make it some number to halt simulation after sometime.
-    env.run(until=3)
+    env.run(until=0.07)
 
 
 if __name__ == '__main__':

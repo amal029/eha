@@ -24,13 +24,13 @@ class ODE:
                            INV_HYPERBOLIC_FUNCS + EXP_LOG)
 
     def __init__(self, env, lvalue, rvalue, qorder=1, torder=1,
-                 iterations=20, vtol=10**-4, ttol=10**-2, taylor_expand=5,
+                 iterations=20, vtol=10**-4, ttol=10**-2, taylor_expand=3,
                  trans_funcs=[]):
         """The quantized state order and taylor series order by default is 1.
         The maximum number of back-stepping iterations is 20 be default.
         The tolerance by default is 10^-2. taylor_expand gives the
         number to terms that we expand transcendental function too,
-        default 5.
+        default 3.
 
         """
         self.env = env
@@ -250,7 +250,7 @@ class ODE:
         # XXX: HACK for sudden jumps
         if ((not (type(self.rvalue) is S.Float
                   or type(self.rvalue) is S.Integer) and
-             float(nquanta) == quanta and quanta > ODE.MAX_QUANTA)):
+             float(nquanta) == quanta and abs(quanta) > ODE.MAX_QUANTA)):
             # print('halved the quanta')
             delta, _ = self._taylor(init, qs, q2s, quanta*0.5)
         return delta
