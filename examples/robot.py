@@ -5,6 +5,7 @@ import sympy as S
 from src.ode import ODE
 
 step = 0
+# TAKES 24 steps
 
 
 def ha(env, cstate=0):
