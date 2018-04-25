@@ -56,12 +56,12 @@ def ha(env, cstate=0):
                 S.sympify('ph(t)'): ph}
 
         # The edge guard takes preference
-        if ((y >= 1.8 and x <= 0.85) or (y <= 0.8 and x <= 0.85)):
+        if ((y >= 1.74 and x <= 0.838373) or (y <= 0.8 and x <= 0.838373)):
             print('%7.4f: %7.4f %7.4f %7.4f %7.4f' % (curr_time, x,
                                                       y, th, ph))
             return 1, 0, x, y, th, ph, None, True, curr_time
         # The invariant
-        elif not ((y >= 1.8 and x <= 0.85) or (y <= 0.8 and x <= 0.85)):
+        elif not ((y >= 1.74 and x <= 0.838373) or (y <= 0.8 and x <= 0.838373)):
             # Compute the x value and print it.
             if not loc1_FT:
                 x = loc1_ode_x.compute(vals, curr_time-prev_time)
@@ -80,12 +80,12 @@ def ha(env, cstate=0):
             #     x = 3.2
             #     dx = 0
 
-            if abs(x-0.85) > loc1_ode_x.vtol:
-                dx = loc1_ode_x.delta(vals, quanta=(0.85-x),
+            if abs(x-0.838373) > loc1_ode_x.vtol:
+                dx = loc1_ode_x.delta(vals, quanta=(0.838373-x),
                                       other_odes=[loc1_ode_y, loc1_ode_th,
                                                   loc1_ode_ph])
             else:
-                x = 0.85
+                x = 0.838373
                 dx = 0
 
             if abs(y-0.8) > loc1_ode_x.vtol:
@@ -96,14 +96,14 @@ def ha(env, cstate=0):
                 y = 0.8
                 dy = 0
 
-            if abs(y-1.8) > loc1_ode_x.vtol:
+            if abs(y-1.74) > loc1_ode_x.vtol:
                 # Purposely relaxing this value, else Python does not
                 # recurse correctly!
-                dy = min(loc1_ode_y.delta(vals, quanta=(1.8-y),
+                dy = min(loc1_ode_y.delta(vals, quanta=(1.74-y),
                                           other_odes=[loc1_ode_x, loc1_ode_th,
                                                       loc1_ode_ph]), dy)
             else:
-                y = 1.8
+                y = 1.74
                 dy = 0
             return 0, min(dx, dy), x, y, th, ph, False, None, curr_time
         else:
