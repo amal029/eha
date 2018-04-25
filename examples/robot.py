@@ -113,7 +113,7 @@ def ha(env, cstate=0):
     # Location 2 is end state in this example.
     def location2(x, y, th, ph, loc1_FT, loc2_FT, prev_time):
         global step
-        print('total steps: ', step+1)
+        print('total steps: ', step)
         # Done
         sys.exit(1)
 
