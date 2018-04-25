@@ -168,7 +168,7 @@ class ODE:
             # constant level not qith "Q". Note that q is the slope
             # itself.
             part_poly = S.Mul(d, slope)
-            # print('ppoly: ', part_poly)
+            # print('ppoly: ', part_poly.subs('t', 'd').expand().evalf())
             dl = compute_delta(part_poly, d, [], quanta)
             if dl is None:
                 return None     # The constant slope case
