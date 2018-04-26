@@ -3,7 +3,6 @@
 import simpy
 import sympy as S
 import sys
-import random
 from src.ode import ODE
 
 # The variable holding the number of steps taken during simulation
@@ -20,7 +19,7 @@ def ha(env, cstate=0):
     T2 = 10
     thM = 20
     thm = 5
-    vr = 0.5
+    vr = 10.5
     v1 = -1.3
     v2 = -2.7
     assert(T1 == T2)
@@ -64,10 +63,8 @@ def ha(env, cstate=0):
                 S.sympify('y(t)'): y,
                 S.sympify('th(t)'): th}
         curr_time = env.now
-        # Non-deterministic transition
-        num = random.randint(0, 1) if x >= T1 and y >= T2 else None
         # The edge guard takes preference
-        if th == thM and x >= T1 and num:
+        if th == thM and x >= T1:
             print('%7.4f %7.4f %7.4f %7.4f' % (curr_time, x, y, th))
             return 1, 0, x, y, th, None, True, None, None, curr_time
         elif th == thM and y >= T2:
@@ -187,7 +184,7 @@ def main():
     env.process(ha(env))
     # Run the simulation until all events in the queue are processed.
     # Make it some number to halt simulation after sometime.
-    env.run(until=300)
+    env.run(until=30)
     print('total steps: ', step)
 
 
