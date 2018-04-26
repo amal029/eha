@@ -48,7 +48,7 @@ def ha(env, cstate=0):
 
     loc2_ode_x = ODE(env, S.sympify('diff(x(t))'), S.sympify('1.0'),
                      ttol=10**-3, iterations=100)
-    loc2_ode_y = ODE(env, S.sympify('diff(y(t))'), S.sympify('-2.0'),
+    loc2_ode_y = ODE(env, S.sympify('diff(y(t))'), S.sympify('1.0'),
                      ttol=10**-3, iterations=100)
     loc2_ode_th = ODE(env, S.sympify('diff(th(t))'), S.sympify(v2),
                       ttol=10**-3, iterations=100)
