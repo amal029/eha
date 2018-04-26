@@ -3,6 +3,7 @@
 import simpy
 import sympy as S
 import sys
+import random
 from src.ode import ODE
 
 # The variable holding the number of steps taken during simulation
@@ -18,10 +19,10 @@ def ha(env, cstate=0):
     T1 = 10
     T2 = 10
     thM = 20
-    thm = 10
+    thm = 5
     vr = 0.5
     v1 = -1.3
-    v2 = -4.7
+    v2 = -2.7
     assert(T1 == T2)
 
     delta = None               # None to cause failure
@@ -63,8 +64,10 @@ def ha(env, cstate=0):
                 S.sympify('y(t)'): y,
                 S.sympify('th(t)'): th}
         curr_time = env.now
+        # Non-deterministic transition
+        num = random.randint(0, 1) if x >= T1 and y >= T2 else None
         # The edge guard takes preference
-        if th == thM and x >= T1:
+        if th == thM and x >= T1 and num:
             print('%7.4f %7.4f %7.4f %7.4f' % (curr_time, x, y, th))
             return 1, 0, x, y, th, None, True, None, None, curr_time
         elif th == thM and y >= T2:
@@ -86,13 +89,7 @@ def ha(env, cstate=0):
             else:
                 th = thM
                 deltath = 0
-            if abs(x-T1) > loc0_ode_x.vtol:
-                deltax = loc0_ode_x.delta(vals, quanta=(T1-x))
-            else:
-                x = T1
-                deltax = 0
-            return (0, min(deltath, deltax), x, y, th,
-                    False, None, None, None, curr_time)
+            return 0, deltath, x, y, th, False, None, None, None, curr_time
         else:
             raise RuntimeError('Reached unreachable branch'
                                ' in location 0')
@@ -118,9 +115,9 @@ def ha(env, cstate=0):
             if abs(th-thm) > loc1_ode_th.vtol:
                 deltath = loc1_ode_th.delta(vals, quanta=(thm-th))
             else:
-                th = thM
+                th = thm
                 deltath = 0
-            return 0, deltath, x, y, th, False, None, None, None, curr_time
+            return 1, deltath, x, y, th, False, None, None, None, curr_time
         else:
             raise RuntimeError('Reached unreachable branch'
                                ' in location 1')
@@ -146,9 +143,9 @@ def ha(env, cstate=0):
             if abs(th-thm) > loc2_ode_th.vtol:
                 deltath = loc2_ode_th.delta(vals, quanta=(thm-th))
             else:
-                th = thM
+                th = thm
                 deltath = 0
-            return 0, deltath, x, y, th, False, None, None, None, curr_time
+            return 2, deltath, x, y, th, False, None, None, None, curr_time
         else:
             raise RuntimeError('Reached unreachable branch'
                                ' in location 2')
@@ -190,7 +187,7 @@ def main():
     env.process(ha(env))
     # Run the simulation until all events in the queue are processed.
     # Make it some number to halt simulation after sometime.
-    env.run(until=30)
+    env.run(until=300)
     print('total steps: ', step)
 
 
