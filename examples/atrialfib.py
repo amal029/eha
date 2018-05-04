@@ -129,17 +129,17 @@ def ha(env, cstate=0):
                                                             (ut -
                                                              EPI_USO)))))))
                                 + (0 - (wt * st)/EPI_TSI))),
-                     ttol=10**-3, iterations=100)
+                     ttol=10**-3, iterations=100, simplify_poly=True)
     loc2_ode_w = ODE(env, S.sympify('diff(w(t))'),
                      S.sympify((-wt/EPI_TWP)),
-                     ttol=10**-3, iterations=100)
+                     ttol=10**-3, iterations=100, simplify_poly=True)
     loc2_ode_v = ODE(env, S.sympify('diff(v(t))'),
                      S.sympify((-vt/EPI_TV2M)),
                      ttol=10**-3, iterations=100)
     loc2_ode_s = ODE(env, S.sympify('diff(s(t))'),
                      S.sympify((((1/(1+S.exp(-2 * EPI_KS *
                                              (ut - EPI_US)))) - st)/EPI_TS2)),
-                     ttol=10**-3, iterations=100)
+                     ttol=10**-3, iterations=100, simplify_poly=True)
 
     loc2_FT = False
 
@@ -153,7 +153,7 @@ def ha(env, cstate=0):
                                                                 (ut -
                                                                  EPI_USO)))))))
                                 + (0 - (wt * st)/EPI_TSI))),
-                     ttol=10**-3, iterations=100)
+                     ttol=10**-3, iterations=100, simplify_poly=True)
     loc3_ode_w = ODE(env, S.sympify('diff(w(t))'),
                      S.sympify((-wt/EPI_TWP)),
                      ttol=10**-3, iterations=100)
@@ -163,7 +163,7 @@ def ha(env, cstate=0):
     loc3_ode_s = ODE(env, S.sympify('diff(s(t))'),
                      S.sympify((((1/(1+S.exp(-2 * EPI_KS *
                                              (ut - EPI_US)))) - st)/EPI_TS2)),
-                     ttol=10**-3, iterations=100)
+                     ttol=10**-3, iterations=100, simplify_poly=True)
 
     loc3_FT = False
 

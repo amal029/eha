@@ -145,7 +145,7 @@ def ha(env, cstate=0):
         # The edge guard takes preference
         if x == 2:
             print('%7.4f %7.4f %7.4f' % (curr_time, x, y))
-            return 2, 0, x, y, None, None, True, None, curr_time
+            return 0, 0, x, y, None, None, True, None, curr_time
         # The invariant
         elif x <= 2:
             if not loc3_FT:
@@ -165,7 +165,7 @@ def ha(env, cstate=0):
                 # If within the error bound just make it 2
                 x = 2
                 delta = 0
-            return 0, delta, x, y, False, None, None, None, curr_time
+            return 3, delta, x, y, False, None, None, None, curr_time
         else:
             raise RuntimeError('Reached unreachable branch'
                                ' in location 2')

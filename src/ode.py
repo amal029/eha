@@ -1,5 +1,6 @@
 import sympy as S
 import mpmath as poly
+import numpy as N
 
 
 class NoRealRoots(Exception):
@@ -24,13 +25,15 @@ class ODE:
                            INV_HYPERBOLIC_FUNCS + EXP_LOG)
 
     def __init__(self, env, lvalue, rvalue, qorder=1, torder=1,
-                 iterations=20, vtol=10**-4, ttol=10**-2, taylor_expand=5,
-                 trans_funcs=[]):
+                 iterations=20, vtol=0, ttol=10**-2, taylor_expand=5,
+                 trans_funcs=[], simplify_poly=False):
         """The quantized state order and taylor series order by default is 1.
         The maximum number of back-stepping iterations is 20 be default.
         The tolerance by default is 10^-2. taylor_expand gives the
         number to terms that we expand transcendental function too,
-        default 5.
+        default 5. Simplify the polynomial before finding roots, can
+        take a very long time. Usually simplification is needed if
+        polynomial has both a numerator and a denominator.
 
         """
         self.env = env
@@ -43,6 +46,7 @@ class ODE:
         self.ttol = ttol
         ODE.NUM_TERMS = taylor_expand
         ODE.TRANSCEDENTAL_FUNCS += trans_funcs
+        ODE.simplify_poly = simplify_poly
 
     @staticmethod
     # XXX:
@@ -71,7 +75,7 @@ class ODE:
                 # print(coeffs)
                 coeffs = [(S.Mul(float(a), S.Mul(*[args[0]
                                                    for i in range(c)])))
-                          for c, a in enumerate(coeffs)]
+                          for c, a in enumerate(coeffs)][::-1]
                 # print(coeffs)
                 return S.Add(*coeffs)
         else:
@@ -101,7 +105,6 @@ class ODE:
                       (S.Mul(slope, (t - self.env.now)))))
 
     def _taylor1(self, init, q, q2, quanta, count):
-        # XXX: CHECK IF THIS ALWAYS WORKS -- SEEMS TO
         def is_den(x):
             return (type(x) == S.Pow and x.args[1] == -1)
 
@@ -109,7 +112,10 @@ class ODE:
             polynomial1 = S.Add(part_poly, -quanta)
             # XXX: Assumption that the time line is called "t"
             # print(polynomial1)
-            polynomial1 = S.simplify(polynomial1.expand().subs('t', d)).evalf()
+            if not ODE.simplify_poly:
+                polynomial1 = (polynomial1.expand().subs('t', d))
+            else:
+                polynomial1 = S.simplify(polynomial1.expand().subs('t', d))
             ppoly = polynomial1
             # XXX: Taking care of numerator and denominators after
             # expansion.
@@ -124,17 +130,25 @@ class ODE:
                 return None
             polynomial1 = S.Poly(polynomial1)
             try:
-                soln = poly.polyroots([poly.mpf(a) for
-                                       a in polynomial1.all_coeffs()])
+                nsoln = N.roots(polynomial1.all_coeffs())
+                nsoln = nsoln[N.isreal(nsoln)]
+                nsoln = nsoln[N.where(nsoln >= 0)]
+                # soln = poly.polyroots([poly.mpf(a) for
+                #                        a in polynomial1.all_coeffs()])
+                # print('1:', nsoln, soln)
             except S.PolynomialError as e:
                 print('When trying to solve: ', ppoly)
                 raise e
-            dl += [float(a) for a in soln
-                   if type(a) is poly.mpf and float(a) >= 0]
+            # dl += [float(a) for a in soln
+            #        if type(a) is poly.mpf and float(a) >= 0]
+            dl += list(nsoln)
             # The second polynomial
             polynomial2 = S.Add(part_poly, quanta)
             # XXX: Assumption that the time line is called "t"
-            polynomial2 = S.simplify(polynomial2.expand().subs('t', d)).evalf()
+            if not ODE.simplify_poly:
+                polynomial2 = (polynomial2.expand().subs('t', d))
+            else:
+                polynomial2 = S.simplify(polynomial2.expand().subs('t', d))
             ppoly = polynomial2
             # print(ppoly.args[0], ppoly.args[1])
             if type(polynomial2) == S.Mul:
@@ -144,13 +158,18 @@ class ODE:
                     polynomial2 = polynomial2.args[1]
             polynomial2 = S.poly(polynomial2)
             try:
-                soln = poly.polyroots([poly.mpf(a) for
-                                       a in polynomial2.all_coeffs()])
+                nsoln = N.roots(polynomial2.all_coeffs())
+                nsoln = nsoln[N.isreal(nsoln)]
+                nsoln = nsoln[N.where(nsoln >= 0)]
+                # soln = poly.polyroots([poly.mpf(a) for
+                #                        a in polynomial2.all_coeffs()])
+                # print('2:', nsoln, soln)
             except S.PolynomialError as e:
                 print('When trying to solve: ', ppoly)
                 raise e
-            dl += [float(a) for a in soln
-                   if type(a) is poly.mpf and float(a) >= 0]
+            # dl += [float(a) for a in soln
+            #        if type(a) is poly.mpf and float(a) >= 0]
+            dl += list(nsoln)
             return dl
 
         def get_d(q):
@@ -162,7 +181,7 @@ class ODE:
             # print('slope: ', slope)
             # print(q)
             for k in q:
-                slope = ODE.replace(slope, k, q[k])
+                slope = ODE.replace(slope, k, q[k]).evalf()
             # print(slope)
             # XXX: IMP CHANGE! Here I am chaning QSS to compare with a
             # constant level not qith "Q". Note that q is the slope
