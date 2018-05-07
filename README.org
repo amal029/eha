@@ -1,4 +1,19 @@
 * An event based framework for simulating network of hybrid automata.
-  The main contribution is the integration techniques, especially
+  The main contribution is the integration technique, especially
   combination of higher order Quantized state systems combined with
   higher order Taylor series.
+  
+* Python dependencies
+** Simpy
+** Sympy
+** Numpy
+* To Run do the following:
+#+BEGIN_SRC shell
+  # Installing the required dependencies
+  pip install simpy sympy numpy
+  # running an example
+  cd eha/examples
+  export PYTHONPATH=../
+  ./robot.py			# Running the robot example
+
+#+END_SRC
