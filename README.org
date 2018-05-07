@@ -11,7 +11,7 @@
 * To Run do the following:
 #+BEGIN_SRC shell
   # Installing the required dependencies
-  pip install simpy sympy numpy
+  pip install -U --user simpy sympy numpy
   # running an example
   cd eha/examples
   export PYTHONPATH=../
