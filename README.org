@@ -4,9 +4,10 @@
   higher order Taylor series.
   
 * Python dependencies
-** Simpy
-** Sympy
-** Numpy
+  - simpy (Discrete event driven simulation library)
+  - sympy (Python algebra library)
+  - numpy (Python numerical analysis library)
+
 * To Run do the following:
 #+BEGIN_SRC shell
   # Installing the required dependencies
