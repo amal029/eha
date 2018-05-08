@@ -109,6 +109,7 @@ class ODE:
             return (type(x) == S.Pow and x.args[1] == -1)
 
         def compute_delta(part_poly, d, dl, quanta):
+            # XXX: Positive quantum, so polynomial - quanta = 0
             polynomial1 = S.Add(part_poly, -quanta)
             # XXX: Assumption that the time line is called "t"
             # print(polynomial1)
@@ -143,6 +144,7 @@ class ODE:
             #        if type(a) is poly.mpf and float(a) >= 0]
             dl += list(nsoln)
             # The second polynomial
+            # XXX: Negative quantum, so polynomial + quanta = 0
             polynomial2 = S.Add(part_poly, quanta)
             # XXX: Assumption that the time line is called "t"
             if not ODE.simplify_poly:
@@ -177,6 +179,9 @@ class ODE:
             # XXX: My rvalue can depend upon a whole vector os q's
             # TODO: Convert it into a taylor series
             # print(self.rvalue, q)
+
+            # XXX: Making a taylor polynomial if it is transcendental
+            # function
             slope = ODE.taylor_expand(self.rvalue)
             # print('slope: ', slope)
             # print(q)
@@ -188,6 +193,7 @@ class ODE:
             # itself.
             part_poly = S.Mul(d, slope)
             # print('ppoly: ', part_poly.subs('t', 'd').expand().evalf())
+            # XXX: compute_delta saolves for the roots of the polynomial
             dl = compute_delta(part_poly, d, [], quanta)
             if dl is None:
                 return None     # The constant slope case
@@ -199,11 +205,11 @@ class ODE:
             return d
 
         # print('getting δ1')
-        d1 = get_d(q)
+        d1 = get_d(q)           # Get the future time event from QSS-1
         # print('getting δ2')
-        d2 = get_d(q2)
+        d2 = get_d(q2)          # Get the future time event from modified QSS-2
         if d1 is None:
-            return S.oo, quanta
+            return S.oo, quanta  # This is returning infinity, wrong HA
         if d2 is None:
             # d1s = '{:.2e}'.format(d1)
             # quanta = '{:.2e}'.format(quanta)
@@ -214,6 +220,7 @@ class ODE:
             # d2s = '{:.2e}'.format(d2)
             # pquanta = '{:.2e}'.format(quanta)
             # print('chosen Δq: %s δ1: %s δ2: %s' % (pquanta, d1s, d2s))
+            # In this case we have satisfied εt so returning first δ
             return d1, quanta
         elif count < self.iterations:
             # If the delta step results in output that is within the
@@ -235,7 +242,7 @@ class ODE:
                                % (self.ttol, d1, d2, q, q2, quanta))
 
     def _taylor(self, init, q, q2, quanta):
-        if self.torder == 1:
+        if self.torder == 1:    # First order taylor only supported
             # The delta step
             return self._taylor1(init, q, q2, quanta, 0)
         elif self.torder > 1:
@@ -251,22 +258,28 @@ class ODE:
             raise RuntimeError('Curretly only upto QSS2 is supported')
         return q
 
+    # XXX: This is the main function, which returns the future time
+    # event per level crossing per variable.
     def delta(self, init, other_odes=None, quanta=MAX_QUANTA):
         """This is the main function that returns back the delta step-size.
         Arguments: The initial value of the ode. Returns: The delta
         step-size that is within the user specified error.
 
         """
-        # These two are me
+        # These two are me XXX: Here we are building the quantized
+        # states, i.e., hysterisis for qorder=1 and integration for
+        # qorder-2.
         qs = {self.lvalue.args[0]: self.get_q(init, self.qorder)}
         q2s = {self.lvalue.args[0]: self.get_q(init, self.qorder+1)}
-        # These are the other odes
+        # XXX: Building the quantized states for other odes that we
+        # might depend upon, because we can have coupled ODEs.
         if other_odes is not None:
             for ode in other_odes:
                 qs[ode.lvalue.args[0]] = ode.get_q(init, ode.qorder)
                 q2s[ode.lvalue.args[0]] = ode.get_q(init, ode.qorder+1)
+        # XXX: delta is the returned value
         delta, nquanta = self._taylor(init, qs, q2s, quanta)
-        # XXX: HACK for sudden jumps
+        # XXX: Handling sudden jumps
         if ((not (type(self.rvalue) is S.Float
                   or type(self.rvalue) is S.Integer) and
              float(nquanta) == quanta and abs(quanta) > ODE.MAX_QUANTA)):
