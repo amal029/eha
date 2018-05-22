@@ -35,7 +35,7 @@ def ha(env, cstate=0):
     loc0_ode_y = ODE(env, S.sympify('diff(y(t))'), S.sympify('1.0'),
                      ttol=10**-3, iterations=100)
     loc0_ode_th = ODE(env, S.sympify('diff(th(t))'), S.sympify(vr),
-                      ttol=10**-3, iterations=100)
+                      ttol=10**-3, iterations=100, vtol=10**-10)
     loc0_FT = False
 
     loc1_ode_x = ODE(env, S.sympify('diff(x(t))'), S.sympify('1.0'),
@@ -43,7 +43,7 @@ def ha(env, cstate=0):
     loc1_ode_y = ODE(env, S.sympify('diff(y(t))'), S.sympify('1.0'),
                      ttol=10**-3, iterations=100)
     loc1_ode_th = ODE(env, S.sympify('diff(th(t))'), S.sympify(v1),
-                      ttol=10**-3, iterations=100)
+                      ttol=10**-3, iterations=100, vtol=10**-10)
     loc1_FT = False
 
     loc2_ode_x = ODE(env, S.sympify('diff(x(t))'), S.sympify('1.0'),
@@ -51,7 +51,7 @@ def ha(env, cstate=0):
     loc2_ode_y = ODE(env, S.sympify('diff(y(t))'), S.sympify('1.0'),
                      ttol=10**-3, iterations=100)
     loc2_ode_th = ODE(env, S.sympify('diff(th(t))'), S.sympify(v2),
-                      ttol=10**-3, iterations=100)
+                      ttol=10**-3, iterations=100, vtol=10**-10)
     loc2_FT = False
 
     # Location 3 is reactor shutdown
