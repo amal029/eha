@@ -1,6 +1,7 @@
 import sympy as S
 import mpmath as poly
-import numpy as N
+# import numpy as N
+import z3
 
 
 class NoRealRoots(Exception):
@@ -12,6 +13,7 @@ class ODE:
 
     """
 
+    PRECISION = 300
     MAX_QUANTA = 10**-3
     NUM_TERMS = 3               # This should be adjustable
 
@@ -23,9 +25,12 @@ class ODE:
     EXP_LOG = [S.exp, S.ln]
     TRANSCEDENTAL_FUNCS = (TRIG_FUNCS + INV_TRIG_FUNCS + HYPERBOLIC_FUNCS +
                            INV_HYPERBOLIC_FUNCS + EXP_LOG)
+    z3_solver = z3.SolverFor('QF_NRA')
+    z3_solver.set('timeout', 60)
+    # z3.set_option(precision=30)  # max 30 decimal places
 
     def __init__(self, env, lvalue, rvalue, qorder=1, torder=1,
-                 iterations=20, vtol=0, ttol=10**-2, taylor_expand=5,
+                 iterations=20, vtol=10**-12, ttol=10**-2, taylor_expand=5,
                  trans_funcs=[], simplify_poly=False):
         """The quantized state order and taylor series order by default is 1.
         The maximum number of back-stepping iterations is 20 be default.
@@ -104,6 +109,26 @@ class ODE:
         return (S.Add(init[self.lvalue.args[0]],
                       (S.Mul(slope, (t - self.env.now)))))
 
+    @staticmethod
+    def z3_solve(coeffcients):
+        # Instantiate the variable to solve for
+        d = z3.Real('d')
+        # This should be real and positive
+        # Build the polynoimial to be solved by Z3
+        z3_poly = sum([c*d**i if i != 0 else c
+                       for i, c in enumerate(coeffcients[::-1])])
+        ODE.z3_solver.add(z3_poly == 0, d >= 0)
+        # Get the solution
+        ret = None
+        if ODE.z3_solver.check() == z3.sat:
+            ret = ODE.z3_solver.model()[d].as_decimal(ODE.PRECISION)
+            # Now remove any question marks
+            ret = ret[:len(ret)-1:] if ret[len(ret)-1] == '?' else ret
+            ret = float(ret)
+        # Remove all constraints from solver, once done.
+        ODE.z3_solver.reset()
+        return ret
+
     def _taylor1(self, init, q, q2, quanta, count):
         def is_den(x):
             return (type(x) == S.Pow and x.args[1] == -1)
@@ -117,7 +142,7 @@ class ODE:
                 polynomial1 = (polynomial1.expand().subs('t', d))
             else:
                 polynomial1 = S.simplify(polynomial1.expand().subs('t', d))
-            ppoly = polynomial1
+            # ppoly = polynomial1
             # XXX: Taking care of numerator and denominators after
             # expansion.
             if type(polynomial1) == S.Mul:
@@ -130,19 +155,23 @@ class ODE:
             if (type(polynomial1) is S.Float):
                 return None
             polynomial1 = S.Poly(polynomial1)
-            try:
-                nsoln = N.roots(polynomial1.all_coeffs())
-                nsoln = nsoln[N.isreal(nsoln)]
-                nsoln = nsoln[N.where(nsoln >= 0)]
-                # soln = poly.polyroots([poly.mpf(a) for
-                #                        a in polynomial1.all_coeffs()])
-                # print('1:', nsoln, soln)
-            except S.PolynomialError as e:
-                print('When trying to solve: ', ppoly)
-                raise e
+            # We can solve this using Z3 SMT solver
+            nsoln = ODE.z3_solve(polynomial1.all_coeffs())
+            # print(nsoln)
+            # try:
+            #     nsoln = N.roots(polynomial1.all_coeffs())
+            #     nsoln = nsoln[N.isreal(nsoln)]
+            #     nsoln = nsoln[N.where(nsoln >= 0)]
+            #     # soln = poly.polyroots([poly.mpf(a) for
+            #     #                        a in polynomial1.all_coeffs()])
+            #     # print('1:', nsoln, soln)
+            # except S.PolynomialError as e:
+            #     print('When trying to solve: ', ppoly)
+            #     raise e
             # dl += [float(a) for a in soln
             #        if type(a) is poly.mpf and float(a) >= 0]
-            dl += list(nsoln)
+            if nsoln is not None:
+                dl += [nsoln]
             # The second polynomial
             # XXX: Negative quantum, so polynomial + quanta = 0
             polynomial2 = S.Add(part_poly, quanta)
@@ -151,7 +180,7 @@ class ODE:
                 polynomial2 = (polynomial2.expand().subs('t', d))
             else:
                 polynomial2 = S.simplify(polynomial2.expand().subs('t', d))
-            ppoly = polynomial2
+            # ppoly = polynomial2
             # print(ppoly.args[0], ppoly.args[1])
             if type(polynomial2) == S.Mul:
                 if not is_den(polynomial2.args[0]):
@@ -159,19 +188,23 @@ class ODE:
                 else:
                     polynomial2 = polynomial2.args[1]
             polynomial2 = S.poly(polynomial2)
-            try:
-                nsoln = N.roots(polynomial2.all_coeffs())
-                nsoln = nsoln[N.isreal(nsoln)]
-                nsoln = nsoln[N.where(nsoln >= 0)]
-                # soln = poly.polyroots([poly.mpf(a) for
-                #                        a in polynomial2.all_coeffs()])
-                # print('2:', nsoln, soln)
-            except S.PolynomialError as e:
-                print('When trying to solve: ', ppoly)
-                raise e
+            # Solve using Z3
+            nsoln = ODE.z3_solve(polynomial2.all_coeffs())
+            # print('2: ', nsoln)
+            # try:
+            #     nsoln = N.roots(polynomial2.all_coeffs())
+            #     nsoln = nsoln[N.isreal(nsoln)]
+            #     nsoln = nsoln[N.where(nsoln >= 0)]
+            #     # soln = poly.polyroots([poly.mpf(a) for
+            #     #                        a in polynomial2.all_coeffs()])
+            #     # print('2:', nsoln, soln)
+            # except S.PolynomialError as e:
+            #     print('When trying to solve: ', ppoly)
+            #     raise e
             # dl += [float(a) for a in soln
             #        if type(a) is poly.mpf and float(a) >= 0]
-            dl += list(nsoln)
+            if nsoln is not None:
+                dl += [nsoln]
             return dl
 
         def get_d(q):

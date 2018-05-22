@@ -116,6 +116,7 @@ def ha(env, cstate=0):
                 deltath = 0
             return 1, deltath, x, y, th, False, None, None, None, curr_time
         else:
+            print('%7.4f %7.4f %7.4f %7.4f' % (curr_time, x, y, th))
             raise RuntimeError('Reached unreachable branch'
                                ' in location 1')
 
