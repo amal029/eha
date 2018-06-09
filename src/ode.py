@@ -90,9 +90,6 @@ class ODE:
         return init[self.lvalue.args[0]] + float(slope)*time
 
     def _delta1(self, init):
-        # slope = self.rvalue
-        # for k in init:
-        #     slope = ODE.replace(slope, k, init[k])
         return init[self.lvalue.args[0]]
 
     def _delta2(self, init):
