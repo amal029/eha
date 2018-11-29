@@ -71,13 +71,13 @@ def ha(env, cstate=0):
             print('%7.4f: %7.4f %7.4f %7.4f %7.4f' % (curr_time, x,
                                                       y, th, ph))
             dx, dy = 0, 0
-            # if abs(x-3.2) > loc1_ode_x.vtol:
-            #     dx = loc1_ode_x.delta(vals, quanta=(3.2-x),
-            #                           other_odes=[loc1_ode_y, loc1_ode_th,
-            #                                       loc1_ode_ph])
-            # else:
-            #     x = 3.2
-            #     dx = 0
+            if abs(x-3.2) > loc1_ode_x.vtol:
+                dx = loc1_ode_x.delta(vals, quanta=(3.2-x),
+                                      other_odes=[loc1_ode_y, loc1_ode_th,
+                                                  loc1_ode_ph])
+            else:
+                x = 3.2
+                dx = 0
 
             if abs(x-2.8) > loc1_ode_x.vtol:
                 dx = loc1_ode_x.delta(vals, quanta=(2.8-x),
@@ -87,7 +87,7 @@ def ha(env, cstate=0):
                 x = 2.8
                 dx = 0
 
-            if abs(y-0.8) > loc1_ode_x.vtol:
+            if abs(y-0.8) > loc1_ode_y.vtol:
                 dy = loc1_ode_y.delta(vals, quanta=(abs(0.8-y)),
                                       other_odes=[loc1_ode_x, loc1_ode_th,
                                                   loc1_ode_ph])
@@ -95,7 +95,7 @@ def ha(env, cstate=0):
                 y = 0.8
                 dy = 0
 
-            if abs(y-1.8) > loc1_ode_x.vtol:
+            if abs(y-1.8) > loc1_ode_y.vtol:
                 # Purposely relaxing this value, else Python does not
                 # recurse correctly!
                 dy = min(loc1_ode_y.delta(vals, quanta=(1.8-y),
