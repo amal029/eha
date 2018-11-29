@@ -19,9 +19,7 @@ def ha(env, cstate=0):
     EPI_TVP = 1.4506
     EPI_TV1M = 60.0
     EPI_TV2M = 1150.0
-
     EPI_TWP = 200.0
-
     EPI_TW1M = 60.0
     EPI_TW2M = 15.0
 
