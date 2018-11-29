@@ -80,9 +80,9 @@ def ha(env, cstate=0):
                 dx = 0
 
             if abs(x-2.8) > loc1_ode_x.vtol:
-                dx = loc1_ode_x.delta(vals, quanta=(2.8-x),
-                                      other_odes=[loc1_ode_y, loc1_ode_th,
-                                                  loc1_ode_ph])
+                dx = min(loc1_ode_x.delta(vals, quanta=(2.8-x),
+                                          other_odes=[loc1_ode_y, loc1_ode_th,
+                                                      loc1_ode_ph]), dx)
             else:
                 x = 2.8
                 dx = 0
