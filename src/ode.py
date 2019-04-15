@@ -12,8 +12,8 @@ class ODE:
 
     """
 
-    MAX_QUANTA = 10**-3
-    NUM_TERMS = 3               # This should be adjustable
+    MAX_QUANTA = 10**-6
+    NUM_TERMS = 5               # This should be adjustable
 
     TRIG_FUNCS = [S.sin, S.cos, S.tan, S.cot, S.sec, S.csc]
     INV_TRIG_FUNCS = [S.asin, S.acos, S.atan, S.acot, S.asec, S.acsc, S.atan2]
