@@ -28,14 +28,14 @@ def ha(env, cstate=0):
     K2 = -4
 
     # The continous variables used in this ha
-    th = math.pi/2                       # The initial value
+    th = 9*math.pi/2                       # The initial value
 
     loc1_ode_th = ODE(env, S.sympify('diff(th(t))'),
                       S.sympify(K1),
-                      ttol=10**-12, iterations=1000, vtol=10**-3)
+                      ttol=10**-12, iterations=1000, vtol=10**-6)
     loc2_ode_th = ODE(env, S.sympify('diff(th(t))'),
                       S.sympify(K2),
-                      ttol=10**-12, iterations=1000, vtol=10**-3)
+                      ttol=10**-12, iterations=1000, vtol=10**-6)
     loc1_FT = False
     loc2_FT = False
 
@@ -88,7 +88,7 @@ def ha(env, cstate=0):
                                         other_odes=[])
             else:
                 # This means we have found the level crossing
-                th = gth        # This only works for normalized theta
+                th = gth + (th - normalize_theta(th))
                 dth = 0
 
             return 0, dth, th, False, None, curr_time
@@ -142,7 +142,7 @@ def ha(env, cstate=0):
             else:
                 # This means we have found the level crossing
                 # FIXME: This needs to be checked properly!
-                th = gth
+                th = gth + (th - normalize_theta(th))
                 dth = 0
 
             return 1, dth, th, None, False, curr_time
