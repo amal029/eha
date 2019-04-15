@@ -12,7 +12,7 @@ class ODE:
 
     """
 
-    MAX_QUANTA = 10**-6
+    MAX_QUANTA = 10**-3
     NUM_TERMS = 5               # This should be adjustable
 
     TRIG_FUNCS = [S.sin, S.cos, S.tan, S.cot, S.sec, S.csc]
@@ -26,7 +26,7 @@ class ODE:
 
     def __init__(self, env, lvalue, rvalue, qorder=1, torder=1,
                  iterations=20, vtol=0, ttol=10**-2, taylor_expand=5,
-                 trans_funcs=[], simplify_poly=False):
+                 trans_funcs=[], simplify_poly=False, half=False):
         """The quantized state order and taylor series order by default is 1.
         The maximum number of back-stepping iterations is 20 be default.
         The tolerance by default is 10^-2. taylor_expand gives the
@@ -47,6 +47,7 @@ class ODE:
         ODE.NUM_TERMS = taylor_expand
         ODE.TRANSCEDENTAL_FUNCS += trans_funcs
         ODE.simplify_poly = simplify_poly
+        self.half = half
 
     @staticmethod
     # XXX:
@@ -277,10 +278,11 @@ class ODE:
         # XXX: delta is the returned value
         delta, nquanta = self._taylor(init, qs, q2s, quanta)
         # XXX: Handling sudden jumps
-        if ((not (type(self.rvalue) is S.Float
-                  or type(self.rvalue) is S.Integer) and
-             float(nquanta) == quanta and abs(quanta) > ODE.MAX_QUANTA)):
-            # print('halved the quanta')
+        if self.half and abs(quanta) > ODE.MAX_QUANTA:
+            delta, _ = self._taylor(init, qs, q2s, quanta*0.5)
+        elif ((not (type(self.rvalue) is S.Float
+                    or type(self.rvalue) is S.Integer) and
+               float(nquanta) == quanta and abs(quanta) > ODE.MAX_QUANTA)):
             delta, _ = self._taylor(init, qs, q2s, quanta*0.5)
         return delta
 
