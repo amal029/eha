@@ -25,10 +25,10 @@ def ha(env, cstate=0):
 
     # Some constants
     K1 = 0.1
-    K2 = -0.4
+    K2 = -4
 
     # The continous variables used in this ha
-    th = 9*math.pi/2                       # The initial value
+    th = 5*math.pi/2                       # The initial value
 
     loc1_ode_th = ODE(env, S.sympify('diff(th(t))'),
                       S.sympify(K1),
@@ -177,7 +177,7 @@ def main():
     env.process(ha(env))
     # Run the simulation until all events in the queue are processed.
     # Make it some number to halt simulation after sometime.
-    env.run(until=56)
+    env.run(until=50)
     print('steps taken: ', step)
 
 
