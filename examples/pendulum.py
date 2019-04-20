@@ -177,7 +177,7 @@ def main():
     env.process(ha(env))
     # Run the simulation until all events in the queue are processed.
     # Make it some number to halt simulation after sometime.
-    env.run(until=50)
+    env.run(until=44)
     print('steps taken: ', step)
 
 
