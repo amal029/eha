@@ -3,6 +3,7 @@
 import simpy
 import sympy as S
 import sys
+import time
 from src.ode import ODE
 
 # The variable holding the number of steps taken during simulation
@@ -66,13 +67,13 @@ def ha(env, cstate=0):
         curr_time = env.now
         # The edge guard takes preference
         if th == thM and x >= T1:
-            print('%7.4f %7.4f %7.4f %7.4f' % (curr_time, x, y, th))
+            # print('%7.4f %7.4f %7.4f %7.4f' % (curr_time, x, y, th))
             return 1, 0, x, y, th, None, True, None, None, curr_time
         elif th == thM and y >= T2:
-            print('%7.4f %7.4f %7.4f %7.4f' % (curr_time, x, y, th))
+            # print('%7.4f %7.4f %7.4f %7.4f' % (curr_time, x, y, th))
             return 2, 0, x, y, th, None, None, True, None, curr_time
         elif th == thM and x < T1 and y < T2:
-            print('%7.4f %7.4f %7.4f %7.4f' % (curr_time, x, y, th))
+            # print('%7.4f %7.4f %7.4f %7.4f' % (curr_time, x, y, th))
             return 3, 0, x, y, th, None, None, None, True, curr_time
         # The invariant
         elif th <= thM:
@@ -81,7 +82,7 @@ def ha(env, cstate=0):
                 y = loc0_ode_y.compute(vals, curr_time-prev_time)
                 th = loc0_ode_th.compute(vals, curr_time-prev_time)
                 loc0_FT = True
-            print('%7.4f %7.4f %7.4f %7.4f' % (curr_time, x, y, th))
+            # print('%7.4f %7.4f %7.4f %7.4f' % (curr_time, x, y, th))
             if abs(th-thM) > loc0_ode_th.vtol:
                 deltath = loc0_ode_th.delta(vals, quanta=(thM-th))
             else:
@@ -89,7 +90,7 @@ def ha(env, cstate=0):
                 deltath = 0
             return 0, deltath, x, y, th, False, None, None, None, curr_time
         else:
-            print('th:', th)
+            # print('th:', th)
             raise RuntimeError('Reached unreachable branch'
                                ' in location 0')
 
@@ -101,7 +102,7 @@ def ha(env, cstate=0):
         # The edge guard takes preference
         if th == thm:
             x = 0               # Reset
-            print('%7.4f %7.4f %7.4f %7.4f' % (curr_time, x, y, th))
+            # print('%7.4f %7.4f %7.4f %7.4f' % (curr_time, x, y, th))
             return 0, 0, x, y, th, True, None, None, None, curr_time
         # The invariant
         elif th >= thm:
@@ -110,7 +111,7 @@ def ha(env, cstate=0):
                 y = loc1_ode_y.compute(vals, curr_time-prev_time)
                 th = loc1_ode_th.compute(vals, curr_time-prev_time)
                 loc1_FT = True
-            print('%7.4f %7.4f %7.4f %7.4f' % (curr_time, x, y, th))
+            # print('%7.4f %7.4f %7.4f %7.4f' % (curr_time, x, y, th))
             if abs(th-thm) > loc1_ode_th.vtol:
                 deltath = loc1_ode_th.delta(vals, quanta=(thm-th))
             else:
@@ -129,7 +130,7 @@ def ha(env, cstate=0):
         # The edge guard takes preference
         if th == thm:
             y = 0               # Reset
-            print('%7.4f %7.4f %7.4f %7.4f' % (curr_time, x, y, th))
+            # print('%7.4f %7.4f %7.4f %7.4f' % (curr_time, x, y, th))
             return 0, 0, x, y, th, True, None, None, None, curr_time
         # The invariant
         elif th >= thm:
@@ -138,7 +139,7 @@ def ha(env, cstate=0):
                 y = loc2_ode_y.compute(vals, curr_time-prev_time)
                 th = loc2_ode_th.compute(vals, curr_time-prev_time)
                 loc2_FT = True
-            print('%7.4f %7.4f %7.4f %7.4f' % (curr_time, x, y, th))
+            # print('%7.4f %7.4f %7.4f %7.4f' % (curr_time, x, y, th))
             if abs(th-thm) > loc2_ode_th.vtol:
                 deltath = loc2_ode_th.delta(vals, quanta=(thm-th))
             else:
@@ -151,8 +152,9 @@ def ha(env, cstate=0):
 
     def location3(x, y, th, loc0_FT, loc1_FT, loc2_FT, loc3_FT, prev_time):
         global step
-        print('total steps: ', step)
+        # print('total steps: ', step)
         # Done
+        print(time.time()-start)
         sys.exit(1)
 
     # The dictionary for the switch statement.
@@ -191,4 +193,5 @@ def main():
 
 
 if __name__ == '__main__':
+    start = time.time()
     main()
