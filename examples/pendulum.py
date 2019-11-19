@@ -3,7 +3,7 @@
 import simpy
 import sympy as S
 import math
-# import sys
+import sys
 from src.ode import ODE
 
 step = 0
@@ -29,13 +29,17 @@ def ha(env, cstate=0):
 
     # The continous variables used in this ha
     th = 5*math.pi/2                       # The initial value
+    y = 0
 
+    loc1_ode_y = ODE(env, S.sympify('diff(y(t))'),
+                     rvalue=S.sympify(K1),
+                     iterations=1000)
     loc1_ode_th = ODE(env, S.sympify('diff(th(t))'),
-                      S.sympify(K1),
-                      ttol=10**-12, iterations=1000, vtol=10**-6)
+                      rvalue=S.sympify('exp(y(t))'),
+                      iterations=1000, vtol=10**-6)
     loc2_ode_th = ODE(env, S.sympify('diff(th(t))'),
-                      S.sympify(K2),
-                      ttol=10**-12, iterations=1000, vtol=10**-6)
+                      rvalue=S.sympify(K2),
+                      iterations=1000, vtol=10**-6)
     loc1_FT = False
     loc2_FT = False
 
@@ -44,13 +48,15 @@ def ha(env, cstate=0):
 
     # The computations in location1
     # Returning state, delta, value, loc1_FT, loc2_FT
-    def location1(th, loc1_FT, loc2_FT, prev_time):
+    def location1(th, y, loc1_FT, loc2_FT, prev_time):
         curr_time = env.now
-        vals = {S.sympify('th(t)'): th}
+        vals = {S.sympify('th(t)'): th,
+                S.sympify('y(t)'): y}
 
         # TODO: Try to remove this later on
         # Currently, cos(th(t)) <= V, does not work
-        gvals = {S.sympify('th'): S.sympify(th)}
+        gvals = {S.sympify('th'): S.sympify(th),
+                 S.sympify('y'): S.sympify(y)}
 
         # The edge guard takes preference
         g1 = S.sympify('cos(th) <= -0.99')
@@ -69,35 +75,35 @@ def ha(env, cstate=0):
             raise RuntimeError('Guards can only be relations: ', g1)
 
         if (g1.subs(gvals)):
-            print('%7.4f: %7.4f' % (curr_time, th))
-            return 1, 0, th, None, True, curr_time
+            # print('%7.4f: %7.4f %7.4f' % (curr_time, th, y))
+            return 1, 0, th, y, None, True, curr_time
 
         # The location invariant
         elif (True):
-            # Compute the th value and print it.
+            # Compute the th and y values and print them.
             if not loc1_FT:
                 th = loc1_ode_th.compute(vals, curr_time-prev_time)
+                y = loc1_ode_y.compute(vals, curr_time-prev_time)
                 loc1_FT = True
-            print('%7.4f: %7.4f' % (curr_time, th))
+            # print('%7.4f: %7.4f %7.4f' % (curr_time, th, y))
 
-            # TODO: FIXTHIS
             dth = 0, 0
             # Here 3.2 should be obtained by solving the guard condition
             if abs(normalize_theta(th)-gth) > loc1_ode_th.vtol:
                 dth = loc1_ode_th.delta(vals, quanta=(gth-normalize_theta(th)),
-                                        other_odes=[])
+                                        other_odes=[loc1_ode_y])
             else:
                 # This means we have found the level crossing
                 th = gth + (th - normalize_theta(th))
                 dth = 0
 
-            return 0, dth, th, False, None, curr_time
+            return 0, dth, th, y, False, None, curr_time
         else:
             raise RuntimeError('Reached unreachable branch'
                                ' in location1')
 
     # Location 2 is end state in this example.
-    def location2(th, loc1_FT, loc2_FT, prev_time):
+    def location2(th, y, loc1_FT, loc2_FT, prev_time):
         curr_time = env.now
         vals = {S.sympify('th(t)'): th}
 
@@ -122,8 +128,8 @@ def ha(env, cstate=0):
             raise RuntimeError('Guards can only be relations: ', g1)
 
         if (g1.subs(gvals)):
-            print('%7.4f: %7.4f' % (curr_time, th))
-            return 0, 0, th, True, None, curr_time
+            # print('%7.4f: %7.4f' % (curr_time, th))
+            return 0, 0, th, 0, True, None, curr_time
 
         # The location invariant
         elif (True):
@@ -131,7 +137,7 @@ def ha(env, cstate=0):
             if not loc2_FT:
                 th = loc2_ode_th.compute(vals, curr_time-prev_time)
                 loc2_FT = True
-            print('%7.4f: %7.4f' % (curr_time, th))
+            # print('%7.4f: %7.4f' % (curr_time, th))
 
             # TODO: FIXTHIS
             dth = 0
@@ -145,7 +151,7 @@ def ha(env, cstate=0):
                 th = gth + (th - normalize_theta(th))
                 dth = 0
 
-            return 1, dth, th, None, False, curr_time
+            return 1, dth, th, y, None, False, curr_time
         else:
             raise RuntimeError('Reached unreachable branch'
                                ' in location2')
@@ -158,9 +164,9 @@ def ha(env, cstate=0):
 
     prev_time = env.now
     while(True):
-        (cstate, delta, th,
-         loc1_FT, loc2_FT, prev_time) = switch_case[cstate](th, loc1_FT,
-                                                            loc2_FT,
+        (cstate, delta, th, y,
+         loc1_FT, loc2_FT, prev_time) = switch_case[cstate](th, y,
+                                                            loc1_FT, loc2_FT,
                                                             prev_time)
         # This should always be the final statement in this function
         global step
@@ -172,14 +178,17 @@ def main():
     """
     """
     # Need this for this example.
-    # sys.setrecursionlimit(2000)
+    sys.setrecursionlimit(2000)
     env = simpy.Environment()
     env.process(ha(env))
     # Run the simulation until all events in the queue are processed.
     # Make it some number to halt simulation after sometime.
-    env.run(until=44)
-    print('steps taken: ', step)
+    env.run(until=7)
+    # print('steps taken: ', step)
 
 
 if __name__ == '__main__':
+    import time
+    start = time.time()
     main()
+    print(time.time()-start)
