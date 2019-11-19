@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-from math import cos, factorial, ceil
+from math import factorial, ceil
 from scipy.optimize import minimize
-import math
 import sympy as S
-from sympy.abc import t
+from sympy.abc import t, theta
+# import inspect
 
 
-def getLipschitz(fun, x0min=0, x0max=0):
+def getLipschitz(fun, x0min=0, x0max=0, args=[]):
     """
     args:
     fun: The function whole lipschitz constant is needed
@@ -18,12 +18,11 @@ def getLipschitz(fun, x0min=0, x0max=0):
     """
 
     # Get the min lipschitz constant
-    resmin = minimize(fun, x0min, args=(True))
-    # Now get the max lipschitz constant
-    resmax = minimize(fun, x0max, args=(False))
+    # resmin = minimize(fun, x0min, args=args[0])
+    # # Now get the max lipschitz constant
+    resmax = minimize(fun, x0max)
     # Lipschitz constant is max of resmin and resmax
-    L = max(abs(resmax.fun), abs(resmin.fun))
-    return L
+    return abs(resmax.fun)
 
 
 def getN(epsilon, C, n=0):
@@ -66,20 +65,20 @@ if __name__ == '__main__':
     """Solving cos(x) <= -0.99, dx/dt=1, x(0) = 0
     """
     # The guard function that needs the lipschitz constant
-    def guard(x, m):
-        return cos((5*math.pi/2)+x)+0.99 if m else -(cos(x)+0.99)
+    def guard():
+        diff = -((S.cos(theta)+0.99).diff(theta))
+        ldiff = S.lambdify(theta, diff, 'scipy')
+        # print(inspect.getsource(ldiff))
+        return ldiff
 
     # n is the number of taylor terms we need, can be computed at
-    # compile time. But epsilon seems to effect the result (the root)
-    # quite massively.
-    C = getLipschitz(guard)
+    # compile time.
+    C = getLipschitz(guard())
     n = getN(epsilon=1e-12, C=C)
-    print('Lipschitz constant for cos(5*π/2+t)+0.99:', C)
+    print('Lipschitz constant for cos(θ)+0.99:', C)
     print('Number of terms in taylor needed: ', n)
 
-    # I think it is important to find all roots and then take the
-    # minimum here.
-
+    # Some of these parts will happen at runtime
     # Now we do the example of the ode with taylor polynomial
     cosseries1 = S.fps(S.cos((5*S.pi)/2 + t)+0.99, x0=0).polynomial(n=n)
     # print(S.simplify(cosseries1))
