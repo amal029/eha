@@ -6,14 +6,16 @@ from sympy.abc import t, theta
 import inspect
 
 
-def getLipschitz(fun, x0=0):
-    """
-    args:
+def getLipschitz(fun, x0=[0], bounds=None):
+    """args:
     fun: The function whole lipschitz constant is needed
     x0: The start point near the max lipschitz constant
+    bounds: Sequence of (min, max) pairs for each element in x. None is
+    used to specify no bound.
 
     return:
     The lipschitz constant L for the function if on exists
+
     """
 
     # XXX: Always call the minimize function with this, because it
@@ -29,7 +31,9 @@ def getLipschitz(fun, x0=0):
     # Get the min lipschitz constant
     # resmin = minimize(fun, x0min, args=args[0])
     # # Now get the max lipschitz constant
-    resmax = minimize(lambdify_wrapper, x0)
+    resmax = minimize(lambdify_wrapper, x0, bounds=bounds)
+    # print(resmax)
+    # print('---------')
     # Lipschitz constant is the abs value
     return abs(resmax.fun)
 
@@ -64,7 +68,9 @@ def getN(epsilon, C, n=0):
     # First see if the starting value of n ≥ X, if yes then binary
     # else increase it by 1
     def computeN(n):
-        return n+1 if factorial(n+1) >= X else computeN(n+1)
+        fn = factorial(n+1)
+        # TODO: Check and prove correctness of this fn*fn
+        return n+1 if fn*fn >= X else computeN(n+1)
 
     return computeN(n)
 
@@ -82,10 +88,10 @@ if __name__ == '__main__':
 
     # XXX: This is just a test for multivariate guards and odes
     def test_multivariate():
-        X, Y = S.abc.X, S.abc.Y
-        g = 2*X**2*Y**2 - 0.99
-        Xdiff = -g.diff(X)       # The partial derivative in X
-        # Ydiff = -g.diff(Y)       # The partial derivative in Y
+        X = S.abc.X
+        Y = S.abc.Y
+        Xdiff = -(X**2 + Y**3 + 1)
+        # Xdiff = -xt.diff(X)       # The partial derivative in X
         # Now to maximize them in each variable
         Xdiffl = S.lambdify([X, Y], Xdiff)
         print(inspect.getsource(Xdiffl))
@@ -93,8 +99,9 @@ if __name__ == '__main__':
 
     # XXX: Just a test
     tomaximize = test_multivariate()
-    res = getLipschitz(tomaximize, [0, 0])
-    print(res)
+    res = getLipschitz(tomaximize, [10, 10], bounds=[(0, 10), (0, 1)])
+    print('max value:', res)
+    print('required terms:', getN(epsilon=1e-12, C=res))
 
     # n is the number of taylor terms we need, can be computed at
     # compile time.
