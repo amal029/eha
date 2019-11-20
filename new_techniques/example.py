@@ -13,8 +13,7 @@ def getLipschitz(fun, x0=[0], bounds=None):
     bounds: Sequence of (min, max) pairs for each element in x. None is
     used to specify no bound.
 
-    return:
-    The lipschitz constant L for the function if on exists
+    return: The lipschitz constant L for the function if one exists
 
     """
 
@@ -28,8 +27,6 @@ def getLipschitz(fun, x0=[0], bounds=None):
         """
         return fun(*tuple(x))
 
-    # Get the min lipschitz constant
-    # resmin = minimize(fun, x0min, args=args[0])
     # # Now get the max lipschitz constant
     resmax = minimize(lambdify_wrapper, x0, bounds=bounds)
     # print(resmax)
@@ -83,7 +80,6 @@ if __name__ == '__main__':
     def guard():
         diff = -((S.cos(theta)+0.99).diff(theta))
         ldiff = S.lambdify(theta, diff, 'scipy')
-        # print(inspect.getsource(ldiff))
         return ldiff
 
     # XXX: This is just a test for multivariate guards and odes
