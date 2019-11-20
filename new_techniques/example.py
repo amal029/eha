@@ -129,7 +129,7 @@ def solve():
 
     # Some of these parts will happen at runtime
     # Now we do the example of the ode with taylor polynomial
-    cosseries1 = S.fps(S.cos((5*S.pi)/2 + t)+0.99, x0=0).polynomial(n=n)
+    cosseries1 = S.fps(S.cos(taylorxpoly)+0.99, x0=0).polynomial(n=n)
     print('Guard taylor polynomial:', cosseries1, '\n')
     # print(S.simplify(cosseries1))
     root = None
