@@ -5,6 +5,8 @@ import sympy as S
 from sympy.abc import t, theta
 import inspect
 
+FLT_MAX = 3.402823466e+38
+
 
 def getLipschitz(fun, x0=[0], bounds=None):
     """args:
@@ -95,13 +97,14 @@ if __name__ == '__main__':
 
     # XXX: Just a test
     tomaximize = test_multivariate()
-    res = getLipschitz(tomaximize, [10, 10], bounds=[(0, 10), (0, 10)])
+    res = getLipschitz(tomaximize, [10, 10], bounds=[(-FLT_MAX, FLT_MAX),
+                                                     (-FLT_MAX, FLT_MAX)])
     print('max value:', res)
     print('required terms:', getN(epsilon=1e-12, C=res))
 
     # n is the number of taylor terms we need, can be computed at
     # compile time.
-    C = getLipschitz(guard())
+    C = getLipschitz(guard(), bounds=[(-FLT_MAX, FLT_MAX)])
     n = getN(epsilon=1e-12, C=C)
     print('Lipschitz constant for cos(θ)+0.99:', C)
     print('Number of terms in taylor needed: ', n)
