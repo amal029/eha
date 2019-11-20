@@ -8,7 +8,7 @@ import inspect
 
 def getLipschitz(fun, x0=[0], bounds=None):
     """args:
-    fun: The function whole lipschitz constant is needed
+    fun: The function whose lipschitz constant is needed
     x0: The start point near the max lipschitz constant
     bounds: Sequence of (min, max) pairs for each element in x. None is
     used to specify no bound.
@@ -95,7 +95,7 @@ if __name__ == '__main__':
 
     # XXX: Just a test
     tomaximize = test_multivariate()
-    res = getLipschitz(tomaximize, [10, 10], bounds=[(0, 10), (0, 1)])
+    res = getLipschitz(tomaximize, [10, 10], bounds=[(0, 10), (0, 10)])
     print('max value:', res)
     print('required terms:', getN(epsilon=1e-12, C=res))
 
@@ -113,10 +113,9 @@ if __name__ == '__main__':
     root = None
     try:
         root1 = S.nsolve(cosseries1, t, 0, dict=True)[0][t]
+        root = root1
     except ValueError:
         print('No root for g(t)=0')
-    else:
-        root = root1
 
     # Now the second one, this one fails
     # g(t) - 2*g(0) = 0
@@ -124,9 +123,8 @@ if __name__ == '__main__':
     # print(S.simplify(cosseries2))
     try:
         root2 = S.nsolve(cosseries2, t, 0, dict=True)[0][t]
+        root = min(root, root2)
     except ValueError:
         print('No root for g(t)-2*g(0) = 0')
-    else:
-        root = min(root, root2) if root2 is not None else root2
 
     print('guard Δt:', root)
