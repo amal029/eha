@@ -69,7 +69,7 @@ def getN(epsilon, C, n=0):
     def computeN(n):
         fn = factorial(n+1)
         # TODO: Check and prove correctness of this fn*fn
-        return n+1 if fn*fn >= X else computeN(n+1)
+        return n+1 if fn >= X else computeN(n+1)
 
     return computeN(n)
 
