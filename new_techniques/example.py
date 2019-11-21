@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 from math import factorial, ceil
-from scipy.optimize import minimize
+from scipy.optimize import differential_evolution
 import sympy as S
 from sympy.abc import t
-# import inspect
+import inspect
 
 FLT_MAX = 3.402823466e+38
 
 
-def getLipschitz(fun, x0=[0], bounds=[(-FLT_MAX, FLT_MAX)]):
+def getLipschitz(fun, bounds=[(-FLT_MAX, FLT_MAX)]):
     """args:
     fun: The function whose lipschitz constant is needed
-    x0: The start point near the max lipschitz constant
     bounds: Sequence of (min, max) pairs for each element in x. None is
     used to specify no bound.
 
@@ -30,7 +29,7 @@ def getLipschitz(fun, x0=[0], bounds=[(-FLT_MAX, FLT_MAX)]):
         return fun(*tuple(x))
 
     # # Now get the max lipschitz constant
-    resmax = minimize(lambdify_wrapper, x0, bounds=bounds)
+    resmax = differential_evolution(lambdify_wrapper, bounds=bounds)
     # print(resmax)
     # print('---------')
     # Lipschitz constant is the abs value
@@ -67,11 +66,8 @@ def getN(epsilon, C, n=0):
     # First see if the starting value of n ≥ X, if yes then binary
     # else increase it by 1
     def computeN(n):
-        fn = factorial(n+1)
-        expn = 2**(n)
-        # TODO: Check and prove correctness of this fn*fn
-        print(fn/expn, X)
-        return n if fn/expn >= X else computeN(n+1)
+        # XXX: Prove correctness of this fn*fn, via induction and MVT
+        return n if (factorial(n+1))/(1 << n) >= X else computeN(n+1)
 
     return computeN(n)
 
@@ -93,19 +89,17 @@ def solve():
     # XXX: This is the theta
     def test_multivariate():
         X = S.abc.X
-        # Y = S.abc.Y
         # Xdiff = -(X**2 + Y**3 + 1)
-        Xdiff = -1              # Negative because -minimize ≡ maximize
+        Xdiff = -1         # Negative because -minimize ≡ maximize
         # Xdiff = -xt.diff(X)       # The partial derivative in X
         # Now to maximize them in each variable
         # Xdiffl = S.lambdify([X, Y], Xdiff)
         Xdiffl = S.lambdify([X], Xdiff)
-        # print(inspect.getsource(Xdiffl))
         return Xdiffl
 
     # XXX: Just a test
     tomaximize = test_multivariate()
-    res = getLipschitz(tomaximize, [0])
+    res = getLipschitz(tomaximize)
     print('Lipschitz value for θ:', res)
     nx = getN(epsilon=1e-12, C=res)
     print('required terms for θ satisfying Lipschitz constant:', nx)
@@ -124,9 +118,9 @@ def solve():
 
     # n is the number of taylor terms we need, can be computed at
     # compile time.
-    C = getLipschitz(guard(), bounds=[(-FLT_MAX, FLT_MAX)])
+    C = getLipschitz(guard())
     n = getN(epsilon=1e-12, C=C)
-    print('\nLipschitz constant for cos(%s)+0.99: %d' % (taylorxpoly, C))
+    print('\nLipschitz constant for cos(%s)+0.99: %s' % (taylorxpoly, C))
     print('Number of terms in taylor needed: ', n)
 
     # Some of these parts will happen at runtime
