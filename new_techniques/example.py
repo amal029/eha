@@ -55,8 +55,8 @@ def getN(epsilon, C, n=0):
 
     Theorems used:
 
-    1.) fⁿ(x) ≤ f¹(x) ≤ C, see lipschitz value of higher derivatives and
-    sobolov spaces.
+    1.) fⁿ(x) ≤ f¹(x) ≤ 2⁽ⁿ⁻¹⁾C, can be proven using mean value theorem
+    with max step-size h = 1
 
     2.) Lagrange error: f⁽ⁿ⁺¹)(x₀)/(n+1)!⋆(h⁽ⁿ⁺¹⁾), where h = 1, in the worst
     case and fⁿ(x₀) ≤ C form 1.) above.
@@ -68,8 +68,10 @@ def getN(epsilon, C, n=0):
     # else increase it by 1
     def computeN(n):
         fn = factorial(n+1)
+        expn = 2**(n)
         # TODO: Check and prove correctness of this fn*fn
-        return n+1 if fn >= X else computeN(n+1)
+        print(fn/expn, X)
+        return n if fn/expn >= X else computeN(n+1)
 
     return computeN(n)
 
