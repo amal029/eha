@@ -37,6 +37,8 @@ def getLipschitz(fun, x0=[0], bounds=[(-FLT_MAX, FLT_MAX)]):
     return abs(resmax.fun)
 
 
+# FIXME: This needs to be fixed and lipschitz called for every
+# derivative.
 def getN(epsilon, C, n=0):
     """Gives the number of terms needed in the taylor polynomial to
     correctly bound the local truncation error given the step size h ∈
