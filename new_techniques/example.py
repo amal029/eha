@@ -3,7 +3,7 @@ from math import factorial, ceil
 from scipy.optimize import differential_evolution
 import sympy as S
 from sympy.abc import t
-import inspect
+# import inspect
 
 FLT_MAX = 3.402823466e+38
 
@@ -65,8 +65,10 @@ def getN(epsilon, C, n=0):
     """
     X = int(ceil(C/epsilon))         # The bound
 
-    # First see if the starting value of n ≥ X, if yes then binary
-    # else increase it by 1
+    # First see if the starting value of n ≥ X, if yes then binary else
+    # increase it by 1 XXX: Keep on doing derivatives and keep on
+    # replacing Derivative(x(t), t) with the starting value.
+    # slope.replace(S.sympify('Derivative(x(t), t)'), expr)
     def computeN(n):
         # XXX: Prove correctness of this fn*fn, via induction and MVT
         return n if (factorial(n+1))/(1 << n) >= X else computeN(n+1)
