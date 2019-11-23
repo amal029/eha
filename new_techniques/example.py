@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from math import factorial, ceil
+from math import factorial
 from scipy.optimize import differential_evolution
 import sympy as S
 from sympy.abc import t
@@ -7,8 +7,17 @@ from sympy.abc import t
 
 FLT_MAX = 3.402823466e+38
 
+# XXX: Can we not have a scaling factor, where all the variables can
+# only be between [-1, 1] when computing the Lipschitz value, and
+# running the example and then for plotting it we just multiply
+# everything with that factor?
+# FLT_MAX = 1
 
-def getLipschitz(fun, bounds=[(-FLT_MAX, FLT_MAX)]):
+START_SIM_TIME = 0
+STOP_SIM_TIME = 60              # user defined
+
+
+def getLipschitz(fun, bounds):
     """args:
     fun: The function whose lipschitz constant is needed
     bounds: Sequence of (min, max) pairs for each element in x. None is
@@ -28,52 +37,111 @@ def getLipschitz(fun, bounds=[(-FLT_MAX, FLT_MAX)]):
         """
         return fun(*tuple(x))
 
-    # # Now get the max lipschitz constant
-    resmax = differential_evolution(lambdify_wrapper, bounds=bounds)
-    # print(resmax)
-    # print('---------')
-    # Lipschitz constant is the abs value
+    # Now get the max lipschitz constant
+    resmax = differential_evolution(lambdify_wrapper, bounds)
     return abs(resmax.fun)
 
 
-# FIXME: This needs to be fixed and lipschitz called for every
-# derivative.
-def getN(epsilon, C, n=0):
+# XXX: This can be optimized for LTI systems. With LTI systems we have
+# to compute the lipschitz constant just once. Because with LTI systems:
+# Lⁿₓ = A*L⁽ⁿ⁻¹⁾ₓ
+
+# XXX: In the general case, we have to compute the lipschitz constant
+# every time, which is what I am doing here.
+
+def getN(expr=dict(), epsilon=1e-12):
     """Gives the number of terms needed in the taylor polynomial to
-    correctly bound the local truncation error given the step size h ∈
-    (0, 1)
+    correctly bound the local truncation error given the step size
+
+    h ≤ max(START_SIM_TIME - STOP_SIM_TIME)/50, 0.2) like simulink
 
     args:
 
+    expr: Ode expr dictionary:
+
+    [x(t): ([first smooth token], {dep ode exprs}, {replace func with
+    names}, [lambdify args])], all in sympy format, default None
+
     epsilon: The remainder of the taylor series should be bounded by
-    epsilon.
+    epsilon, default=1e-12.
 
-    C: Absolute value of Lipschitz constant
-    n0: starting value of n, default = 0
 
-    return:
-    supremum(n ∈ ℕ), C/(n+1)! ≤ epsilon
-
-    Theorems used:
-
-    1.) fⁿ(x) ≤ f¹(x) ≤ 2⁽ⁿ⁻¹⁾C, can be proven using mean value theorem
-    with max step-size h = 1
-
-    2.) Lagrange error: f⁽ⁿ⁺¹)(x₀)/(n+1)!⋆(h⁽ⁿ⁺¹⁾), where h = 1, in the worst
-    case and fⁿ(x₀) ≤ C form 1.) above.
+    return: supremum(n ∈ ℕ) such that Lagrange error:
+    f⁽ⁿ⁺¹)(x₀)/(n+1)!⋆(h⁽ⁿ⁺¹⁾) ≤ epsilon, n ≥ 2
 
     """
-    X = int(ceil(C/epsilon))         # The bound
+    assert(len(list(expr)) == 1)
+    values = list(*(expr.values()))
+    assert(len(values) == 4)
+    # print(values)
 
-    # First see if the starting value of n ≥ X, if yes then binary else
-    # increase it by 1 XXX: Keep on doing derivatives and keep on
-    # replacing Derivative(x(t), t) with the starting value.
-    # slope.replace(S.sympify('Derivative(x(t), t)'), expr)
-    def computeN(n):
-        # XXX: Prove correctness of this fn*fn, via induction and MVT
-        return n if (factorial(n+1))/(1 << n) >= X else computeN(n+1)
+    h = max((START_SIM_TIME - STOP_SIM_TIME)/50, 0.2)
 
-    return computeN(n)
+    def build(slope, tokens, Ls1=None):
+        # 1.) Replace Derivative(x(t), t) → token[0]
+        lslope = slope
+        slope = slope.replace(list(expr)[0], tokens[0])
+        if Ls1 is not None:
+            k = list(expr)[0]
+            lslope = lslope.replace(k, Ls1[k])
+        else:
+            lslope = slope
+        # 2.) Replace Derivative(deps(t), t) → exprs
+        for i, k in values[1].items():
+            slope = slope.replace(i, k[0])
+            if Ls1 is not None:
+                lslope = lslope.replace(i, Ls1[i])
+            else:
+                lslope = slope
+        # Now lambdify the argument and find its maximum
+        # 1. Replace all func names with variable names
+        # lslope = slope
+        for (i, k) in values[2].items():
+            lslope = lslope.replace(i, k)
+        return slope, lslope
+
+    def computeN(n, tokens, Ls1=None):
+        hn = h**(n+1)
+        fn = factorial(n+1)
+
+        # XXX: Compute the lipschitz constant
+        slope = tokens[-1].diff(t)
+        # print('sending:', slope)
+        slope, lslope = build(slope, tokens, Ls1)
+
+        # Make bounds
+        bounds = [(-FLT_MAX, FLT_MAX)]*len(values[3])
+        L = S.lambdify(values[3], (-lslope))
+        print('\n', lslope, '\n')
+        L = getLipschitz(L, bounds)
+        # The remainder theorem
+        if (L*hn)/fn <= epsilon:
+            return (tokens, n)
+        else:
+            # Append the smooth tokens here
+            tokens.append(slope)
+            return computeN(n+1, tokens, Ls1)
+
+    # Compute the first smooth tokens lipschitz constants
+    _, dfx = build(values[0][0], values[0])
+    # Make bounds
+    bounds = [(-FLT_MAX, FLT_MAX)]*len(values[3])
+    L = S.lambdify(values[3], (-dfx))
+    L = getLipschitz(L, bounds)
+    Ls1 = {list(expr)[0]: L}
+
+    # FIXME: This needs to be completed, need all the information for
+    # this too.
+    for i, k in values[1].items():
+        _, dfi = build(k[0], [k[0]])
+        # Make bounds
+        bounds = [(-FLT_MAX, FLT_MAX)]*len(k[1])
+        L = S.lambdify(k[1], (-dfx))
+        L = getLipschitz(L, bounds)
+        Ls1[i] = L
+
+    # Call with the first smooth token
+    return computeN(2, values[0], Ls1)
 
 
 # This is all done at compile time.
@@ -92,21 +160,25 @@ def solve():
 
     # XXX: This is the theta
     def test_multivariate():
-        X = S.abc.X
-        # Xdiff = -(X**2 + Y**3 + 1)
-        Xdiff = -1         # Negative because -minimize ≡ maximize
-        # Xdiff = -xt.diff(X)       # The partial derivative in X
-        # Now to maximize them in each variable
-        # Xdiffl = S.lambdify([X, Y], Xdiff)
-        Xdiffl = S.lambdify([X], Xdiff)
-        return Xdiffl
+        Xdiff = S.sympify('sqrt(x(t)**2)')
+        return Xdiff
 
-    # XXX: Just a test
     tomaximize = test_multivariate()
-    res = getLipschitz(tomaximize)
-    print('Lipschitz value for θ:', res)
-    nx = getN(epsilon=1e-12, C=res)
+    xt = S.sympify('x(t)')
+    x = S.abc.x
+    yt = S.sympify('y(t)')
+    y = S.abc.y
+    # Coupled ode example
+    (tokens, nx) = getN({xt.diff(t): ([tomaximize],
+                                      {yt.diff(t): (xt,
+                                                    # args
+                                                    [x, y, t])},
+                                      # Always list all the replacements
+                                      {xt: x, yt: y},
+                                      [x, y, t])})
+    # print(tokens)
     print('required terms for θ satisfying Lipschitz constant:', nx)
+
     # Now make the taylor polynomial
     taylorxcoeffs = [5*S.pi/2, 1] + [0]*(nx-2)
     # These are the smooth tokens
@@ -116,18 +188,14 @@ def solve():
 
     # The guard function that needs the lipschitz constant
     def guard():
-        diff = -((S.cos(taylorxpoly)+0.99).diff(t))
-        ldiff = S.lambdify(t, diff, 'scipy')
-        return ldiff
+        gt = (S.cos(taylorxpoly)+0.99)
+        return gt.diff(t)
 
-    # n is the number of taylor terms we need, can be computed at
-    # compile time.
-    C = getLipschitz(guard())
-    n = getN(epsilon=1e-12, C=C)
-    print('\nLipschitz constant for cos(%s)+0.99: %s' % (taylorxpoly, C))
-    print('Number of terms in taylor needed: ', n)
+    gt = S.sympify('g(t)')
+    tokens, n = getN({gt.diff(t): ([guard()], dict(), dict(), [t])})
+    # print(tokens)
+    print('Number of terms for cos(%s)+0.99: %s' % (taylorxpoly, n))
 
-    # Some of these parts will happen at runtime
     # Now we do the example of the ode with taylor polynomial
     cosseries1 = S.fps(S.cos(taylorxpoly)+0.99, x0=0).polynomial(n=n)
     print('Guard taylor polynomial:', cosseries1, '\n')
