@@ -3,7 +3,6 @@ from math import factorial
 from scipy.optimize import differential_evolution
 import sympy as S
 from sympy.abc import t
-import math
 # import inspect
 
 # XXX: Can we not have a scaling factor, where all the variables can
@@ -169,13 +168,15 @@ def solve(FLT_MIN, FLT_MAX):
 
         # Non linear with periodic functions
         # Xdiff = S.sympify('sin(sqrt(x(t)+1))')
+        # import math
         # FLT_MIN = 0
         # FLT_MAX = 2*math.pi
 
         # More complex ode
         # Xdiff = S.sympify('sin(sin(x(t)+1))')
         # The angles can only be between 0 and 2π
-        # FLT_MIN = 0
+        # import math
+        # FLT_MIN = -2*math.pi
         # FLT_MAX = 2*math.pi
 
         # A sqrt
@@ -185,15 +186,15 @@ def solve(FLT_MIN, FLT_MAX):
         # continous variables.
 
         # Another sqrt, does not seem to converge
-        # Xdiff = S.sympify('x(t)*t')
+        # Xdiff = S.sympify('x(t)*t')  # Does not work
 
-        # Now multiplication
-        Xdiff = S.sympify('x(t)*y(t)')
+        # Now multiplication, seems to not coverge ever.
+        Xdiff = S.sympify('x(t)*y(t)')  # Does not work either
 
         # Using scaling factor, to reduce the bounds of the maximisation
         # problem.
-        FLT_MIN = -1e1
-        FLT_MAX = 1e1
+        FLT_MIN = -1e2
+        FLT_MAX = 1e2
 
         return FLT_MIN, FLT_MAX, Xdiff
 
@@ -205,7 +206,9 @@ def solve(FLT_MIN, FLT_MAX):
     # Coupled ode example
     (tokens, nx) = getN({xt.diff(t): ([tomaximize],
                                       {yt.diff(t): (xt,
-                                                    # args
+                                                    # args always in
+                                                    # same order for
+                                                    # everyone
                                                     [x, y, t])},
                                       # Always list all the replacements
                                       {xt: x, yt: y},
