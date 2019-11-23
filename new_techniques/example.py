@@ -3,9 +3,8 @@ from math import factorial
 from scipy.optimize import differential_evolution
 import sympy as S
 from sympy.abc import t
+import math
 # import inspect
-
-FLT_MAX = 3.402823466e+38
 
 # XXX: Can we not have a scaling factor, where all the variables can
 # only be between [-1, 1] when computing the Lipschitz value, and
@@ -49,7 +48,8 @@ def getLipschitz(fun, bounds):
 # XXX: In the general case, we have to compute the lipschitz constant
 # every time, which is what I am doing here.
 
-def getN(expr=dict(), epsilon=1e-12):
+def getN(expr=dict(), epsilon=1e-12, FLT_MAX=3.402823466e+38,
+         FLT_MIN=-3.402823466e+38):
     """Gives the number of terms needed in the taylor polynomial to
     correctly bound the local truncation error given the step size
 
@@ -110,7 +110,7 @@ def getN(expr=dict(), epsilon=1e-12):
         slope, lslope = build(slope, tokens, Ls1)
 
         # Make bounds
-        bounds = [(-FLT_MAX, FLT_MAX)]*len(values[3])
+        bounds = [(FLT_MIN, FLT_MAX)]*len(values[3])
         L = S.lambdify(values[3], (-lslope))
         print('\n', lslope, '\n')
         L = getLipschitz(L, bounds)
@@ -125,7 +125,7 @@ def getN(expr=dict(), epsilon=1e-12):
     # Compute the first smooth tokens lipschitz constants
     _, dfx = build(values[0][0], values[0])
     # Make bounds
-    bounds = [(-FLT_MAX, FLT_MAX)]*len(values[3])
+    bounds = [(FLT_MIN, FLT_MAX)]*len(values[3])
     L = S.lambdify(values[3], (-dfx))
     L = getLipschitz(L, bounds)
     Ls1 = {list(expr)[0]: L}
@@ -135,7 +135,7 @@ def getN(expr=dict(), epsilon=1e-12):
     for i, k in values[1].items():
         _, dfi = build(k[0], [k[0]])
         # Make bounds
-        bounds = [(-FLT_MAX, FLT_MAX)]*len(k[1])
+        bounds = [(FLT_MIN, FLT_MAX)]*len(k[1])
         L = S.lambdify(k[1], (-dfx))
         L = getLipschitz(L, bounds)
         Ls1[i] = L
@@ -145,7 +145,7 @@ def getN(expr=dict(), epsilon=1e-12):
 
 
 # This is all done at compile time.
-def solve():
+def solve(FLT_MIN, FLT_MAX):
     """Solving cos(x) <= -0.99, dx/dt=1, x(0) = 0
     # Basic steps:
     # 1. First compute the n terms for each ode
@@ -160,10 +160,44 @@ def solve():
 
     # XXX: This is the theta
     def test_multivariate():
-        Xdiff = S.sympify('sqrt(x(t)**2)')
-        return Xdiff
+        # LTI is easy to solve
+        # Xdiff = S.sympify('(5*x(t) + 2*y(t) + 1)')
 
-    tomaximize = test_multivariate()
+        # Time varying, takes more time in general,
+        # with increasing power for t^n
+        # Xdiff = S.sympify('(5*x(t) + 2*y(t) + t**3)')
+
+        # Non linear with periodic functions
+        # Xdiff = S.sympify('sin(sqrt(x(t)+1))')
+        # FLT_MIN = 0
+        # FLT_MAX = 2*math.pi
+
+        # More complex ode
+        # Xdiff = S.sympify('sin(sin(x(t)+1))')
+        # The angles can only be between 0 and 2π
+        # FLT_MIN = 0
+        # FLT_MAX = 2*math.pi
+
+        # A sqrt
+        # Xdiff = S.sympify('sqrt(x(t)+1)')
+
+        # The ones below need to have a reduced search space bound for
+        # continous variables.
+
+        # Another sqrt, does not seem to converge
+        # Xdiff = S.sympify('x(t)*t')
+
+        # Now multiplication
+        Xdiff = S.sympify('x(t)*y(t)')
+
+        # Using scaling factor, to reduce the bounds of the maximisation
+        # problem.
+        FLT_MIN = -1e1
+        FLT_MAX = 1e1
+
+        return FLT_MIN, FLT_MAX, Xdiff
+
+    FLT_MIN, FLT_MAX, tomaximize = test_multivariate()
     xt = S.sympify('x(t)')
     x = S.abc.x
     yt = S.sympify('y(t)')
@@ -175,7 +209,8 @@ def solve():
                                                     [x, y, t])},
                                       # Always list all the replacements
                                       {xt: x, yt: y},
-                                      [x, y, t])})
+                                      [x, y, t])},
+                        FLT_MIN=FLT_MIN, FLT_MAX=FLT_MAX)
     # print(tokens)
     print('required terms for θ satisfying Lipschitz constant:', nx)
 
@@ -221,4 +256,6 @@ def solve():
 
 
 if __name__ == '__main__':
-    solve()
+    FLT_MAX = 3.402823466e+38
+    FLT_MIN = -FLT_MAX
+    solve(FLT_MIN, FLT_MAX)
