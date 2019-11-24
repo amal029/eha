@@ -65,7 +65,7 @@ def getN(expr=dict(), epsilon=1e-12, method='r+s+e', Debug=0):
         v = (slope.evalf()*hn)/fn
         if Debug in [2]:
             print('v:', (v))
-        return v
+        return abs(v)
 
     for n in count(2):
         tokens = values[0].copy()
@@ -106,9 +106,9 @@ def solve():
         # Xdiff = S.sympify('sqrt(x(t)+1)')
 
         # A power, does not seem to converge
-        Xdiff = S.sympify('sqrt(x(t)**2+1)')
+        # Xdiff = S.sympify('sqrt(x(t)**2+1)')
 
-        # Xdiff = S.sympify('x(t)*t')
+        Xdiff = S.sympify('x(t)*t')
 
         # Xdiff = S.sympify('(y(t)) + cos(t) + x(t)')
 
@@ -137,10 +137,10 @@ def solve():
     tomaximize = test_multivariate()
     xt = S.sympify('x(t)')
     yt = S.sympify('y(t)')
-    epsilon = 1e-6
+    epsilon = 1e-12
     # Coupled ode example
     (tokens, nx) = getN({xt.diff(t): ([tomaximize],
-                                      {yt.diff(t): (2*1)},
+                                      {yt.diff(t): (xt + yt)},
                                       # Always list all initial values
                                       # at Tₙ
                                       {xt: 5, yt: 1, t: 1})},
@@ -150,5 +150,5 @@ def solve():
 
 
 if __name__ == '__main__':
-    M.mp.dps = 20               # Decimal precistion
+    M.mp.dps = 5               # Decimal precistion
     solve()
