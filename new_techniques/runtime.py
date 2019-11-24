@@ -27,7 +27,7 @@ def getN(expr=dict(), epsilon=1e-12, method='r+s', Debug=0):
     epsilon, default=1e-12.
 
 
-    return: supremum(n ∈ ℕ) such that Lagrange error:
+    return: heuristic (n ∈ ℕ) such that Lagrange error:
     f⁽ⁿ⁺¹)(η)/(n+1)!⋆(h⁽ⁿ⁺¹⁾) ≤ epsilon, n ≥ 2, η ∈ (Tₙ, x)
 
     """
@@ -68,38 +68,31 @@ def getN(expr=dict(), epsilon=1e-12, method='r+s', Debug=0):
             print('v:', abs(v))
         return abs(v)
 
+    n = len(values[0]) + 1
     ps = None                   # Previous sum
-    for n in count(2):
-        tokens = values[0].copy()
+    while True:
+        tokens = values[0]
         s = M.nsum(computeN, [n, M.inf], method=method)
-        # This is the convergence test
-        assert(s/ps < 1) if n > 2 else True
+        assert (s/ps < 1) if n > 2 else True
         ps = s
+        # This is the convergence test
         if Debug in (1, 2):
             print('Σₙᵒᵒ:', s, 'n:', n)
         if s <= epsilon:
             # Replace the final value with taylor term
-            final_tokens = values[0]
+            values[0] = values[0][:n]
+            diff_coeffs = values[0]
             values[0] = [replace(x).evalf() for x in values[0]]
             # Insert the initial value, constant term of taylor
             values[0].insert(0, (values[2][list(expr)[0].args[0]]))
             # Build the taylor polynomial for the ode
             polynomial = sum([c*h**p/factorial(p)
                               for c, p in zip(values[0], range(n))])
-            return (final_tokens, polynomial, n)
+            return (diff_coeffs, polynomial, n)
         else:
-            # Automatic append inside build
-
-            # XXX: We can optimize this by jumping to by "k", where k is
-            # the number where returned v from computeN ≤ epsilon XXX:
-            # Remember if we do this optimisation then we need to
-            # manually create all the tokens between current and until
-            # k. Also reset k before calling
-
-            # May be don't even need a copy just jump by k, after
-            # resetting it, because build has been called by nsum many
-            # times as such.
-            build(values[0])
+            # Automatic append inside build. This is optimised, but does
+            # not give the supremum for n.
+            n = len(values[0]) + 1
 
 
 def solve():
@@ -115,33 +108,28 @@ def solve():
     # polynomial solver.
     """
 
-    # XXX: This is the ode
+    # XXX: These are different ode examples.
     def test_multivariate():
         # LTI is easy to solve
         # Xdiff = S.sympify('(2*x(t) + y(t))')
 
         # L, but time varying
-        # Xdiff = S.sympify('(5*x(t) + 2*y(t) + t**3)')
+        Xdiff = S.sympify('(5*x(t) + 2*y(t) + (t-9)**3 - sin(t))')
 
         # A sqrt
         # Xdiff = S.sympify('sqrt(x(t)+1)')
 
-        # A power, does not seem to converge
+        # a power, does not seem to converge
         # Xdiff = S.sympify('sqrt(x(t)**2+1)')
 
         # Xdiff = S.sympify('x(t) + y(t)')
 
         # Xdiff = S.sympify('(y(t)) + cos(t) + (x(t)+1)')
-        # Xdiff = S.sympify('t*(x(t)-2)')
-
-        # These are better done with lipschitz constants.
-        # Periodic functions keep on oscillating, so never seem to
-        # converge.
+        # Xdiff = S.sympify('t*(x(t)-2) + y(t)')
 
         # Xdiff = S.sympify('sin(y(t))')
 
         # Non linear with periodic functions
-        # XXX: Does not converge
         # Xdiff = S.sympify('sin(sqrt(x(t)+1))')
 
         # more complex ode
@@ -150,7 +138,7 @@ def solve():
         # Xdiff = S.sympify('exp(x(t))')  # This seems to fuck up
 
         # XXX: The below one does not converge
-        Xdiff = S.sympify('x(t)*y(t)')
+        # Xdiff = S.sympify('x(t)*y(t)')
 
         return Xdiff
 
@@ -159,8 +147,8 @@ def solve():
     tomaximize = test_multivariate()
     xt = S.sympify('x(t)')
     yt = S.sympify('y(t)')
-    dydt = S.cos(t)
-    epsilon = 1e-4
+    dydt = 2*xt - 1
+    epsilon = 1e-6
     # Coupled ode example
     (final_tokens,
      tokens, nx) = getN({xt.diff(t): ([tomaximize],
@@ -169,7 +157,7 @@ def solve():
                                       # initial values at
                                       # Tₙ
                                       {xt: 5.6, yt: 1, t: 0})},
-                        epsilon=epsilon, method='s', Debug=1)
+                        epsilon=epsilon, method='r+s', Debug=1)
     print('required terms for dx/dt: %s satisfying ε: %s: %s' %
           (tomaximize, epsilon, nx))
     print('Taylor polynomial for dx/dt: %s with dy/dt: %s is %s' %
@@ -178,5 +166,5 @@ def solve():
 
 
 if __name__ == '__main__':
-    M.mp.dps = 1               # Decimal precision
+    M.mp.dps = 2               # Decimal precision
     solve()
