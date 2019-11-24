@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from math import factorial
 import sympy as S
-from sympy.abc import t
+from sympy.abc import t, d
 import mpmath as M
 from itertools import count
 
@@ -52,30 +52,36 @@ def getN(expr=dict(), epsilon=1e-12, method='r+s+e', Debug=0):
         # print(slope)
         return slope
 
+    def replace(slope):
+        for (i, k) in values[2].items():
+            slope = slope.replace(i, k)
+        return slope
+
     def computeN(n):
 
         hn = h**(n)
         fn = factorial(n)
         slope = build(tokens)
-        # Now replace all x(t) → initial values
-        for (i, k) in values[2].items():
-            slope = slope.replace(i, k)
-
-        # print('ss:', slope)
+        slope = replace(slope)
         v = (slope.evalf()*hn)/fn
         if Debug in [2]:
-            print('v:', (v))
+            print('v:', abs(v))
         return abs(v)
 
     for n in count(2):
         tokens = values[0].copy()
-        # print('values:', tokens)
         s = M.nsum(computeN, [n, M.inf], method=method)
         if Debug in (1, 2):
             print('Σₙᵒᵒ:', s, 'n:', n)
         if s <= epsilon:
-            # tokens[:len(tokens)-1]
-            return (values[0], n)
+            # Replace the final value with taylor term
+            values[0] = [replace(x).evalf() for x in values[0]]
+            # Insert the initial value, constant term of taylor
+            values[0].insert(0, (values[2][list(expr)[0].args[0]]))
+            # Build the taylor polynomial for the ode
+            polynomial = sum([c*d**p/factorial(p)
+                              for c, p in zip(values[0], range(n))])
+            return (polynomial, n)
         else:
             # Automatic append inside build
             build(values[0])
@@ -108,7 +114,7 @@ def solve():
         # A power, does not seem to converge
         # Xdiff = S.sympify('sqrt(x(t)**2+1)')
 
-        # Xdiff = S.sympify('x(t)*t')
+        Xdiff = S.sympify('x(t) + y(t)')
 
         # Xdiff = S.sympify('(y(t)) + cos(t) + x(t)')
 
@@ -116,16 +122,14 @@ def solve():
         # Periodic functions keep on oscillating, so never seem to
         # converge.
 
-        Xdiff = S.sympify('sin(y(t))+x(t)')
+        # Xdiff = S.sympify('sin(y(t))+x(t)')
 
         # Non linear with periodic functions
-        # XXX: Needs to be fixed
+        # XXX: Does not converge
         # Xdiff = S.sympify('sin(sqrt(x(t)+1))')
 
         # more complex ode
-        # XXX: Needs fixing
-        # Xdiff = S.sympify('sin(sin(x(t)+1))')
-        # the angles can only be between 0 and 2π
+        # Xdiff = S.sympify('sin(sin(y(t)+1))')
 
         # Xdiff = S.sympify('exp(x(t))')  # This seems to fuck up
 
@@ -140,13 +144,15 @@ def solve():
     epsilon = 1e-12
     # Coupled ode example
     (tokens, nx) = getN({xt.diff(t): ([tomaximize],
-                                      {yt.diff(t): 1},
+                                      {yt.diff(t): 2*xt - 1},
                                       # Always list all initial values
                                       # at Tₙ
                                       {xt: 5, yt: 1, t: 1})},
-                        epsilon=epsilon, method='r+s', Debug=1)
-    print(tokens)
-    print('required terms for ode satisfying ε: %s: %s' % (epsilon, nx))
+                        epsilon=epsilon, method='r+s', Debug=0)
+    print('required terms for dx/dt: %s satisfying ε: %s: %s' %
+          (tomaximize, epsilon, nx))
+    print('Taylor polynomial for %s with dy/dt: %s is %s' %
+          (tomaximize, 2*xt-1, tokens))
 
 
 if __name__ == '__main__':
