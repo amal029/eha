@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from math import factorial
 import sympy as S
-from sympy.abc import t, d
+from sympy.abc import t
 import mpmath as M
 from itertools import count
 
@@ -10,7 +10,7 @@ START_SIM_TIME = 0
 STOP_SIM_TIME = 60              # user defined
 
 
-def getN(expr=dict(), epsilon=1e-12, method='r+s+e', Debug=0):
+def getN(expr=dict(), epsilon=1e-12, method='r+s', Debug=0):
     """Gives the number of terms needed in the taylor polynomial to
     correctly bound the local truncation error given the step size
 
@@ -68,22 +68,37 @@ def getN(expr=dict(), epsilon=1e-12, method='r+s+e', Debug=0):
             print('v:', abs(v))
         return abs(v)
 
+    ps = None                   # Previous sum
     for n in count(2):
         tokens = values[0].copy()
         s = M.nsum(computeN, [n, M.inf], method=method)
+        # This is the convergence test
+        assert(s/ps < 1) if n > 2 else True
+        ps = s
         if Debug in (1, 2):
             print('Σₙᵒᵒ:', s, 'n:', n)
         if s <= epsilon:
             # Replace the final value with taylor term
+            final_tokens = values[0]
             values[0] = [replace(x).evalf() for x in values[0]]
             # Insert the initial value, constant term of taylor
             values[0].insert(0, (values[2][list(expr)[0].args[0]]))
             # Build the taylor polynomial for the ode
-            polynomial = sum([c*d**p/factorial(p)
+            polynomial = sum([c*h**p/factorial(p)
                               for c, p in zip(values[0], range(n))])
-            return (polynomial, n)
+            return (final_tokens, polynomial, n)
         else:
             # Automatic append inside build
+
+            # XXX: We can optimize this by jumping to by "k", where k is
+            # the number where returned v from computeN ≤ epsilon XXX:
+            # Remember if we do this optimisation then we need to
+            # manually create all the tokens between current and until
+            # k. Also reset k before calling
+
+            # May be don't even need a copy just jump by k, after
+            # resetting it, because build has been called by nsum many
+            # times as such.
             build(values[0])
 
 
@@ -116,13 +131,14 @@ def solve():
 
         # Xdiff = S.sympify('x(t) + y(t)')
 
-        Xdiff = S.sympify('(y(t)) + cos(t) + x(t)')
+        # Xdiff = S.sympify('(y(t)) + cos(t) + (x(t)+1)')
+        # Xdiff = S.sympify('t*(x(t)-2)')
 
         # These are better done with lipschitz constants.
         # Periodic functions keep on oscillating, so never seem to
         # converge.
 
-        # Xdiff = S.sympify('sin(y(t))+x(t)')
+        # Xdiff = S.sympify('sin(y(t))')
 
         # Non linear with periodic functions
         # XXX: Does not converge
@@ -134,27 +150,33 @@ def solve():
         # Xdiff = S.sympify('exp(x(t))')  # This seems to fuck up
 
         # XXX: The below one does not converge
-        # Xdiff = S.sympify('x(t)*y(t)')
+        Xdiff = S.sympify('x(t)*y(t)')
 
         return Xdiff
 
+    # xxx: In the next iteration (integration step) start with n which
+    # currently holds, else increase n.
     tomaximize = test_multivariate()
     xt = S.sympify('x(t)')
     yt = S.sympify('y(t)')
-    epsilon = 1e-12
+    dydt = S.cos(t)
+    epsilon = 1e-4
     # Coupled ode example
-    (tokens, nx) = getN({xt.diff(t): ([tomaximize],
-                                      {yt.diff(t): 2*xt - 1},
-                                      # Always list all initial values
-                                      # at Tₙ
-                                      {xt: 5, yt: 1, t: 1})},
-                        epsilon=epsilon, method='r+s', Debug=0)
+    (final_tokens,
+     tokens, nx) = getN({xt.diff(t): ([tomaximize],
+                                      {yt.diff(t): dydt},
+                                      # Always list all
+                                      # initial values at
+                                      # Tₙ
+                                      {xt: 5.6, yt: 1, t: 0})},
+                        epsilon=epsilon, method='s', Debug=1)
     print('required terms for dx/dt: %s satisfying ε: %s: %s' %
           (tomaximize, epsilon, nx))
     print('Taylor polynomial for dx/dt: %s with dy/dt: %s is %s' %
-          (tomaximize, 2*xt-1, tokens))
+          (tomaximize, dydt, tokens))
+    # print(final_tokens)          # Only needed for the next iteration
 
 
 if __name__ == '__main__':
-    M.mp.dps = 5               # Decimal precistion
+    M.mp.dps = 1               # Decimal precision
     solve()
