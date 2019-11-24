@@ -189,12 +189,12 @@ def solve(FLT_MIN, FLT_MAX):
         # Xdiff = S.sympify('x(t)*t')  # Does not work
 
         # Now multiplication, seems to not coverge ever.
-        Xdiff = S.sympify('x(t)*y(t)')  # Does not work either
+        Xdiff = S.sympify('exp(2*x(t))')  # Does not work either
 
         # Using scaling factor, to reduce the bounds of the maximisation
         # problem.
-        FLT_MIN = -1e2
-        FLT_MAX = 1e2
+        FLT_MIN = -1e1
+        FLT_MAX = 1e1
 
         return FLT_MIN, FLT_MAX, Xdiff
 
@@ -213,7 +213,7 @@ def solve(FLT_MIN, FLT_MAX):
                                       # Always list all the replacements
                                       {xt: x, yt: y},
                                       [x, y, t])},
-                        FLT_MIN=FLT_MIN, FLT_MAX=FLT_MAX)
+                        FLT_MIN=FLT_MIN, FLT_MAX=FLT_MAX, epsilon=1e-6)
     # print(tokens)
     print('required terms for θ satisfying Lipschitz constant:', nx)
 
