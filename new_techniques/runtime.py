@@ -108,7 +108,7 @@ def solve():
         # A power, does not seem to converge
         # Xdiff = S.sympify('sqrt(x(t)**2+1)')
 
-        Xdiff = S.sympify('x(t)*t')
+        # Xdiff = S.sympify('x(t)*t')
 
         # Xdiff = S.sympify('(y(t)) + cos(t) + x(t)')
 
@@ -116,7 +116,7 @@ def solve():
         # Periodic functions keep on oscillating, so never seem to
         # converge.
 
-        # Xdiff = S.sympify('sin(y(t))')
+        Xdiff = S.sympify('sin(y(t))')
 
         # Non linear with periodic functions
         # XXX: Needs to be fixed
@@ -140,7 +140,7 @@ def solve():
     epsilon = 1e-12
     # Coupled ode example
     (tokens, nx) = getN({xt.diff(t): ([tomaximize],
-                                      {yt.diff(t): (xt + yt)},
+                                      {yt.diff(t): 1},
                                       # Always list all initial values
                                       # at Tₙ
                                       {xt: 5, yt: 1, t: 1})},
