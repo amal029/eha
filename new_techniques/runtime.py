@@ -114,9 +114,9 @@ def solve():
         # A power, does not seem to converge
         # Xdiff = S.sympify('sqrt(x(t)**2+1)')
 
-        Xdiff = S.sympify('x(t) + y(t)')
+        # Xdiff = S.sympify('x(t) + y(t)')
 
-        # Xdiff = S.sympify('(y(t)) + cos(t) + x(t)')
+        Xdiff = S.sympify('(y(t)) + cos(t) + x(t)')
 
         # These are better done with lipschitz constants.
         # Periodic functions keep on oscillating, so never seem to
@@ -151,7 +151,7 @@ def solve():
                         epsilon=epsilon, method='r+s', Debug=0)
     print('required terms for dx/dt: %s satisfying ε: %s: %s' %
           (tomaximize, epsilon, nx))
-    print('Taylor polynomial for %s with dy/dt: %s is %s' %
+    print('Taylor polynomial for dx/dt: %s with dy/dt: %s is %s' %
           (tomaximize, 2*xt-1, tokens))
 
 
