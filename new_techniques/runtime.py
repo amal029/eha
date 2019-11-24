@@ -7,7 +7,7 @@ from itertools import count
 
 
 START_SIM_TIME = 0
-STOP_SIM_TIME = 50              # user defined
+STOP_SIM_TIME = 60              # user defined
 
 
 def getN(expr=dict(), epsilon=1e-12, method='r+s+e', Debug=0):
@@ -116,7 +116,7 @@ def solve():
         # Periodic functions keep on oscillating, so never seem to
         # converge.
 
-        Xdiff = S.sympify('sin(y(t))')
+        Xdiff = S.sympify('sin(y(t))+x(t)')
 
         # Non linear with periodic functions
         # XXX: Needs to be fixed
@@ -144,7 +144,7 @@ def solve():
                                       # Always list all initial values
                                       # at Tₙ
                                       {xt: 5, yt: 1, t: 1})},
-                        epsilon=epsilon, method='a', Debug=1)
+                        epsilon=epsilon, method='r+s', Debug=1)
     print(tokens)
     print('required terms for ode satisfying ε: %s: %s' % (epsilon, nx))
 
