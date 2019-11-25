@@ -3,8 +3,6 @@ from math import factorial
 import sympy as S
 from sympy.abc import t
 import mpmath as M
-# import numpy as N
-
 
 START_SIM_TIME = 0
 
@@ -247,6 +245,7 @@ def solve():
     print('∫', yt, 'dt: ', ypoly.replace(S.abc.x, dt).evalf())
     print('∫', tht, 'dt: ', thpoly.replace(S.abc.x, dt).evalf())
     print('∫', pht, 'dt: ', phpoly.replace(S.abc.x, dt).evalf())
+
 
 if __name__ == '__main__':
     M.mp.dps = 4               # Decimal precision
