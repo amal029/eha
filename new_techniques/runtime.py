@@ -106,7 +106,7 @@ def getN(expr=dict(), epsilon=1e-12, method='r+s', Debug=0):
             # Insert the initial value, constant term of taylor
             values[0].insert(0, (values[2][list(expr)[0].args[0]]))
             # Build the taylor polynomial for the ode
-            polynomial = sum([c*S.abc.h**p/factorial(p)
+            polynomial = sum([c*S.abc.x**p/factorial(p)
                               for c, p in zip(values[0], range(n))])
             return (diff_coeffs, polynomial, n)
         else:
@@ -181,7 +181,7 @@ def solve():
     phtdt = S.sympify(v2)
     tht = S.sympify('th(t)')
     thtdt = S.sympify((S.sin(pht)/S.cos(pht))/le*v1)
-    epsilon = 1e-5
+    epsilon = 1e-3
     # Dependent odes
     dodes = {xt.diff(t): xtdt, yt.diff(t): ytdt, tht.diff(t): thtdt,
              pht.diff(t): phtdt}
@@ -195,13 +195,13 @@ def solve():
     #                                                         nx))
     # print('∫', xt, 'dt: ', xpoly)
     # Integrating yt
-    (final_tokens, ypoly, nx) = getN({yt.diff(t): ([ytdt], dodes, initivals)},
+    (final_tokens, ypoly, ny) = getN({yt.diff(t): ([ytdt], dodes, initivals)},
                                      epsilon=epsilon, method='r+s', Debug=0)
     # print('required terms ytdt: %s satisfying ε: %s: %s' % (ytdt, epsilon,
     #                                                         nx))
     # print('∫', yt, 'dt: ', ypoly)
     # Integrating tht
-    (final_tokens, thpoly, nx) = getN({tht.diff(t): ([thtdt], dodes,
+    (final_tokens, thpoly, nt) = getN({tht.diff(t): ([thtdt], dodes,
                                                      initivals)},
                                       epsilon=epsilon, method='r+s', Debug=0)
     # print('required terms thtdt: %s satisfying ε: %s: %s' % (thtdt, epsilon,
@@ -210,68 +210,44 @@ def solve():
     # print('∫', tht, 'dt: ', tokens.replace(S.abc.h, h).evalf())
 
     # Integrating pht
-    (final_tokens, phpoly, nx) = getN({pht.diff(t): ([phtdt], dodes,
+    (final_tokens, phpoly, np) = getN({pht.diff(t): ([phtdt], dodes,
                                                      initivals)},
                                       epsilon=epsilon, method='r+s', Debug=0)
     # print('required terms thtdt: %s satisfying ε: %s: %s' % (phtdt, epsilon,
     #                                                          nx))
     # print('∫', pht, 'dt: ', phpoly)
 
-    print('max step size: %s' % h)
-    print('∫', xt, 'Δh: ', xpoly.replace(S.abc.h, h).evalf())
-    print('∫', yt, 'Δh: ', ypoly.replace(S.abc.h, h).evalf())
-    print('∫', tht, 'Δh: ', thpoly.replace(S.abc.h, h).evalf())
-    print('∫', pht, 'Δh: ', phpoly.replace(S.abc.h, h).evalf())
+    print('With max step size: %s, we have these values' % h)
+    print('∫', xt, 'Δh: ', xpoly.replace(S.abc.x, h).evalf())
+    print('∫', yt, 'Δh: ', ypoly.replace(S.abc.x, h).evalf())
+    print('∫', tht, 'Δh: ', thpoly.replace(S.abc.x, h).evalf())
+    print('∫', pht, 'Δh: ', phpoly.replace(S.abc.x, h).evalf())
+
     # XXX: Solve for the guard step-size
 
     # I am just doing yt, because I know it hits first in this example.
-    # lambdify the polynomial
-    yt0 = initivals[yt]                     # same value as in initivals
-    gypoly = ypoly-yt0
 
     # The first case y(t)-yt0 - 1.8 = 0, 1.8 is the guard
-    coeffs = (S.Poly(gypoly-1.8).all_coeffs())
-    # print(coeffs)
-    nsoln = N.roots(coeffs)
-    # print('all roots1:', nsoln)
-    nsoln = nsoln[N.isreal(nsoln)]
-    nsoln = nsoln[N.where(nsoln >= 0)]
-    # print('real positive roots1:', nsoln)
-    gh1 = N.min(nsoln).real if len(nsoln) != 0 else None
-    print('min real positive root1:', gh1)
-
     # Use mpmath to find root, because numpy gives a wrong root!
-    gpolylambds = S.lambdify([S.abc.h], gypoly-1.8)
-    root = M.findroot(gpolylambds, h, tol=epsilon, verify=False)
-    print(root)
+    # g(t) = 0 case
+    gpolylambds = (lambda x: (ypoly-1.8).replace(S.abc.x, x).evalf())
+    M.mp.dps = 10
+    root = M.findroot(gpolylambds, 0.04199999, tol=epsilon, verify=True,
+                      method='newton', verbose=False, maxsteps=1e3)
+    print('With root step size: %s, we have these values' % root)
+    print('∫', xt, 'Δroot: ', xpoly.replace(S.abc.x, root).evalf())
+    print('∫', yt, 'Δroot: ', ypoly.replace(S.abc.x, root).evalf())
+    print('∫', tht, 'Δroot: ', thpoly.replace(S.abc.x, root).evalf())
+    print('∫', pht, 'Δroot: ', phpoly.replace(S.abc.x, root).evalf())
 
-    # The second case y(t)-yt0 + 1.8 = 0, 1.8 is the guard
-    coeffs = (S.Poly(gypoly+1.8).all_coeffs())
-    # print(coeffs)
-    nsoln = N.roots(coeffs)
-    # print('all roots2:', nsoln)
-    nsoln = nsoln[N.isreal(nsoln)]
-    nsoln = nsoln[N.where(nsoln >= 0)]
-    # print('real positive roots2:', nsoln)
-    gh2 = N.min(nsoln).real if len(nsoln) != 0 else None
-    print('min real positive root2:', gh2)
-
-    dt = h
-    # Take the minimum step amongst them all
-    print(gh1, gh2)
-    if gh1 is not None:
-        dt = min(dt, gh1)
-    if gh2 is not None:
-        dt = min(dt, gh2)
-
+    dt = min(h, root)
     # Compute the values from amongst them all
-    print('taken step size: %s' % dt)
-    print('∫', xt, 'dt: ', xpoly.replace(S.abc.h, dt).evalf())
-    print('∫', yt, 'dt: ', ypoly.replace(S.abc.h, dt).evalf())
-    print('∫', tht, 'dt: ', thpoly.replace(S.abc.h, dt).evalf())
-    print('∫', pht, 'dt: ', phpoly.replace(S.abc.h, dt).evalf())
-
+    print('Value with correct step size: %s' % dt)
+    print('∫', xt, 'dt: ', xpoly.replace(S.abc.x, dt).evalf())
+    print('∫', yt, 'dt: ', ypoly.replace(S.abc.x, dt).evalf())
+    print('∫', tht, 'dt: ', thpoly.replace(S.abc.x, dt).evalf())
+    print('∫', pht, 'dt: ', phpoly.replace(S.abc.x, dt).evalf())
 
 if __name__ == '__main__':
-    M.mp.dps = 15               # Decimal precision
+    M.mp.dps = 1               # Decimal precision
     solve()
