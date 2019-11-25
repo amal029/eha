@@ -242,7 +242,7 @@ def solve():
 
     # Use mpmath to find root, because numpy gives a wrong root!
     gpolylambds = S.lambdify([S.abc.h], gypoly-1.8)
-    root = M.findroot(gpolylambds, h, tol=epsilon)
+    root = M.findroot(gpolylambds, h, tol=epsilon, verify=False)
     print(root)
 
     # The second case y(t)-yt0 + 1.8 = 0, 1.8 is the guard
@@ -273,5 +273,5 @@ def solve():
 
 
 if __name__ == '__main__':
-    M.mp.dps = 4               # Decimal precision
+    M.mp.dps = 15               # Decimal precision
     solve()
