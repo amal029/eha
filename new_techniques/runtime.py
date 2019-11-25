@@ -3,7 +3,7 @@ from math import factorial
 import sympy as S
 from sympy.abc import t
 import mpmath as M
-import numpy as N
+# import numpy as N
 
 
 START_SIM_TIME = 0
@@ -181,7 +181,7 @@ def solve():
     phtdt = S.sympify(v2)
     tht = S.sympify('th(t)')
     thtdt = S.sympify((S.sin(pht)/S.cos(pht))/le*v1)
-    epsilon = 1e-3
+    epsilon = 1e-4
     # Dependent odes
     dodes = {xt.diff(t): xtdt, yt.diff(t): ytdt, tht.diff(t): thtdt,
              pht.diff(t): phtdt}
@@ -249,5 +249,5 @@ def solve():
     print('∫', pht, 'dt: ', phpoly.replace(S.abc.x, dt).evalf())
 
 if __name__ == '__main__':
-    M.mp.dps = 1               # Decimal precision
+    M.mp.dps = 4               # Decimal precision
     solve()
