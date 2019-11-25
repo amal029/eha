@@ -3,11 +3,17 @@ from math import factorial
 import sympy as S
 from sympy.abc import t
 import mpmath as M
-from itertools import count
+import numpy as N
 
 
 START_SIM_TIME = 0
-STOP_SIM_TIME = 60              # user defined
+
+MAX_STEP_SIZE = 0.05
+
+# This can also make the series diverge!
+STOP_SIM_TIME = 0.07              # user defined
+
+h = 0                           # The step size
 
 
 def getN(expr=dict(), epsilon=1e-12, method='r+s', Debug=0):
@@ -20,7 +26,7 @@ def getN(expr=dict(), epsilon=1e-12, method='r+s', Debug=0):
 
     expr: Ode expr dictionary:
 
-    [x(t): ([first smooth token], {dep ode exprs}, {replace func with
+    [x(t): ([first smooth token], {all ode exprs}, {replace func with
     values at Tₙ})], all in sympy format, default None
 
     epsilon: The remainder of the taylor series should be bounded by
@@ -34,18 +40,24 @@ def getN(expr=dict(), epsilon=1e-12, method='r+s', Debug=0):
     assert(len(list(expr)) == 1)
     values = list(*(expr.values()))
     assert(len(values) == 3)
-    if Debug in (1, 2):
+    if Debug in (1, 2, 3):
         print(values)
 
-    h = max(abs((START_SIM_TIME - STOP_SIM_TIME)/50), 0.2)
+    global h
+    if MAX_STEP_SIZE is None:
+        h = max(abs((START_SIM_TIME - STOP_SIM_TIME)/50), 0.2)
+    else:
+        h = MAX_STEP_SIZE
 
     def build(tokens):
         slope = tokens[-1].diff(t)
-        # 1.) Replace Derivative(x(t), t) → token[0]
-        slope = slope.replace(list(expr)[0], tokens[0])
         # 2.) Replace Derivative(deps(t), t) → exprs
+        if Debug in [3]:
+            print(slope)
         for i, k in values[1].items():
             slope = slope.replace(i, k)
+        if Debug in [3]:
+            print(slope)
 
         # XXX: This is important
         tokens.append(slope)
@@ -55,6 +67,9 @@ def getN(expr=dict(), epsilon=1e-12, method='r+s', Debug=0):
     def replace(slope):
         for (i, k) in values[2].items():
             slope = slope.replace(i, k)
+            if Debug in [3]:
+                print('replacing %s → %s' % (i, k))
+                print(slope)
         return slope
 
     def computeN(n):
@@ -62,9 +77,13 @@ def getN(expr=dict(), epsilon=1e-12, method='r+s', Debug=0):
         hn = h**(n)
         fn = factorial(n)
         slope = build(tokens)
+        if Debug in [3]:
+            print(slope)
         slope = replace(slope)
+        if Debug in [3]:
+            print(slope)
         v = (slope.evalf()*hn)/fn
-        if Debug in [2]:
+        if Debug in [2, 3]:
             print('v:', abs(v))
         return abs(v)
 
@@ -72,12 +91,13 @@ def getN(expr=dict(), epsilon=1e-12, method='r+s', Debug=0):
     ps = None                   # Previous sum
     while True:
         tokens = values[0]
-        s = M.nsum(computeN, [n, M.inf], method=method)
-        assert (s/ps < 1) if n > 2 else True
-        ps = s
-        # This is the convergence test
-        if Debug in (1, 2):
+        s = abs(M.nsum(computeN, [n, M.inf], method=method))
+        if Debug in (1, 2, 3):
             print('Σₙᵒᵒ:', s, 'n:', n)
+        # This is the convergence test
+        if n > 2 and (s/ps > 1):
+            raise AssertionError('Series diverges %s/%s' % (ps, s))
+        ps = s
         if s <= epsilon:
             # Replace the final value with taylor term
             values[0] = values[0][:n]
@@ -86,7 +106,7 @@ def getN(expr=dict(), epsilon=1e-12, method='r+s', Debug=0):
             # Insert the initial value, constant term of taylor
             values[0].insert(0, (values[2][list(expr)[0].args[0]]))
             # Build the taylor polynomial for the ode
-            polynomial = sum([c*h**p/factorial(p)
+            polynomial = sum([c*S.abc.h**p/factorial(p)
                               for c, p in zip(values[0], range(n))])
             return (diff_coeffs, polynomial, n)
         else:
@@ -119,7 +139,7 @@ def solve():
         # A sqrt
         # Xdiff = S.sympify('sqrt(x(t)+1)')
 
-        # a power, does not seem to converge
+        # A power, does not seem to converge
         # Xdiff = S.sympify('sqrt(x(t)**2+1)')
 
         # Xdiff = S.sympify('x(t) + y(t)')
@@ -127,6 +147,7 @@ def solve():
         # Xdiff = S.sympify('(y(t)) + cos(t) + (x(t)+1)')
         # Xdiff = S.sympify('t*(x(t)-2) + y(t)')
 
+        # This seems to diverge
         # Xdiff = S.sympify('sin(y(t))')
 
         # Non linear with periodic functions
@@ -135,36 +156,122 @@ def solve():
         # more complex ode
         # Xdiff = S.sympify('sin(sin(y(t)+1))')
 
-        # Xdiff = S.sympify('exp(x(t))')  # This seems to fuck up
+        # This one diverges too
+        # Xdiff = S.sympify('exp(x(t))')
 
         # XXX: The below one does not converge
         # Xdiff = S.sympify('x(t)*y(t)')
 
         return Xdiff
 
+    # The robot example
+    # Some constants
+    v1 = 30
+    v2 = -10.0
+    le = 1
+
     # xxx: In the next iteration (integration step) start with n which
     # currently holds, else increase n.
-    tomaximize = test_multivariate()
+    # tomaximize = test_multivariate()
     xt = S.sympify('x(t)')
+    xtdt = S.sympify(S.sympify('cos(th(t))')*v1)
     yt = S.sympify('y(t)')
-    dydt = 2*xt - 1
-    epsilon = 1e-6
-    # Coupled ode example
-    (final_tokens,
-     tokens, nx) = getN({xt.diff(t): ([tomaximize],
-                                      {yt.diff(t): dydt},
-                                      # Always list all
-                                      # initial values at
-                                      # Tₙ
-                                      {xt: 5.6, yt: 1, t: 0})},
-                        epsilon=epsilon, method='r+s', Debug=1)
-    print('required terms for dx/dt: %s satisfying ε: %s: %s' %
-          (tomaximize, epsilon, nx))
-    print('Taylor polynomial for dx/dt: %s with dy/dt: %s is %s' %
-          (tomaximize, dydt, tokens))
-    # print(final_tokens)          # Only needed for the next iteration
+    ytdt = S.sympify(S.sympify('sin(th(t))')*v1)
+    pht = S.sympify('ph(t)')
+    phtdt = S.sympify(v2)
+    tht = S.sympify('th(t)')
+    thtdt = S.sympify((S.sin(pht)/S.cos(pht))/le*v1)
+    epsilon = 1e-5
+    # Dependent odes
+    dodes = {xt.diff(t): xtdt, yt.diff(t): ytdt, tht.diff(t): thtdt,
+             pht.diff(t): phtdt}
+    # Initial values
+    # t is the current time (Tₙ)
+    initivals = {xt: 0, yt: 1, tht: 0, pht: 1, t: 0}
+    # Integrating xt
+    (final_tokens, xpoly, nx) = getN({xt.diff(t): ([xtdt], dodes, initivals)},
+                                     epsilon=epsilon, method='r+s', Debug=0)
+    # print('required terms xtdt: %s satisfying ε: %s: %s' % (xtdt, epsilon,
+    #                                                         nx))
+    # print('∫', xt, 'dt: ', xpoly)
+    # Integrating yt
+    (final_tokens, ypoly, nx) = getN({yt.diff(t): ([ytdt], dodes, initivals)},
+                                     epsilon=epsilon, method='r+s', Debug=0)
+    # print('required terms ytdt: %s satisfying ε: %s: %s' % (ytdt, epsilon,
+    #                                                         nx))
+    # print('∫', yt, 'dt: ', ypoly)
+    # Integrating tht
+    (final_tokens, thpoly, nx) = getN({tht.diff(t): ([thtdt], dodes,
+                                                     initivals)},
+                                      epsilon=epsilon, method='r+s', Debug=0)
+    # print('required terms thtdt: %s satisfying ε: %s: %s' % (thtdt, epsilon,
+    #                                                          nx))
+    # print('∫', tht, 'dt: ', thpoly)
+    # print('∫', tht, 'dt: ', tokens.replace(S.abc.h, h).evalf())
+
+    # Integrating pht
+    (final_tokens, phpoly, nx) = getN({pht.diff(t): ([phtdt], dodes,
+                                                     initivals)},
+                                      epsilon=epsilon, method='r+s', Debug=0)
+    # print('required terms thtdt: %s satisfying ε: %s: %s' % (phtdt, epsilon,
+    #                                                          nx))
+    # print('∫', pht, 'dt: ', phpoly)
+
+    print('max step size: %s' % h)
+    print('∫', xt, 'Δh: ', xpoly.replace(S.abc.h, h).evalf())
+    print('∫', yt, 'Δh: ', ypoly.replace(S.abc.h, h).evalf())
+    print('∫', tht, 'Δh: ', thpoly.replace(S.abc.h, h).evalf())
+    print('∫', pht, 'Δh: ', phpoly.replace(S.abc.h, h).evalf())
+    # XXX: Solve for the guard step-size
+
+    # I am just doing yt, because I know it hits first in this example.
+    # lambdify the polynomial
+    yt0 = initivals[yt]                     # same value as in initivals
+    gypoly = ypoly-yt0
+
+    # The first case y(t)-yt0 - 1.8 = 0, 1.8 is the guard
+    coeffs = (S.Poly(gypoly-1.8).all_coeffs())
+    # print(coeffs)
+    nsoln = N.roots(coeffs)
+    # print('all roots1:', nsoln)
+    nsoln = nsoln[N.isreal(nsoln)]
+    nsoln = nsoln[N.where(nsoln >= 0)]
+    # print('real positive roots1:', nsoln)
+    gh1 = N.min(nsoln).real if len(nsoln) != 0 else None
+    print('min real positive root1:', gh1)
+
+    # Use mpmath to find root, because numpy gives a wrong root!
+    gpolylambds = S.lambdify([S.abc.h], gypoly-1.8)
+    root = M.findroot(gpolylambds, h, tol=epsilon)
+    print(root)
+
+    # The second case y(t)-yt0 + 1.8 = 0, 1.8 is the guard
+    coeffs = (S.Poly(gypoly+1.8).all_coeffs())
+    # print(coeffs)
+    nsoln = N.roots(coeffs)
+    # print('all roots2:', nsoln)
+    nsoln = nsoln[N.isreal(nsoln)]
+    nsoln = nsoln[N.where(nsoln >= 0)]
+    # print('real positive roots2:', nsoln)
+    gh2 = N.min(nsoln).real if len(nsoln) != 0 else None
+    print('min real positive root2:', gh2)
+
+    dt = h
+    # Take the minimum step amongst them all
+    print(gh1, gh2)
+    if gh1 is not None:
+        dt = min(dt, gh1)
+    if gh2 is not None:
+        dt = min(dt, gh2)
+
+    # Compute the values from amongst them all
+    print('taken step size: %s' % dt)
+    print('∫', xt, 'dt: ', xpoly.replace(S.abc.h, dt).evalf())
+    print('∫', yt, 'dt: ', ypoly.replace(S.abc.h, dt).evalf())
+    print('∫', tht, 'dt: ', thpoly.replace(S.abc.h, dt).evalf())
+    print('∫', pht, 'dt: ', phpoly.replace(S.abc.h, dt).evalf())
 
 
 if __name__ == '__main__':
-    M.mp.dps = 2               # Decimal precision
+    M.mp.dps = 4               # Decimal precision
     solve()
