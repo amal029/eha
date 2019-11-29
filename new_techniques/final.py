@@ -125,6 +125,7 @@ class Solver(object):
         # Now compute the bounds for each continous variable
         bounds = {k: (min(i, vals_at_tn_h[k]), max(i, vals_at_tn_h[k]))
                   for k, i in vals_at_tn.items()}
+        x0s = [bounds[k][1] for k in bounds]
 
         # Replace x(t) → x, will be needed for S.lambdify
         func_to_var = {k: S.Symbol(str(k.func)) for k in bounds.keys()}
@@ -148,7 +149,7 @@ class Solver(object):
                       for k, i in taylor_n1_term.items()}
 
         # Now get the lipschitz constants for each ode
-        lips = {k: Solver.getLipschitz(i, bounds[k],
+        lips = {k: Solver.getLipschitz(i, (x0s + [curr_time+h]),
                                        (list(bounds.values()) +
                                         [(curr_time, curr_time+h)]))
                 for k, i in lambdified.items()}
