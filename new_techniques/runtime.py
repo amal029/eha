@@ -4,7 +4,6 @@ import sympy as S
 from sympy.abc import t
 import mpmath as M
 
-
 START_SIM_TIME = 0
 
 MAX_STEP_SIZE = 0.05
@@ -180,7 +179,7 @@ def solve():
     phtdt = S.sympify(v2)
     tht = S.sympify('th(t)')
     thtdt = S.sympify((S.sin(pht)/S.cos(pht))/le*v1)
-    epsilon = 1e-3
+    epsilon = 1e-4
     # Dependent odes
     dodes = {xt.diff(t): xtdt, yt.diff(t): ytdt, tht.diff(t): thtdt,
              pht.diff(t): phtdt}
