@@ -130,6 +130,7 @@ class Solver(object):
         # Now compute the bounds for each continous variable
         bounds = {k: (min(i, vals_at_tn_h[k]), max(i, vals_at_tn_h[k]))
                   for k, i in vals_at_tn.items()}
+        print('bounds:', bounds)
         x0s = [bounds[k][1] for k in bounds]
 
         # Replace x(t) → x, will be needed for S.lambdify
@@ -147,7 +148,7 @@ class Solver(object):
             # XXX: This should be negative, because we want to maximize
             # it.
             taylor_n1_term[k] = -slope
-        # print(taylor_n1_term)
+        print('n+1 derivatives:', taylor_n1_term)
 
         # These are the lambdified python functions
         lambdified = {k: S.lambdify((list(func_to_var.values()) +
@@ -159,10 +160,12 @@ class Solver(object):
                                        (list(bounds.values()) +
                                         [(curr_time, curr_time+h)]))
                 for k, i in lambdified.items()}
-        # print('lips:', lips)
+        print('lips:', lips)
 
         # Now check if lagrange error is satisfied
         facn_1 = factorial(Solver.n+1)
+        print({k: (l*(h**(Solver.n+1))/facn_1) for k, l in lips.items()},
+              '<=', Solver.epsilon, '?')
         sat = {k: (l*(h**(Solver.n+1))/facn_1) <= Solver.epsilon
                for k, l in lips.items()}
 
@@ -179,6 +182,7 @@ class Solver(object):
 
 
 def example1():
+    curr_time = 0
     # Initiaise the solver
     solver = Solver(n=5, epsilon=1e-6)
 
@@ -186,7 +190,10 @@ def example1():
 
     # The odes for all continuous variables
     # odes = {x.diff(solver.t): S.sympify('1')}
-    odes = {x.diff(solver.t): x}
+    odes = {x.diff(solver.t): (x+1)**3}
+
+    # TODO: Need to fix so that this works.
+    # odes = {x.diff(solver.t): (x+5)*solver.t}
 
     # Initial values
     vals_at_tn = {x: 3}
@@ -207,34 +214,47 @@ def example1():
     for x in xps:
         g = g.replace(x, xps[x])
     # Replace x(t) → x(Tₙ)
+    # Replace t → Tₙ
     for k, v in vals_at_tn.items():
         g = g.replace(k, v)
+    g = g.replace(solver.t, curr_time).evalf()
 
-    print(g)
+    print('guard1:', g)
 
     nsoln = N.roots(S.poly(g).all_coeffs())
     nsoln = nsoln[N.isreal(nsoln)]
     nsoln = nsoln[N.where(nsoln >= 0)]
-    h = N.real(N.min(nsoln))
-    print('Attempting with integration step-size:', h)
-
+    h1 = N.real(N.min(nsoln))
     # Now we have a starting "h", which we think we can jump as the
     # integration step.
 
-    # Test to see if this "h" satisfies lagrange error. curr_time shoul
-    # come using the event driven engine.
-    # print('calling:', dict_tokens)
-    h = solver.delta((dict_tokens, vals_at_tn), h, 0)
-    # print('returned h:', h)
+    # TODO: Guard2 g(t) - g(Tₙ)
+
+    # XXX: Sometimes we get even higher values from the n+1 derivative.
+    # Ex: odes = {x.diff(solver.t): x**(1/4)}
+
+    # XXX: It is always better to half the step size and try again
+    # rather than choosing the value suggested by the solver.
+    while True:
+        print('Attempting with integration step-size:', h1)
+        h = solver.delta((dict_tokens, vals_at_tn), h1, 0)
+        if h != h1:
+            print('step suggested by solver:', h)
+            print('----------------------------')
+            h1 = h1/2
+        else:
+            break
 
     # XXX: This example is guaranteed to have a single integration step,
     # which meets the guard.
     # Final result
     print('Initial value:', vals_at_tn)
-    res = {k: solver.get_vals_at_tn_h(x, vals_at_tn, h)
+    res = {k: solver.get_vals_at_tn_h(x, vals_at_tn, h1)
            for k, x in xps.items()}
     print('Final value:', res, 'with guard: %s, odes: %s, integration step: %s'
-          % (og, odes, h))
+          % (og, odes, h1))
+
+    # TODO: Add the event system here
 
 
 if __name__ == '__main__':
