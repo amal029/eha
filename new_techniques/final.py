@@ -3,6 +3,7 @@ from scipy.optimize import minimize
 import sympy as S
 import sympy.abc as ABC
 from math import factorial
+import numpy as N
 
 
 class Solver(object):
@@ -32,6 +33,9 @@ class Solver(object):
 
         """
 
+        # import inspect
+        # print(inspect.getsource(fun))
+
         # XXX: Always call the minimize function with this, because it
         # handles the number of arguments correctly.
         def lambdify_wrapper(x):
@@ -48,6 +52,7 @@ class Solver(object):
 
     @staticmethod
     def get_polynomial(k, tokens, vals_at_tn):
+        tokens = tokens.copy()
         # Insert initial value in tokens
         tokens.insert(0, vals_at_tn[k])
         poly = sum([c*Solver.h**p/factorial(p)
@@ -76,7 +81,7 @@ class Solver(object):
         {x(t): x(t)+y(t)+1, y(t): 1,...}
 
         """
-        tokens = [odes[cont_var]]
+        tokens = [odes[cont_var.diff(Solver.t)]]
         for _ in range(len(tokens), Solver.n):
             tokens.append(Solver.build(tokens, odes))
         return tokens
@@ -115,7 +120,7 @@ class Solver(object):
 
         vals_at_tn = values[1]
         all_ode_taylor = values[0]
-        odes = {k: i[0] for k, i in all_ode_taylor.items()}
+        odes = {k.diff(Solver.t): i[0] for k, i in all_ode_taylor.items()}
 
         # XXX: Now compute the value of continous vars at Tₙ + h
         vals_at_tn_h = {k: Solver.get_vals_at_tn_h(
@@ -142,6 +147,7 @@ class Solver(object):
             # XXX: This should be negative, because we want to maximize
             # it.
             taylor_n1_term[k] = -slope
+        # print(taylor_n1_term)
 
         # These are the lambdified python functions
         lambdified = {k: S.lambdify((list(func_to_var.values()) +
@@ -153,6 +159,7 @@ class Solver(object):
                                        (list(bounds.values()) +
                                         [(curr_time, curr_time+h)]))
                 for k, i in lambdified.items()}
+        # print('lips:', lips)
 
         # Now check if lagrange error is satisfied
         facn_1 = factorial(Solver.n+1)
@@ -172,10 +179,14 @@ class Solver(object):
 
 
 def example1():
+    # Initiaise the solver
+    solver = Solver(n=5, epsilon=1e-6)
+
     x = S.sympify('x(t)')       # The function
 
     # The odes for all continuous variables
-    odes = {x: S.sympify('1')}
+    # odes = {x.diff(solver.t): S.sympify('1')}
+    odes = {x.diff(solver.t): x}
 
     # Initial values
     vals_at_tn = {x: 3}
@@ -183,33 +194,38 @@ def example1():
     # The guard expression
     g = S.sympify('x(t) - 10')
 
-    # Initiaise the solver
-    solver = Solver()
-
     # Get the tokens for x
     dict_tokens = {x: solver.build_tokens(x, odes)}
-    tokens = [j for i in dict_tokens.values() for j in i]
+    # print(dict_tokens)
 
     # First get the polynomial expression from tokens
     xps = {x: solver.get_polynomial(x, tokens, vals_at_tn)
-           for x in odes}
+           for x, tokens in dict_tokens.items()}
 
     # Substitute the polynomial in the guard expression
     og = g
     for x in xps:
         g = g.replace(x, xps[x])
+    # Replace x(t) → x(Tₙ)
+    for k, v in vals_at_tn.items():
+        g = g.replace(k, v)
 
-    # XXX: This can be made efficient later on using scipy
-    hs = (S.Poly(g).all_roots())
-    hs = [h for h in hs if h >= 0]
-    h = min(hs)
+    print(g)
+
+    nsoln = N.roots(S.poly(g).all_coeffs())
+    nsoln = nsoln[N.isreal(nsoln)]
+    nsoln = nsoln[N.where(nsoln >= 0)]
+    h = N.real(N.min(nsoln))
+    print('Attempting with integration step-size:', h)
 
     # Now we have a starting "h", which we think we can jump as the
     # integration step.
 
     # Test to see if this "h" satisfies lagrange error. curr_time shoul
     # come using the event driven engine.
+    # print('calling:', dict_tokens)
     h = solver.delta((dict_tokens, vals_at_tn), h, 0)
+    # print('returned h:', h)
 
     # XXX: This example is guaranteed to have a single integration step,
     # which meets the guard.
