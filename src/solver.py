@@ -7,13 +7,17 @@ import mpmath as M
 
 class Solver(object):
     """The solver for computing the integration step size.
+    n: The number of terms in ODE → Taylor exapansion
+    NUM_TERMS: The number of terms in transcendental → Taylor expansion
+    epsilon: The max value error allowed
+    DEBUG: No effect, yet
 
     """
     epsilon = 1e-12
     t = ABC.t
     h = ABC.h
     n = 1
-    NUM_TERMS = 10
+    NUM_TERMS = 5
     DEBUG = 0
     TRIG_FUNCS = [S.sin, S.cos, S.tan, S.cot, S.sec, S.csc]
     INV_TRIG_FUNCS = [S.asin, S.acos, S.atan, S.acot, S.asec, S.acsc, S.atan2]
@@ -24,25 +28,26 @@ class Solver(object):
     TRANSCEDENTAL_FUNCS = (TRIG_FUNCS + INV_TRIG_FUNCS + HYPERBOLIC_FUNCS +
                            INV_HYPERBOLIC_FUNCS + EXP_LOG)
 
-    def __init__(self, n=1, epsilon=1e-12, DEBUG=0):
+    def __init__(self, n=1, NUM_TERMS=5, epsilon=1e-12, DEBUG=0):
         Solver.epsilon = epsilon
         assert n >= 1, "n < 1"
         Solver.n = n
         Solver.DEBUG = DEBUG
+        Solver.NUM_TERMS = NUM_TERMS
 
     @staticmethod
-    def taylor_expand(expr, around=0, nterms=NUM_TERMS):
+    def taylor_expand(expr, around=0):
         assert around == 0, 'Taylor expansion only works around 0 for now'
         if expr.args is ():
             return expr
-        args = [Solver.taylor_expand(a, around, nterms) for a in expr.args]
+        args = [Solver.taylor_expand(a, around) for a in expr.args]
         if expr.func in Solver.TRANSCEDENTAL_FUNCS:
             if len(args) != 1:
                 raise RuntimeError('Cannot create a taylor series '
                                    'approximation of: ', expr)
             else:
                 # XXX: Build the polynomial for arg
-                coeffs = M.taylor(expr.func, around, nterms)
+                coeffs = M.taylor(expr.func, around, Solver.NUM_TERMS)
                 # print(coeffs)
                 coeffs = [(S.Mul(float(a), S.Mul(*[args[0]
                                                    for i in range(c)])))

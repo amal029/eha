@@ -145,6 +145,8 @@ def example1(env, solver, cstate=0):
 def main():
     # Initiaise the solver
     solver = Solver(n=3, epsilon=1e-6)
+    # Number of terms to expand transcendental functions.
+    Solver.NUM_TERMS = 5
 
     env = simpy.Environment()
     env.process(example1(env, solver))

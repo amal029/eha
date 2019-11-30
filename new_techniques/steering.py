@@ -20,7 +20,8 @@ def example1(env, solver, cstate=0):
     x = S.sympify('x(t)')       # The continuous variable
 
     # Initial values
-    vals_at_tn = {x: (5/2)*S.pi}
+    # We have to add the modulo operator
+    vals_at_tn = {x: ((5/2)*S.pi) % (2 * S.pi)}
 
     def build_gtn(gtn, vals_at_tn):
         for k, i in vals_at_tn.items():
@@ -40,7 +41,6 @@ def example1(env, solver, cstate=0):
         return og
 
     def get_gh(og):
-        print(S.poly(og).all_coeffs())
         # Now get the h, where you think the guard holds.
         nsoln = N.roots(S.poly(og).all_coeffs())
         nsoln = nsoln[N.isreal(nsoln)]
@@ -53,8 +53,6 @@ def example1(env, solver, cstate=0):
     def location1(x, vals_at_tn):
         # The odes for all continuous variables in location1
         odes = {x.diff(solver.t): S.sympify('1')}
-        odes = {k: solver.taylor_expand(i)
-                for k, i in odes.items()}
 
         # Get the tokens for x
         dict_tokens = {x: solver.build_tokens(x, odes)}
@@ -66,13 +64,13 @@ def example1(env, solver, cstate=0):
         # Now check of the guard is satisfied, if yes jump
         # The guard expression
         g = S.sympify('cos(x(t)) + 0.99')
-        hg = solver.taylor_expand(g, 0, nterms=10)
-        print(hg, build_gtn(hg, {k: v % (2*S.pi)
-                                 for k, v in vals_at_tn.items()}))
+
+        # Need to taylor_expand, because there is a cos
+        g = solver.taylor_expand(g)
 
         # Compute the value of g(t) at Tₙ
         gtn = build_gtn(g.copy(), vals_at_tn)
-        print('guard at Tₙ:', gtn)
+        # print('guard at Tₙ:', gtn)
 
         if (abs(gtn) <= solver.epsilon):           # If zero crossing happens
             # We can make a jump to the next location
@@ -82,12 +80,12 @@ def example1(env, solver, cstate=0):
 
             # Guard1 g(t) = 0
             og = build_gth(g.copy(), vals_at_tn, xps)
-            print('guard1:', og)
+            # print('guard1:', og)
             h = get_gh(og)
 
             # TODO: Guard2 g(t) - 2×g(Tₙ) = 0
             og2 = og - 2*gtn
-            print('guard2:', og2)
+            # print('guard2:', og2)
             h2 = get_gh(og2)
 
             # Take the minimum from amongst the two
@@ -103,10 +101,52 @@ def example1(env, solver, cstate=0):
             return 0, h, vals_at_tn
 
     def location2(x, vals_at_tn):
-        global step
-        print('total steps: ', step)
-        # Done
-        env.exit()
+        # The odes for all continuous variables in location1
+        odes = {x.diff(solver.t): S.sympify('-1')}
+
+        # Get the tokens for x
+        dict_tokens = {x: solver.build_tokens(x, odes)}
+
+        # First get the polynomial expression from tokens
+        xps = {x: solver.get_polynomial(x, tokens, vals_at_tn)
+               for x, tokens in dict_tokens.items()}
+
+        # Now check of the guard is satisfied, if yes jump
+        # The guard expression
+        g = S.sympify('cos(x(t)) - 0.99')
+        g = solver.taylor_expand(g)
+
+        # Compute the value of g(t) at Tₙ
+        gtn = build_gtn(g.copy(), vals_at_tn)
+        # print('guard at Tₙ:', gtn)
+
+        if (abs(gtn) <= solver.epsilon):           # If zero crossing happens
+            # We can make a jump to the next location
+            return 0, 0, vals_at_tn
+        else:
+            # This is the intra-location transition
+
+            # Guard1 g(t) = 0
+            og = build_gth(g.copy(), vals_at_tn, xps)
+            # print('guard1:', og)
+            h = get_gh(og)
+
+            # TODO: Guard2 g(t) - 2×g(Tₙ) = 0
+            og2 = og - 2*gtn
+            # print('guard2:', og2)
+            h2 = get_gh(og2)
+
+            # Take the minimum from amongst the two
+            h = min(h, h2) if h2 is not N.inf else h
+
+            assert h is not N.inf, 'Cannot find h from guards'
+
+            h = solver.delta((dict_tokens, vals_at_tn), h, 0)
+
+            # Now compute the new values for continuous variables
+            vals_at_tn = {k: solver.get_vals_at_tn_h(x, vals_at_tn, h)
+                          for k, x in xps.items()}
+            return 1, h, vals_at_tn
 
     # The dictionary for the switch statement.
     switch_case = {
@@ -132,13 +172,15 @@ def example1(env, solver, cstate=0):
 
 def main():
     # Initiaise the solver
-    solver = Solver(epsilon=1e-6)
+    solver = Solver(epsilon=1e-6, NUM_TERMS=10)
+    # For higher precision, default is 5
 
     env = simpy.Environment()
     env.process(example1(env, solver))
     # Run the simulation until all events in the queue are processed.
     # Make it some number to halt simulation after sometime.
-    env.run()
+    env.run(until=5.0)
+    print('total steps: ', step)
 
 
 if __name__ == '__main__':
