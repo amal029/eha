@@ -91,7 +91,7 @@ def example1(env, solver, cstate=0):
 
             assert h is not N.inf, 'Cannot find h from guards'
 
-            h = solver.delta((dict_tokens, vals_at_tn), h, 0)
+            h = solver.delta((dict_tokens, vals_at_tn), h, env.now)
 
             # Now compute the new values for continuous variables
             vals_at_tn = {k: solver.get_vals_at_tn_h(x, vals_at_tn, h)
