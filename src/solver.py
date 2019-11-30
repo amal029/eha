@@ -28,7 +28,7 @@ class Solver(object):
     TRANSCEDENTAL_FUNCS = (TRIG_FUNCS + INV_TRIG_FUNCS + HYPERBOLIC_FUNCS +
                            INV_HYPERBOLIC_FUNCS + EXP_LOG)
 
-    def __init__(self, n=1, NUM_TERMS=5, epsilon=1e-12, DEBUG=0):
+    def __init__(self, n=1, NUM_TERMS=10, epsilon=1e-12, DEBUG=0):
         Solver.epsilon = epsilon
         assert n >= 1, "n < 1"
         Solver.n = n

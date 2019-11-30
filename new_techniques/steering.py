@@ -172,7 +172,7 @@ def example1(env, solver, cstate=0):
 
 def main():
     # Initiaise the solver
-    solver = Solver(epsilon=1e-6, NUM_TERMS=10)
+    solver = Solver(epsilon=1e-6)
     # For higher precision, default is 5
 
     env = simpy.Environment()
