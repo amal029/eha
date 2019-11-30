@@ -59,7 +59,7 @@ def lorenz(env, solver, cstate=0):
         h = solver.delta((dict_tokens, vals_at_tn), h, env.now)
 
         # Now compute the new values for continuous variables
-        vals_at_tn = {k: solver.get_vals_at_tn_h(x, vals_at_tn, h)
+        vals_at_tn = {k: solver.get_vals_at_tn_h(x, vals_at_tn, h, env.now)
                       for k, x in xps.items()}
         data['x'].append(vals_at_tn[x1])
         data['y'].append(vals_at_tn[x2])
@@ -72,8 +72,8 @@ def lorenz(env, solver, cstate=0):
     }
 
     # The initial values at time 0
-    # print('%f: %s %s %s' % (env.now, vals_at_tn[x1], vals_at_tn[x2],
-    #                         vals_at_tn[x3]))
+    print('%f: %s %s %s' % (env.now, vals_at_tn[x1], vals_at_tn[x2],
+                            vals_at_tn[x3]))
 
     # Now start running the system until all events are done or
     # simulation time is over.
@@ -81,9 +81,9 @@ def lorenz(env, solver, cstate=0):
         (cstate, delta, vals_at_tn) = switch_case[cstate](x1, x2, x3,
                                                           vals_at_tn)
         # The new values of the continuous variables
-        # if delta != 0:
-        #     print('%f: %s %s %s' % (env.now, vals_at_tn[x1], vals_at_tn[x2],
-        #                             vals_at_tn[x3]))
+        if delta != 0:
+            print('%f: %s %s %s' % (env.now, vals_at_tn[x1], vals_at_tn[x2],
+                                    vals_at_tn[x3]))
         # This should always be the final statement in this function
         global step
         step += 1

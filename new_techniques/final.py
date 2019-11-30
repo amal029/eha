@@ -51,7 +51,7 @@ def example1(env, solver, cstate=0):
     # Returning state, delta, values, loc's_FT
     def location1(x, vals_at_tn):
         # The odes for all continuous variables in location1
-        odes = {x.diff(solver.t): (x**2)}
+        odes = {x.diff(solver.t): x + (2*solver.t)}
         odes = {k: solver.taylor_expand(i)
                 for k, i in odes.items()}
 
@@ -94,7 +94,7 @@ def example1(env, solver, cstate=0):
             h = solver.delta((dict_tokens, vals_at_tn), h, env.now)
 
             # Now compute the new values for continuous variables
-            vals_at_tn = {k: solver.get_vals_at_tn_h(x, vals_at_tn, h)
+            vals_at_tn = {k: solver.get_vals_at_tn_h(x, vals_at_tn, h, env.now)
                           for k, x in xps.items()}
             return 0, h, vals_at_tn
 

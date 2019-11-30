@@ -96,7 +96,7 @@ def example1(env, solver, cstate=0):
             h = solver.delta((dict_tokens, vals_at_tn), h, env.now)
 
             # Now compute the new values for continuous variables
-            vals_at_tn = {k: solver.get_vals_at_tn_h(x, vals_at_tn, h)
+            vals_at_tn = {k: solver.get_vals_at_tn_h(x, vals_at_tn, h, env.now)
                           for k, x in xps.items()}
             return 0, h, vals_at_tn
 
@@ -144,7 +144,7 @@ def example1(env, solver, cstate=0):
             h = solver.delta((dict_tokens, vals_at_tn), h, 0)
 
             # Now compute the new values for continuous variables
-            vals_at_tn = {k: solver.get_vals_at_tn_h(x, vals_at_tn, h)
+            vals_at_tn = {k: solver.get_vals_at_tn_h(x, vals_at_tn, h, env.now)
                           for k, x in xps.items()}
             return 1, h, vals_at_tn
 

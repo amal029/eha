@@ -95,7 +95,7 @@ class Solver(object):
         return poly
 
     @staticmethod
-    def get_vals_at_tn_h(poly, vals_at_tn, h):
+    def get_vals_at_tn_h(poly, vals_at_tn, h, curr_time):
         """tokens are the taylor derivative terms for k, excluding the constant
         term k is x(t)
 
@@ -103,6 +103,8 @@ class Solver(object):
         # First replace all x(t) → initial values
         for k, i in vals_at_tn.items():
             poly = poly.replace(k, i)
+        # Replace all Solver.t with curr_time
+        poly = poly.replace(Solver.t, curr_time)
         # Now replace Solver.h → h
         poly = poly.replace(Solver.h, h)
         # Now eval it
@@ -160,7 +162,7 @@ class Solver(object):
 
         # XXX: Now compute the value of continuous vars at Tₙ + h
         vals_at_tn_h = {k: Solver.get_vals_at_tn_h(
-            Solver.get_polynomial(k, i, vals_at_tn), vals_at_tn, h)
+            Solver.get_polynomial(k, i, vals_at_tn), vals_at_tn, h, curr_time)
                         for k, i in all_ode_taylor.items()}
 
         # Now compute the bounds for each continuous variable
