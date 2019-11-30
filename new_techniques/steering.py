@@ -20,7 +20,7 @@ def example1(env, solver, cstate=0):
     x = S.sympify('x(t)')       # The continuous variable
 
     # Initial values
-    vals_at_tn = {x: 1}
+    vals_at_tn = {x: (5/2)*S.pi}
 
     def build_gtn(gtn, vals_at_tn):
         for k, i in vals_at_tn.items():
@@ -40,6 +40,7 @@ def example1(env, solver, cstate=0):
         return og
 
     def get_gh(og):
+        print(S.poly(og).all_coeffs())
         # Now get the h, where you think the guard holds.
         nsoln = N.roots(S.poly(og).all_coeffs())
         nsoln = nsoln[N.isreal(nsoln)]
@@ -51,7 +52,7 @@ def example1(env, solver, cstate=0):
     # Returning state, delta, values, loc's_FT
     def location1(x, vals_at_tn):
         # The odes for all continuous variables in location1
-        odes = {x.diff(solver.t): (x**2)}
+        odes = {x.diff(solver.t): S.sympify('1')}
         odes = {k: solver.taylor_expand(i)
                 for k, i in odes.items()}
 
@@ -64,11 +65,14 @@ def example1(env, solver, cstate=0):
 
         # Now check of the guard is satisfied, if yes jump
         # The guard expression
-        g = S.sympify('x(t) - 10')
+        g = S.sympify('cos(x(t)) + 0.99')
+        hg = solver.taylor_expand(g, 0, nterms=10)
+        print(hg, build_gtn(hg, {k: v % (2*S.pi)
+                                 for k, v in vals_at_tn.items()}))
 
         # Compute the value of g(t) at Tₙ
         gtn = build_gtn(g.copy(), vals_at_tn)
-        # print('guard at Tₙ:', gtn)
+        print('guard at Tₙ:', gtn)
 
         if (abs(gtn) <= solver.epsilon):           # If zero crossing happens
             # We can make a jump to the next location
@@ -78,12 +82,12 @@ def example1(env, solver, cstate=0):
 
             # Guard1 g(t) = 0
             og = build_gth(g.copy(), vals_at_tn, xps)
-            # print('guard1:', og)
+            print('guard1:', og)
             h = get_gh(og)
 
             # TODO: Guard2 g(t) - 2×g(Tₙ) = 0
             og2 = og - 2*gtn
-            # print('guard2:', og2)
+            print('guard2:', og2)
             h2 = get_gh(og2)
 
             # Take the minimum from amongst the two
@@ -128,7 +132,7 @@ def example1(env, solver, cstate=0):
 
 def main():
     # Initiaise the solver
-    solver = Solver(n=10, epsilon=1e-6)
+    solver = Solver(epsilon=1e-6)
 
     env = simpy.Environment()
     env.process(example1(env, solver))

@@ -18,10 +18,19 @@ def example1(env, solver, cstate=0):
     # First initialise the continuous variables.
 
     x = S.sympify('x(t)')       # The continuous variable
+    y = S.sympify('y(t)')       # The continuous variable
+    th = S.sympify('th(t)')       # The continuous variable
+    ph = S.sympify('ph(t)')       # The continuous variable
+
+    # Constants
+    v1 = 30
+    v2 = -10
+    le = 1
 
     # Initial values
-    vals_at_tn = {x: 1}
+    vals_at_tn = {x: 0, y: 1, th: 0, ph: 1}
 
+    # The next three are helper functions
     def build_gtn(gtn, vals_at_tn):
         for k, i in vals_at_tn.items():
             gtn = gtn.replace(k, i)
@@ -49,22 +58,27 @@ def example1(env, solver, cstate=0):
         return h
 
     # Returning state, delta, values, loc's_FT
-    def location1(x, vals_at_tn):
+    def location1(x, y, th, ph, vals_at_tn):
         # The odes for all continuous variables in location1
-        odes = {x.diff(solver.t): (x**2)}
-        odes = {k: solver.taylor_expand(i)
-                for k, i in odes.items()}
+        odes = {x.diff(solver.t): S.cos(th)*v1,
+                y.diff(solver.t): S.sin(th)*v1,
+                th.diff(solver.t): (S.tan(ph)/le)*v1,
+                ph.diff(solver.t): S.sympify(v2)}
 
-        # Get the tokens for x
-        dict_tokens = {x: solver.build_tokens(x, odes)}
+        # Get the tokens for continuous variables
+        dict_tokens = {k: solver.build_tokens(k, odes)
+                       for k in vals_at_tn}
+        # print(dict_tokens)
 
         # First get the polynomial expression from tokens
         xps = {x: solver.get_polynomial(x, tokens, vals_at_tn)
                for x, tokens in dict_tokens.items()}
 
+        # print(xps)
+
         # Now check of the guard is satisfied, if yes jump
         # The guard expression
-        g = S.sympify('x(t) - 10')
+        g = S.sympify('y(t) - 1.8')
 
         # Compute the value of g(t) at Tₙ
         gtn = build_gtn(g.copy(), vals_at_tn)
@@ -84,6 +98,7 @@ def example1(env, solver, cstate=0):
             # TODO: Guard2 g(t) - 2×g(Tₙ) = 0
             og2 = og - 2*gtn
             # print('guard2:', og2)
+
             h2 = get_gh(og2)
 
             # Take the minimum from amongst the two
@@ -98,7 +113,7 @@ def example1(env, solver, cstate=0):
                           for k, x in xps.items()}
             return 0, h, vals_at_tn
 
-    def location2(x, vals_at_tn):
+    def location2(x, y, th, ph, vals_at_tn):
         global step
         print('total steps: ', step)
         # Done
@@ -116,7 +131,8 @@ def example1(env, solver, cstate=0):
     # Now start running the system until all events are done or
     # simulation time is over.
     while(True):
-        (cstate, delta, vals_at_tn) = switch_case[cstate](x, vals_at_tn)
+        (cstate, delta, vals_at_tn) = switch_case[cstate](x, y, th,
+                                                          ph, vals_at_tn)
         # The new values of the continuous variables
         if delta != 0:
             print('%f: %s' % (env.now+delta, vals_at_tn))
@@ -128,7 +144,7 @@ def example1(env, solver, cstate=0):
 
 def main():
     # Initiaise the solver
-    solver = Solver(n=10, epsilon=1e-6)
+    solver = Solver(n=3, epsilon=1e-6)
 
     env = simpy.Environment()
     env.process(example1(env, solver))
