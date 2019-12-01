@@ -179,7 +179,7 @@ def main():
     env.process(example1(env, solver))
     # Run the simulation until all events in the queue are processed.
     # Make it some number to halt simulation after sometime.
-    env.run(until=5.0)
+    env.run(until=10.0)
     print('total steps: ', step)
 
 

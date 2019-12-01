@@ -95,11 +95,15 @@ class Solver(object):
         return poly
 
     @staticmethod
+    # XXX: This is taking too long, and needs to be optimised.
     def get_vals_at_tn_h(poly, vals_at_tn, h, curr_time):
         """tokens are the taylor derivative terms for k, excluding the constant
         term k is x(t)
 
         """
+        # TODO: First convert it into lambda expression with args and
+        # then give the values as arguments.
+
         # First replace all x(t) → initial values
         for k, i in vals_at_tn.items():
             poly = poly.replace(k, i)
@@ -108,7 +112,9 @@ class Solver(object):
         # Now replace Solver.h → h
         poly = poly.replace(Solver.h, h)
         # Now eval it
-        return poly.evalf()
+        # lp = S.lambdify([], poly)
+        # return lp()             # Just to make it faster
+        return poly
 
     @staticmethod
     def build_tokens(cont_var, odes):

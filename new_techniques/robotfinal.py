@@ -38,6 +38,8 @@ def example1(env, solver, cstate=0):
         gtn = gtn.replace(solver.t, env.now).evalf()
         return gtn
 
+    # XXX: This is taking a very long time, reduce the number of times
+    # this is being called.
     def build_gth(og, vals_at_tn, xps):
         for x in xps:
             og = og.replace(x, xps[x])
@@ -153,4 +155,6 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    import cProfile
+    cProfile.run('main()')
+    # main()
