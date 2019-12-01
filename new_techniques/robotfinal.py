@@ -38,16 +38,14 @@ def example1(env, solver, cstate=0):
         gtn = gtn.replace(solver.t, env.now).evalf()
         return gtn
 
-    # XXX: This is taking a very long time, reduce the number of times
-    # this is being called.
+    # This is done specifically for this example
     def build_gth(og, vals_at_tn, xps):
-        for x in xps:
-            og = og.replace(x, xps[x])
-        # Replace x(t) → x(Tₙ)
-        # Replace t → Tₙ
-        for k, v in vals_at_tn.items():
-            og = og.replace(k, v)
-        og = og.replace(solver.t, env.now).evalf()
+        y = S.sympify('y(t)')
+        ph = S.sympify('ph(t)')
+        th = S.sympify('th(t)')
+        og = g.replace(y, xps[y])
+        og = og.replace(ph, vals_at_tn[ph])
+        og = og.replace(th, vals_at_tn[th])
         return og
 
     def get_gh(og):
@@ -60,6 +58,9 @@ def example1(env, solver, cstate=0):
         return h
 
     # Returning state, delta, values, loc's_FT
+    # The guard expression, outside for performance reasons
+    g = S.sympify('y(t) - 1.8')
+
     def location1(x, y, th, ph, vals_at_tn):
         # The odes for all continuous variables in location1
         odes = {x.diff(solver.t): S.cos(th)*v1,
@@ -79,11 +80,8 @@ def example1(env, solver, cstate=0):
         # print(xps)
 
         # Now check of the guard is satisfied, if yes jump
-        # The guard expression
-        g = S.sympify('y(t) - 1.8')
-
         # Compute the value of g(t) at Tₙ
-        gtn = build_gtn(g.copy(), vals_at_tn)
+        gtn = build_gtn(g, vals_at_tn)
         # print('guard at Tₙ:', gtn)
 
         if (abs(gtn) <= solver.epsilon):           # If zero crossing happens
@@ -93,7 +91,7 @@ def example1(env, solver, cstate=0):
             # This is the intra-location transition
 
             # Guard1 g(t) = 0
-            og = build_gth(g.copy(), vals_at_tn, xps)
+            og = build_gth(g, vals_at_tn, xps)
             # print('guard1:', og)
             h = get_gh(og)
 
