@@ -50,12 +50,13 @@ def example1(env, solver, cstate=0):
         return h
 
     # Returning state, delta, values, loc's_FT
-    def location1(x, vals_at_tn):
-        # The odes for all continuous variables in location1
-        odes = {x.diff(solver.t): S.sympify('1')}
+    # The odes for all continuous variables in location1
+    odes = {x.diff(solver.t): S.sympify('1')}
 
-        # Get the tokens for x
-        dict_tokens = {x: solver.build_tokens(x, odes)}
+    # Get the tokens for x
+    dict_tokens = {x: solver.build_tokens(x, odes)}
+
+    def location1(x, vals_at_tn):
 
         # First get the polynomial expression from tokens
         xps = {x: solver.get_polynomial(x, tokens, vals_at_tn)
@@ -100,16 +101,16 @@ def example1(env, solver, cstate=0):
                           for k, x in xps.items()}
             return 0, h, vals_at_tn
 
-    def location2(x, vals_at_tn):
-        # The odes for all continuous variables in location1
-        odes = {x.diff(solver.t): S.sympify('-1')}
+    # The odes for all continuous variables in location1
+    odes2 = {x.diff(solver.t): S.sympify('-1')}
+    # Get the tokens for x
+    dict_tokens2 = {x: solver.build_tokens(x, odes2)}
 
-        # Get the tokens for x
-        dict_tokens = {x: solver.build_tokens(x, odes)}
+    def location2(x, vals_at_tn):
 
         # First get the polynomial expression from tokens
         xps = {x: solver.get_polynomial(x, tokens, vals_at_tn)
-               for x, tokens in dict_tokens.items()}
+               for x, tokens in dict_tokens2.items()}
 
         # Now check of the guard is satisfied, if yes jump
         # The guard expression
@@ -141,7 +142,7 @@ def example1(env, solver, cstate=0):
 
             assert h is not N.inf, 'Cannot find h from guards'
 
-            h = solver.delta((dict_tokens, vals_at_tn), h, 0)
+            h = solver.delta((dict_tokens2, vals_at_tn), h, 0)
 
             # Now compute the new values for continuous variables
             vals_at_tn = {k: solver.get_vals_at_tn_h(x, vals_at_tn, h, env.now)

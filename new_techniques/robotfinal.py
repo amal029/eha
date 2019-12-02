@@ -61,18 +61,19 @@ def example1(env, solver, cstate=0):
     # The guard expression, outside for performance reasons
     g = S.sympify('y(t) - 1.8')
 
+    odes = {x.diff(solver.t): S.cos(th)*v1,
+            y.diff(solver.t): S.sin(th)*v1,
+            th.diff(solver.t): (S.tan(ph)/le)*v1,
+            ph.diff(solver.t): S.sympify(v2)}
+
+    # Get the tokens for continuous variables
+    dict_tokens = {k: solver.build_tokens(k, odes)
+                   for k in vals_at_tn}
+
     def location1(x, y, th, ph, vals_at_tn):
         # The odes for all continuous variables in location1
-        odes = {x.diff(solver.t): S.cos(th)*v1,
-                y.diff(solver.t): S.sin(th)*v1,
-                th.diff(solver.t): (S.tan(ph)/le)*v1,
-                ph.diff(solver.t): S.sympify(v2)}
 
-        # Get the tokens for continuous variables
-        dict_tokens = {k: solver.build_tokens(k, odes)
-                       for k in vals_at_tn}
         # print(dict_tokens)
-
         # First get the polynomial expression from tokens
         xps = {x: solver.get_polynomial(x, tokens, vals_at_tn)
                for x, tokens in dict_tokens.items()}
@@ -144,7 +145,7 @@ def example1(env, solver, cstate=0):
 
 def main():
     # Initiaise the solver
-    solver = Solver(n=2, NUM_TERMS=5, epsilon=1e-5)
+    solver = Solver(n=3, NUM_TERMS=5, epsilon=1e-6)
     env = simpy.Environment()
     env.process(example1(env, solver))
     # Run the simulation until all events in the queue are processed.
@@ -153,6 +154,6 @@ def main():
 
 
 if __name__ == '__main__':
-    # import cProfile
-    # cProfile.run('main()')
-    main()
+    import cProfile
+    cProfile.run('main()')
+    # main()

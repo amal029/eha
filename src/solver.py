@@ -87,11 +87,12 @@ class Solver(object):
 
     @staticmethod
     def get_polynomial(k, tokens, vals_at_tn):
-        tokens = tokens.copy()
+        # tokens = tokens
         # Insert initial value in tokens
-        tokens.insert(0, vals_at_tn[k])
-        poly = sum([c*Solver.h**p/factorial(p)
-                    for c, p in zip(tokens, range(Solver.n+1))])
+        # tokens.insert(0, vals_at_tn[k])
+        poly = vals_at_tn[k] + sum([c*Solver.h**p/factorial(p)
+                                    for c, p in
+                                    zip(tokens, range(1, Solver.n+1))])
         return poly
 
     @staticmethod
@@ -101,19 +102,10 @@ class Solver(object):
         term k is x(t)
 
         """
-        # TODO: First convert it into lambda expression with args and
-        # then give the values as arguments.
-
-        # First replace all x(t) → initial values
-        for k, i in vals_at_tn.items():
-            poly = poly.replace(k, i)
-        # Replace all Solver.t with curr_time
-        poly = poly.replace(Solver.t, curr_time)
-        # Now replace Solver.h → h
-        poly = poly.replace(Solver.h, h)
-        # Now eval it
-        # lp = S.lambdify([], poly)
-        # return lp()             # Just to make it faster
+        vals_at_tn = vals_at_tn.copy()
+        vals_at_tn[Solver.t] = curr_time
+        vals_at_tn[Solver.h] = h
+        poly = poly.xreplace(vals_at_tn)
         return poly.evalf()
 
     @staticmethod
@@ -167,8 +159,11 @@ class Solver(object):
         odes = {k.diff(Solver.t): i[0] for k, i in all_ode_taylor.items()}
 
         # XXX: Now compute the value of continuous vars at Tₙ + h
-        vals_at_tn_h = {k: Solver.get_vals_at_tn_h(
-            Solver.get_polynomial(k, i, vals_at_tn), vals_at_tn, h, curr_time)
+        vals_at_tn_h = {k:
+                        Solver.get_vals_at_tn_h(
+                            Solver.get_polynomial(k, i, vals_at_tn),
+                            vals_at_tn, h, curr_time
+                        )
                         for k, i in all_ode_taylor.items()}
 
         # Now compute the bounds for each continuous variable
