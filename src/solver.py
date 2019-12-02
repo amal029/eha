@@ -114,7 +114,7 @@ class Solver(object):
         # Now eval it
         # lp = S.lambdify([], poly)
         # return lp()             # Just to make it faster
-        return poly
+        return poly.evalf()
 
     @staticmethod
     def build_tokens(cont_var, odes):
@@ -208,20 +208,22 @@ class Solver(object):
 
         # Now check if lagrange error is satisfied
         facn_1 = factorial(Solver.n+1)
-        # print({k: (l*(h**(Solver.n+1))/facn_1) for k, l in lips.items()},
-        #       '<=', Solver.epsilon, '?')
-        sat = {k: (l*(h**(Solver.n+1))/facn_1) <= Solver.epsilon
+
+        sat = {k: ((l*(h**(Solver.n+1)))/facn_1) <= Solver.epsilon
                for k, l in lips.items()}
 
         # TODO: Add the condition to check that the series
         # converges.
-        while True:
-            if all(list(sat.values())):
-                break
-            else:
-                # Just half the given step size until it meets the
-                # requrements.
-                h = h/2
-                sat = {k: (l*(h**(Solver.n+1))/facn_1) <= Solver.epsilon
-                       for k, l in lips.items()}
-        return h
+        if all(list(sat.values())):
+            return h
+        else:
+            # Just half the given step size until it meets the
+            # requrements.
+            hs = {}
+            for k, ll in lips.items():
+                hs[k] = (((Solver.epsilon * facn_1)/ll)**(1/(Solver.n+1))
+                         if ll != 0 else M.inf)
+            # print('hs: ', hs)
+            h = min(hs.values())
+            # print('min h:', h)
+            return h

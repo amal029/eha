@@ -92,7 +92,7 @@ def lorenz(env, solver, cstate=0):
 
 def main():
     # Initiaise the solver
-    solver = Solver(epsilon=1e-1)
+    solver = Solver(n=1, epsilon=1e-2)
 
     env = simpy.Environment()
     env.process(lorenz(env, solver))

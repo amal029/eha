@@ -43,7 +43,7 @@ def example1(env, solver, cstate=0):
         y = S.sympify('y(t)')
         ph = S.sympify('ph(t)')
         th = S.sympify('th(t)')
-        og = g.replace(y, xps[y])
+        og = og.replace(y, xps[y])
         og = og.replace(ph, vals_at_tn[ph])
         og = og.replace(th, vals_at_tn[th])
         return og
