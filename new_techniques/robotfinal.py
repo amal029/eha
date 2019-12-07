@@ -145,7 +145,7 @@ def example1(env, solver, cstate=0):
 
 def main():
     # Initiaise the solver
-    solver = Solver(n=3, NUM_TERMS=5, epsilon=1e-6)
+    solver = Solver(n=3, NUM_TERMS=5, epsilon=1e-4)
     env = simpy.Environment()
     env.process(example1(env, solver))
     # Run the simulation until all events in the queue are processed.
@@ -154,6 +154,4 @@ def main():
 
 
 if __name__ == '__main__':
-    import cProfile
-    cProfile.run('main()')
-    # main()
+    main()
