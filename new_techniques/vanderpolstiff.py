@@ -6,7 +6,7 @@ from src.solver import Solver
 
 
 step = 0                        # The number of integration steps
-STOP_TIME = 500                 # in seconds
+STOP_TIME = 1                 # in seconds
 data = dict()                   # The final result
 
 
@@ -86,7 +86,7 @@ def lorenz(env, solver, cstate=0):
 
 def main():
     # Initiaise the solver
-    solver = Solver(n=7, epsilon=1e-7)
+    solver = Solver(n=2, epsilon=1e-7)
 
     env = simpy.Environment()
     env.process(lorenz(env, solver))
@@ -96,6 +96,8 @@ def main():
 
     # Plot the output
     plt.plot(data['t'], data['x'])
+    plt.show()
+    plt.plot(data['t'], data['y'])
     plt.show()
 
 
