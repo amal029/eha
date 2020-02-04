@@ -11,7 +11,7 @@ import mpmath as M
 def compute_step(fxt, gxt, dq, R):
     # First get the number of random variables
     dWt = N.random.randn(R)
-    print('dWt:', dWt)
+    # print('dWt:', dWt)
     Winc = sum(dWt)
     gn = gxt * Winc
     # This is the max dq we can take
@@ -39,7 +39,6 @@ def compute_step(fxt, gxt, dq, R):
 
     # The second polynomial ax² - bx + cx = 0
     b = ((2 * fxt * dq * R) + (gn**2))
-    f = (lambda x: a*(x**2) + (b*x) + c)
     try:
         root2 = M.findroot(f, 0, tol=1e-3)
         print('root2:', root2)
@@ -52,13 +51,13 @@ def compute_step(fxt, gxt, dq, R):
     Dt = root1 if root1 is not None else root2
     Dt = min(Dt, root2) if root2 is not None else Dt
     dt = Dt/R
-    print('Δt: %f, δt: %f' % (Dt, dt))
+    # print('Δt: %f, δt: %f' % (Dt, dt))
 
     # assert False
     return (Dt, dt, dWt)
 
 
-def main(delta=1e-10):
+def main():
     """This is an example of scalar SDE solution using quantised state
     integration.
 
@@ -66,11 +65,11 @@ def main(delta=1e-10):
     # dx = λx(t)dt + μx(t)dW(t) scalar SDE example
     # λ = 2, μ = 1, x(0) = 1
 
-    fxt = (lambda x: (lambda t: 2 * 1))
-    gxt = (lambda x: (lambda t: 1 * 1))
+    fxt = (lambda x: (lambda t: 2 * x))
+    gxt = (lambda x: (lambda t: 1 * x))
     # Variables, and initial values
     x = 1                       # Initial value
-    xf = 2
+    xf = 4.5
     t = 0
     vs = [x]
     ts = [t]
@@ -78,11 +77,11 @@ def main(delta=1e-10):
     while(True):
         curr_fxt = fxt(x)(t)
         curr_gxt = gxt(x)(t)
-        Dt, dt, dWt = compute_step(curr_fxt, curr_gxt, abs(xf-x), R=4)
+        Dt, dt, dWt = compute_step(curr_fxt, curr_gxt, abs(xf-x), R=10)
         # Now compute x(t) using Euler-Maruyama solution to get x(t)
         # First build the weiner process
         dWt = N.sqrt(dt) * dWt
-        print('New dWt:', dWt)
+        # print('New dWt:', dWt)
         Winc = sum(dWt)
         # EM
         x = x + (Dt * curr_fxt) + (curr_gxt * Winc)
@@ -91,18 +90,25 @@ def main(delta=1e-10):
         # Append to plot later on
         vs.append(x)
         ts.append(t)
-        # This does not guarantee first time
-        # XXX: Check
-        if abs(x - xf) <= delta:
-            break
-        # elif count > 100:
+        # This does not guarantee first time XXX: Check, this cannot be
+        # done, so equality is not possible, because we can randomly
+        # jump above the discontinuity unlike deterministic ODE.
+        # if abs(x - xf) <= delta:
         #     break
-        # count += 1
+        # So, we only allow open guards.
+        if x >= xf:
+            break
     return vs, ts
 
 
 if __name__ == '__main__':
     # N.random.seed(0)
     xs, ts = main()
+    print(xs)
     plt.plot(ts, xs)
     plt.show()
+
+
+# TODO: Try the driver example.
+# Try the robot example.
+# So, right now we handle LSDEs only.
