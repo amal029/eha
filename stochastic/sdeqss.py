@@ -39,6 +39,7 @@ def compute_step(fxt, gxt, dq, R):
 
     # The second polynomial ax² - bx + cx = 0
     b = ((2 * fxt * dq * R) + (gn**2))
+    f = (lambda x: a*(x**2) - (b*x) + c)
     try:
         root2 = M.findroot(f, 0, tol=1e-3)
         print('root2:', root2)
@@ -57,7 +58,7 @@ def compute_step(fxt, gxt, dq, R):
     return (Dt, dt, dWt)
 
 
-def main():
+def main(delta=1e-10):
     """This is an example of scalar SDE solution using quantised state
     integration.
 
@@ -90,14 +91,13 @@ def main():
         # Append to plot later on
         vs.append(x)
         ts.append(t)
-        # This does not guarantee first time XXX: Check, this cannot be
-        # done, so equality is not possible, because we can randomly
-        # jump above the discontinuity unlike deterministic ODE.
-        # if abs(x - xf) <= delta:
-        #     break
-        # So, we only allow open guards.
-        if x >= xf:
+        # XXX: Equality seems to work, but we need a prove that says we
+        # converge to the discontinuity.
+        if abs(x - xf) <= delta:
             break
+        # So, we only allow open guards.
+        # if x >= xf:
+        #     break
     return vs, ts
 
 
