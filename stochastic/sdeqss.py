@@ -93,6 +93,20 @@ def main(delta=1e-10):
         ts.append(t)
         # XXX: Equality seems to work, but we need a prove that says we
         # converge to the discontinuity.
+
+        # The proof depends upon the following:
+
+        # 1.) Get all the roots of the polynomial, and take the minimum from
+        # amongst those roots.
+        # 2.) Make sure that the obtained Dt is such that the local truncation
+        # error met
+        # 3.) The guard is a taylor expansion of some function.
+        # 4.) The value at any step x(t + Dt) <= x(t) + Dq, where Dq =
+        # x(T) - x(t), where x(T) satisfies the guard .
+
+        # Maintain the brownian path again when restarting the step --
+        # but this should not happen for us.
+
         if abs(x - xf) <= delta:
             break
         # So, we only allow open guards.
