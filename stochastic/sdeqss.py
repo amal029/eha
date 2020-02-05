@@ -29,7 +29,7 @@ def compute_step(fxt, gxt, dq, R):
     # Use mpmath to get the roots
     f = (lambda x: a*(x**2) + (b*x) + c)
     try:
-        root1 = M.findroot(f, 0, tol=1e-3)
+        root1 = M.findroot(f, 0)
         # Debug
         print('root1:', root1)
         root1 = root1 if root1 > 0 else None
@@ -41,7 +41,7 @@ def compute_step(fxt, gxt, dq, R):
     b = ((2 * fxt * dq * R) + (gn**2))
     f = (lambda x: a*(x**2) - (b*x) + c)
     try:
-        root2 = M.findroot(f, 0, tol=1e-3)
+        root2 = M.findroot(f, 0)
         print('root2:', root2)
         root2 = root2 if root2 > 0 else None
     except ValueError as e:
@@ -104,7 +104,7 @@ def main(delta=1e-10):
 if __name__ == '__main__':
     # N.random.seed(0)
     xs, ts = main()
-    print(xs)
+    print(list(zip(ts, xs)))
     plt.plot(ts, xs)
     plt.show()
 
