@@ -2,7 +2,6 @@
 import matplotlib.pyplot as plt
 import numpy as N
 import mpmath as M
-from functools import reduce
 
 
 # TODO: Check for condition that you always get at least one real
@@ -55,7 +54,7 @@ def compute_step(fxt, gxt, dq, R, dWt):
     # print('Δt: %f, δt: %f' % (Dt, dt))
 
     # assert False
-    return Dt, dt, dq
+    return Dt, dt
 
 
 def main(delta=1e-10, R=4):
@@ -88,8 +87,8 @@ def main(delta=1e-10, R=4):
         while(True):
             xtemp = x
             xt = x
-            Dt, dt, dq = compute_step(curr_fxt, curr_gxt, dq=dq, dWt=dWt,
-                                      R=R)
+            Dt, dt = compute_step(curr_fxt, curr_gxt, dq=dq, dWt=dWt,
+                                  R=R)
             # Now compute x(t) using Euler-Maruyama solution to get x(t)
             # First build the weiner process
             Winc = sum(N.sqrt(dt) * dWt)
@@ -116,7 +115,7 @@ def main(delta=1e-10, R=4):
                 dq = dq/2       # Half it and try again
 
         # Now we can set the real value
-        x = xtemp
+        x = xt
         # Increment the time-step
         t = t + Dt
 
