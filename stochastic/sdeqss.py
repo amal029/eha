@@ -2,16 +2,15 @@
 import matplotlib.pyplot as plt
 import numpy as N
 import mpmath as M
+from functools import reduce
 
 
 # TODO: Check for condition that you always get at least one real
 # positive root.
 
 # fxt and gxt are slope functions of x(t), t
-def compute_step(fxt, gxt, dq, R):
-    # First get the number of random variables
-    dWt = N.random.randn(R)
-    # print('dWt:', dWt)
+def compute_step(fxt, gxt, dq, R, dWt):
+
     Winc = sum(dWt)
     gn = gxt * Winc
     # This is the max dq we can take
@@ -27,6 +26,7 @@ def compute_step(fxt, gxt, dq, R):
     c = R*(dq**2)
 
     # Use mpmath to get the roots
+    # There can be only one root.
     f = (lambda x: a*(x**2) + (b*x) + c)
     try:
         root1 = M.findroot(f, 0)
@@ -55,16 +55,17 @@ def compute_step(fxt, gxt, dq, R):
     # print('Δt: %f, δt: %f' % (Dt, dt))
 
     # assert False
-    return (Dt, dt, dWt)
+    return Dt, dt, dq
 
 
-def main(delta=1e-10):
+def main(delta=1e-10, R=4):
     """This is an example of scalar SDE solution using quantised state
     integration.
 
     """
     # dx = λx(t)dt + μx(t)dW(t) scalar SDE example
     # λ = 2, μ = 1, x(0) = 1
+    assert R > 1
 
     fxt = (lambda x: (lambda t: 2 * x))
     gxt = (lambda x: (lambda t: 1 * x))
@@ -74,23 +75,55 @@ def main(delta=1e-10):
     t = 0
     vs = [x]
     ts = [t]
-    # count = 0                   # Debug
+
     while(True):
-        curr_fxt = fxt(x)(t)
-        curr_gxt = gxt(x)(t)
-        Dt, dt, dWt = compute_step(curr_fxt, curr_gxt, abs(xf-x), R=10)
-        # Now compute x(t) using Euler-Maruyama solution to get x(t)
-        # First build the weiner process
-        dWt = N.sqrt(dt) * dWt
-        # print('New dWt:', dWt)
-        Winc = sum(dWt)
-        # EM
-        x = x + (Dt * curr_fxt) + (curr_gxt * Winc)
+        curr_fxt = fxt(x)(t)    # The current slope
+        curr_gxt = gxt(x)(t)    # The current dWt slope
+
+        # First get the number of random variables
+        dWt = N.random.randn(R)
+
+        dq = abs(xf-x)          # Initially
+        # This needs to be done iteratively
+        while(True):
+            xtemp = x
+            xt = x
+            Dt, dt, dq = compute_step(curr_fxt, curr_gxt, dq=dq, dWt=dWt,
+                                      R=R)
+            # Now compute x(t) using Euler-Maruyama solution to get x(t)
+            # First build the weiner process
+            Winc = sum(N.sqrt(dt) * dWt)
+
+            # EM
+            xtemp += (Dt * curr_fxt) + (curr_gxt * Winc)
+
+            for i in dWt:
+                xt += (dt * fxt(xt)(t)) + (gxt(xt)(t) * N.sqrt(dt) * i)
+
+            dt = float(dt)
+            tol = N.sqrt(1 + N.log(1/dt))*N.sqrt(dt)
+            print('tutu:', abs(xtemp - xt), xtemp, xt, tol,
+                  abs(xtemp - xt) <= tol)
+            # Now compute the value at the smallest steps of δt (we can
+            # make this better, by doing it at δt*R/2)
+
+            # XXX: Here we break it, if error is met,
+            # else we half the dq
+            if abs(xtemp - xt) <= tol:
+                break
+            else:
+                # Can we do better than this?
+                dq = dq/2       # Half it and try again
+
+        # Now we can set the real value
+        x = xtemp
         # Increment the time-step
         t = t + Dt
+
         # Append to plot later on
         vs.append(x)
         ts.append(t)
+
         # XXX: Equality seems to work, but we need a prove that says we
         # converge to the discontinuity.
 
@@ -109,20 +142,19 @@ def main(delta=1e-10):
 
         if abs(x - xf) <= delta:
             break
-        # So, we only allow open guards.
-        # if x >= xf:
-        #     break
+
     return vs, ts
 
 
 if __name__ == '__main__':
     # N.random.seed(0)
-    xs, ts = main()
-    print(list(zip(ts, xs)))
+    xs, ts = main(R=10)
+    # print(list(zip(ts, xs)))
     plt.plot(ts, xs)
     plt.show()
 
+# Make this iterative with local error ≤ sqrt(1 + log(1/Δt)) * sqrt(Δt)
 
-# TODO: Try the driver example.
-# Try the robot example.
-# So, right now we handle LSDEs only.
+# Compare with all the micro-benchmarks from the paper: THE EULER SCHEME
+# FOR STOCHASTIC DIFFERENTIAL EQUATIONS WITH DISCONTINUOUS DRIFT
+# COEFFICIENT: A NUMERICAL STUDY OF THE CONVERGENCE RATE
