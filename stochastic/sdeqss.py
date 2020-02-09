@@ -57,7 +57,20 @@ def compute_step(fxt, gxt, dq, R, dWt):
     return Dt, dt
 
 
-def main(delta=1e-10, R=4):
+def norm(xtrue, x):
+    """This function gives the norm that is used to compute the error
+    between two values.
+
+    """
+    # L2 (Euclidian norm)
+    return abs(xtrue - x)
+
+
+# Now we need to:
+# 1. Move the functions outside (Done)
+# 2. Make it vector instead of scalar
+# 3. Implement path extension
+def main(delta=1e-6, R=4, T=1, fxt=None, gxt=None, x=[], xf=[]):
     """This is an example of scalar SDE solution using quantised state
     integration.
 
@@ -65,9 +78,8 @@ def main(delta=1e-10, R=4):
     # dx = λx(t)dt + μx(t)dW(t) scalar SDE example
     # λ = 2, μ = 1, x(0) = 1
     assert R > 1
+    assert R % 2 == 0
 
-    fxt = (lambda x: (lambda t: 2 * x))
-    gxt = (lambda x: (lambda t: 1 * x))
     # Variables, and initial values
     x = 1                       # Initial value
     xf = 4.5
@@ -82,40 +94,53 @@ def main(delta=1e-10, R=4):
         # First get the number of random variables
         dWt = N.random.randn(R)
 
+        # xf should be a vector of discontinuities.
         dq = abs(xf-x)          # Initially
         # This needs to be done iteratively
         while(True):
             xtemp = x
-            xt = x
+            xtemph = x
+            # xt = x
             Dt, dt = compute_step(curr_fxt, curr_gxt, dq=dq, dWt=dWt,
                                   R=R)
             # Now compute x(t) using Euler-Maruyama solution to get x(t)
             # First build the weiner process
-            Winc = sum(N.sqrt(dt) * dWt)
+            Winc = N.sqrt(dt) * sum(dWt)
 
             # EM
             xtemp += (Dt * curr_fxt) + (curr_gxt * Winc)
 
-            for i in dWt:
-                xt += (dt * fxt(xt)(t)) + (gxt(xt)(t) * N.sqrt(dt) * i)
+            # Try taking half steps and see what happens.
+            # The first step until R/2
+            xtemph += (Dt/2 * fxt(xtemph)(t)) + (gxt(xtemph)(t) *
+                                                 N.sqrt(dt) * sum(dWt[0:R//2]))
+            xtemph += (Dt/2 * fxt(xtemph)(t)) + (gxt(xtemph)(t) *
+                                                 N.sqrt(dt) * sum(dWt[R//2:R]))
+
+            # This would be considered the true solution
+            # for i in dWt:
+            #     xt += (dt * fxt(xt)(t)) + (gxt(xt)(t) * N.sqrt(dt) * i)
+            # print(xtemp, xtemph, xt)
+            # assert False
 
             dt = float(dt)
             tol = N.sqrt(1 + N.log(1/dt))*N.sqrt(dt)
-            print('tutu:', abs(xtemp - xt), xtemp, xt, tol,
-                  abs(xtemp - xt) <= tol)
+            # print('tutu:', abs(xtemp - xtemph), xtemp, xtemph, tol,
+            #       abs(xtemp - xtemph) <= tol, abs(xtemp - xt) <= tol)
             # Now compute the value at the smallest steps of δt (we can
             # make this better, by doing it at δt*R/2)
 
             # XXX: Here we break it, if error is met,
             # else we half the dq
-            if abs(xtemp - xt) <= tol:
+            if norm(xtemph, xtemp) <= tol:
                 break
             else:
                 # Can we do better than this?
+                print('Decreasing dq')
                 dq = dq/2       # Half it and try again
 
         # Now we can set the real value
-        x = xt
+        x = xtemp
         # Increment the time-step
         t = t + Dt
 
@@ -141,14 +166,20 @@ def main(delta=1e-10, R=4):
 
         if abs(x - xf) <= delta:
             break
+        elif t >= T:
+            break
 
     return vs, ts
 
 
 if __name__ == '__main__':
-    # N.random.seed(0)
-    xs, ts = main(R=10)
-    # print(list(zip(ts, xs)))
+
+    # These are the functions computing the slope
+    fxt = (lambda x: (lambda t: 2 * x))
+    gxt = (lambda x: (lambda t: 1 * x))
+    # Do until 1 second
+    xs, ts = main(R=2**10, T=1, fxt=fxt, gxt=gxt)
+
     plt.plot(ts, xs)
     plt.show()
 
