@@ -2,8 +2,6 @@
 
 import numpy as np
 import mpmath as mp
-import matplotlib.pyplot as plt
-import operator as op
 
 
 class Solver(object):
@@ -18,6 +16,8 @@ class Solver(object):
         # N is the number of continuous variables in the system
         (L, _, N) = T.shape
         self.T = T
+        self.L = L
+        self.N = N
         self.Tops = Tops
 
         # There should always be a start and end for each variable.
@@ -170,7 +170,7 @@ class Solver(object):
             cvs = vs[len(vs)-1].copy()  # The current values
             # Step-1 check in what location are the current values in?
             loc = 0
-            while loc < L:
+            while loc < self.L:
                 left = self.T[loc][0]
                 right = self.T[loc][1]
                 lop = self.Tops[loc][0]
@@ -257,7 +257,6 @@ class Solver(object):
 
 
 if __name__ == '__main__':
-    np.random.seed(100)
     # Example dx(t) = -sgn(x(t)) + dw(t), x(0) = 10
 
     # L = 3
@@ -283,60 +282,3 @@ if __name__ == '__main__':
     # SB = SB.reshape(N, )
 
     # Example 2:
-    L = 6
-    N = 2
-    T = np.array([[(5, 0), (5, 0)],
-                  [(5, 0), (5, np.inf)],
-                  [(-np.inf, -np.inf), (5, 0)],
-                  [(-np.inf, 0), (5, np.inf)],
-                  [(5, -np.inf), (5, 0)],
-                  [(5, 0), (np.inf, np.inf)]])
-    T = T.reshape(L, 2, N)
-    Tops = [[(op.ge, op.ge), (op.le, op.le)],
-            [(op.ge, op.gt), (op.le, op.lt)],
-            # FIXME: IMP
-            # Others are needed too, but I can fill those in later
-            [(op.gt, op.gt), (op.lt, op.lt)]*(L-2)]
-    Tops = np.array([item for sublist in Tops for item in sublist])
-    Tops = Tops.reshape(L, 2, N)
-
-    A = np.append(np.array([[0, 0], [0, 0], [0, 0], [1, 1]]),
-                  np.array([[0, 1], [1, 1]]*(L-2)))
-    A = A.reshape(L, N, N)
-    # print(A)
-
-    alpha = 4                   # This is a parameter
-    beta = -10
-    # Now comes the control input of size B
-    fx1 = (lambda x: -alpha*np.sign(x-5))
-    fx2 = (lambda x: beta*np.sign(x))
-    B = np.array([[fx1(5), fx2(0)],
-                  [fx1(5), fx2(1)],
-                  [fx1(-4), fx2(-1)],
-                  [fx1(-4), fx2(1)],
-                  [fx1(6), fx2(-1)],
-                  [fx1(6), fx2(1)]])
-    B = B.reshape(L, N)
-    # print(B)
-
-    S = np.array([0, 0, 0, 0])
-    S = S.reshape(N, N)
-
-    SB = np.array([1, 1])
-    SB = SB.reshape(N, )
-
-    solver = Solver(T, Tops, A, B, S, SB)
-
-    # Initial values
-    ivals = [-5, 5]
-    vs, ts = solver.simulate(ivals, 0.853)
-    xs = [i[0] for i in vs]
-    ys = [i[1] for i in vs]
-
-    # Plot the output
-    # plt.plot(ts, xs)
-    # plt.show()
-    # plt.plot(ts, ys)
-    # plt.show()
-    plt.plot(xs, ys)
-    plt.show()
