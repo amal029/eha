@@ -7,7 +7,7 @@ from src.sdesolver import Solver
 
 
 if __name__ == '__main__':
-    np.random.seed(0)
+    # np.random.seed(0)
     L = 9
     N = 2
     T = np.array([[(5, 0), (5, 0)],

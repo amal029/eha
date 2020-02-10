@@ -6,11 +6,10 @@ import mpmath as mp
 
 class Solver(object):
     def __init__(self, T=None, Tops=None, A=None, B=None, S=None, SB=None,
-                 R=4):
+                 R=4, montecarlo=False):
         assert R > 1
         assert R % 2 == 0
         self.R = R
-        # First check the dimensions of each matrix
         # L is the number of locations
         # _ should always be 2, for start and end
         # N is the number of continuous variables in the system
@@ -39,6 +38,10 @@ class Solver(object):
         # Now check that SB is of size N x 1
         assert SB.shape == (N, )
         self.SB = SB
+
+        # The random path for montecarlo comparison
+        self.montecarlo = montecarlo
+        self.path = None
 
     @staticmethod
     def _compute_step(fxt, gxt, dq, R, dWt):
@@ -134,31 +137,17 @@ class Solver(object):
             part = Gxts * np.sqrt(dt) * sum(dWt[R//2:R])
             xtemph = xtemph + (Dt/2 * Fxts) + part
 
-            # print(xtemph)
-
-            # This would be considered the true solution
-            # for i in dWt:
-            #     xt += (dt * fxt(xt)(t)) + (gxt(xt)(t) * N.sqrt(dt) * i)
-            # print(xtemp, xtemph, xt)
-            # assert False
-
             dt = float(dt)
             tol = np.sqrt(1 + np.log(1/dt))*np.sqrt(dt)
-            # print('tutu:', abs(xtemp - xtemph), xtemp, xtemph, tol,
-            #       abs(xtemp - xtemph) <= tol, abs(xtemp - xt) <= tol)
-            # Now compute the value at the smallest steps of δt (we can
-            # make this better, by doing it at δt*R/2)
 
             # XXX: Here we break it, if error is met,
             # else we half the dq
-            if abs(xtemph[index] - xtemp[index]) <= tol:
-                # print('fits!')
-                # print('fits:', dq, index, loc)
+            err = np.sqrt(np.sum(np.square(xtemph - xtemp)))
+            if err <= tol:
+                # if abs(xtemph[index] - xtemp[index]) <= tol:
                 break
             else:
                 # Can we do better than this?
-                # err = (abs(xtemph[index] - xtemp[index]))
-                # print('Decreasing dq', err, dq, index, loc)
                 dq = dq/2       # Half it and try again
         return dt
 
@@ -177,14 +166,8 @@ class Solver(object):
                 lop = self.Tops[loc][0]
                 rop = self.Tops[loc][1]
                 # Now check if cvs are within this range?
-                # Debug
                 zl = [i[0](*i[1:]) for i in zip(lop, cvs, left)]
                 zr = [i[0](*i[1:]) for i in zip(rop, cvs, right)]
-                # print(list(zip(lop, cvs, left)))
-                # print(list(zl))
-                # print(list(zip(rop, cvs, right)))
-                # print(zr)
-                # print('-----------------')
                 if all(zl) and all(zr):
                     break
                 loc += 1
@@ -221,15 +204,6 @@ class Solver(object):
                     dtr = np.inf
                 dts[i] = min(dtl, dtr)
 
-            # The solution of the
-            # print('A:', self.A[loc])
-            # print('B:', self.B[loc])
-            # print('W:', self.S)
-            # print('WB:', self.SB)
-            # print('curr_vals:', cvs)
-            # print('Fxts:', Fxts)
-            # print('Gxts:', Gxts)
-
             # print(dts)
             dts = [i for i in dts if i != 0]  # Remove all 0s
 
@@ -251,34 +225,10 @@ class Solver(object):
             # Increment time
             curr_time += self.R * dt
             ts.append(curr_time)
+            if self.montecarlo:
+                self.path = dWt if self.path is None else np.append(self.path,
+                                                                    dWt)
             print(curr_time)
             if curr_time >= simtime:
                 break
         return vs, ts
-
-
-if __name__ == '__main__':
-    # Example dx(t) = -sgn(x(t)) + dw(t), x(0) = 10
-
-    # L = 3
-    # N = 1
-    # # This is the bounds matrix θ for different locations
-    # T = np.array([[(-np.inf), (0)], [(0), (np.inf)], [(0), (0)]])
-    # T = T.reshape((L, 2, N))
-
-    # # This is the system matrix at different locations
-    # A = np.array([[0], [0], [0]])
-    # A = A.reshape(L, N, N)
-
-    # # This is the B matrix in the system equation
-    # B = np.array([[1], [-1], [0]])
-    # B = B.reshape(L, N)
-
-    # # This is the brownian motion matrix
-    # S = np.array([[0]])
-    # S = S.reshape(N, N)
-
-    # # This is the SB matrix for brownian motion
-    # SB = np.array([[1]])
-    # SB = SB.reshape(N, )
-    pass
