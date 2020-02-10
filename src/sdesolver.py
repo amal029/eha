@@ -50,6 +50,7 @@ class Solver(object):
         # FIXME: IMP
         # This can be negative, then what happens?
         dq2 = gn**2 / (4 * fxt * R)
+        dq2 = abs(dq2)
         # odq = dq
         dq = dq if dq <= dq2 else dq2
         # print('Given dq: %f, chosen dq: %f' % (odq, dq))
@@ -280,5 +281,4 @@ if __name__ == '__main__':
     # # This is the SB matrix for brownian motion
     # SB = np.array([[1]])
     # SB = SB.reshape(N, )
-
-    # Example 2:
+    pass
