@@ -61,19 +61,20 @@ if __name__ == '__main__':
     SB = np.array([1, 1])
     SB = SB.reshape(N, )
 
-    solver = Solver(T, Tops, A, B, S, SB, R=2**10)
+    solver = Solver(T, Tops, A, B, S, SB, R=2**14)
 
     # Initial values
     ivals = [-5, 5]
-    vs, ts = solver.simulate(ivals, 2.0)
+    vs, ts = solver.simulate(ivals, 1.0)
     xs = [i[0] for i in vs]
     ys = [i[1] for i in vs]
 
     # Plot the output
-    plt.plot(ts[2500:3200], xs[2500:3200])
-    plt.show()
-    plt.plot(ts[2500:3200], ys[2500:3200])
-    plt.show()
+    # plt.plot(ts[2500:3200], xs[2500:3200])
+    # plt.show()
+    # plt.plot(ts[2500:3200], ys[2500:3200])
+    # plt.show()
+    print(len(ts))
     plt.plot(xs, ys)
     plt.show()
 
