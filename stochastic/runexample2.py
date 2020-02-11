@@ -9,7 +9,7 @@ from src.sdesolver import nsimulate
 
 if __name__ == '__main__':
     # np.random.seed(100)         # 100 works
-    # Example dx(t) = -5*sgn(x(t)) + (x(t) + 1) dw(t), x(0) = -10
+    # Example dx(t) = -5*sgn(x(t)) + x(t) dw(t), x(0) = -10
 
     L = 3
     N = 1
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     S = S.reshape(N, N)
 
     # This is the SB matrix for brownian motion
-    SB = np.array([[1]])
+    SB = np.array([[0]])
     SB = SB.reshape(N, )
 
     ET = 1.0
