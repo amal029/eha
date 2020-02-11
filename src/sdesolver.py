@@ -2,6 +2,7 @@
 
 import numpy as np
 import mpmath as mp
+from numba import njit
 
 
 class Solver(object):
@@ -252,28 +253,28 @@ class Solver(object):
                 break
         return vs, ts
 
+    # @njit
+    def nsimulate(self, values):
+        """This is the naive simulation using Euler-Maruyama on the same random
+        path as the quantized state solution.
 
-def nsimulate(values, solver, dts, dWt):
-    """This is the naive simulation using Euler-Maruyama on the same random
-    path as the quantized state solution.
+        """
+        curr_time = 0
+        vs = [values]
+        ts = [curr_time]
+        for dt, dwt in zip(self.dts, self.path):
+            cvs = vs[-1].copy()
+            # First get the location
+            loc, _, _ = self.getloc(cvs)
+            # Get the current value of the slope in this location
+            Fxts = np.dot(self.A[loc], cvs) + self.B[loc]
+            Gxts = np.dot(self.S, cvs) + self.SB
 
-    """
-    curr_time = 0
-    vs = [values]
-    ts = [curr_time]
-    for dt, dwt in zip(dts, dWt):
-        cvs = vs[-1].copy()
-        # First get the location
-        loc, _, _ = solver.getloc(cvs)
-        # Get the current value of the slope in this location
-        Fxts = np.dot(solver.A[loc], cvs) + solver.B[loc]
-        Gxts = np.dot(solver.S, cvs) + solver.SB
+            # Now just compute the Euler-Maruyama equation
+            cvs = cvs + (Fxts * dt) + (Gxts * dwt)
+            vs.append(cvs)
 
-        # Now just compute the Euler-Maruyama equation
-        cvs = cvs + (Fxts * dt) + (Gxts * dwt)
-        vs.append(cvs)
-
-        # Increment the time
-        curr_time += dt
-        ts.append(curr_time)
-    return vs, ts
+            # Increment the time
+            curr_time += dt
+            ts.append(curr_time)
+        return vs, ts

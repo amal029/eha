@@ -4,8 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import operator as op
 from src.sdesolver import Solver
-from src.sdesolver import nsimulate
-
 
 if __name__ == '__main__':
     # np.random.seed(100)         # 100 works
@@ -38,9 +36,9 @@ if __name__ == '__main__':
     SB = SB.reshape(N, )
 
     ET = 1.0
-    R = 2**10
+    R = 2**11
     solver = Solver(T, Tops, A, B, S, SB, R=R, montecarlo=True)
-    ivals = [-10]
+    ivals = [10]
     vs, ts = solver.simulate(ivals, ET)
 
     # Plot the output
@@ -51,6 +49,6 @@ if __name__ == '__main__':
     # The naive way
     # Simulate using EM
     print(solver.path.shape, solver.dts.shape)
-    nvs2, nts2 = nsimulate(ivals, solver, solver.dts, solver.path)
+    nvs2, nts2 = solver.nsimulate(ivals)
     plt.plot(nts2, nvs2)
     plt.show()

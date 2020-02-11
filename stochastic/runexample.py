@@ -4,8 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import operator as op
 from src.sdesolver import Solver
-from src.sdesolver import nsimulate
-
 
 if __name__ == '__main__':
     # np.random.seed(0)
@@ -81,7 +79,7 @@ if __name__ == '__main__':
 
     # TODO: Implement the same with same seed with ordinary EM
     print(solver.path.shape, solver.dts.shape)
-    nvs2, nts2 = nsimulate(ivals, solver, solver.dts, solver.path)
+    nvs2, nts2 = solver.nsimulate(ivals)
     xs = [i[0] for i in nvs2]
     ys = [i[1] for i in nvs2]
     plt.plot(xs, ys)
