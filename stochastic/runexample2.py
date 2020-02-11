@@ -4,9 +4,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import operator as op
 from src.sdesolver import Solver
+from src.sdesolver import nsimulate
 
 
 if __name__ == '__main__':
+    # np.random.seed(100)         # 100 works
     # Example dx(t) = -5*sgn(x(t)) + (x(t) + 1) dw(t), x(0) = -10
 
     L = 3
@@ -35,18 +37,20 @@ if __name__ == '__main__':
     SB = np.array([[1]])
     SB = SB.reshape(N, )
 
-    solver = Solver(T, Tops, A, B, S, SB, R=2**14, montecarlo=True)
+    ET = 1.0
+    R = 2**10
+    solver = Solver(T, Tops, A, B, S, SB, R=R, montecarlo=True)
     ivals = [-10]
-    vs, ts = solver.simulate(ivals, 1.0)
+    vs, ts = solver.simulate(ivals, ET)
 
     # Plot the output
     print(len(ts))
     plt.plot(ts, vs)
     plt.show()
 
-    # Now doing the same with T = 1, R=R
-    M = len(ts)-1
-    path = solver.path.reshape(len(solver.path)//M, M)
-    path = np.sum(path, axis=1)
-    print(len(path), path.shape)
-    # Now just need to complete doing the SDE solution normally.
+    # The naive way
+    # Simulate using EM
+    print(solver.path.shape, solver.dts.shape)
+    nvs2, nts2 = nsimulate(ivals, solver, solver.dts, solver.path)
+    plt.plot(nts2, nvs2)
+    plt.show()

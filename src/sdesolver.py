@@ -42,6 +42,7 @@ class Solver(object):
         # The random path for montecarlo comparison
         self.montecarlo = montecarlo
         self.path = None
+        self.dts = None
 
     @staticmethod
     def _compute_step(fxt, gxt, dq, R, dWt):
@@ -72,8 +73,8 @@ class Solver(object):
             # Debug
             # print('root1:', root1)
             root1 = root1 if root1 >= 0 else None
-        except ValueError as e:
-            print(e)
+        except ValueError:
+            # print(e)
             root1 = None
 
         # The second polynomial ax² - bx + cx = 0
@@ -83,8 +84,8 @@ class Solver(object):
             root2 = mp.findroot(f, 0)
             # print('root2:', root2)
             root2 = root2 if root2 >= 0 else None
-        except ValueError as e:
-            print(e)
+        except ValueError:
+            # print(e)
             root2 = None
 
         # Now get Δt and δt
@@ -95,6 +96,22 @@ class Solver(object):
 
         # assert False
         return Dt, dt
+
+    def getloc(self, cvs):
+        # Step-1 check in what location are the current values in?
+        loc = 0
+        while loc < self.L:
+            left = self.T[loc][0]
+            right = self.T[loc][1]
+            lop = self.Tops[loc][0]
+            rop = self.Tops[loc][1]
+            # Now check if cvs are within this range?
+            zl = [i[0](*i[1:]) for i in zip(lop, cvs, left)]
+            zr = [i[0](*i[1:]) for i in zip(rop, cvs, right)]
+            if all(zl) and all(zr):
+                break
+            loc += 1
+        return loc, left, right
 
     def _get_step(self, x, index, loc, curr_fxt, curr_gxt, dq, dWt, R):
         """The iterative process that gets the time step that satisfies this
@@ -144,7 +161,6 @@ class Solver(object):
             # else we half the dq
             err = np.sqrt(np.sum(np.square(xtemph - xtemp)))
             if err <= tol:
-                # if abs(xtemph[index] - xtemp[index]) <= tol:
                 break
             else:
                 # Can we do better than this?
@@ -159,19 +175,20 @@ class Solver(object):
         while(True):
             cvs = vs[len(vs)-1].copy()  # The current values
             # Step-1 check in what location are the current values in?
-            loc = 0
-            while loc < self.L:
-                left = self.T[loc][0]
-                right = self.T[loc][1]
-                lop = self.Tops[loc][0]
-                rop = self.Tops[loc][1]
-                # Now check if cvs are within this range?
-                zl = [i[0](*i[1:]) for i in zip(lop, cvs, left)]
-                zr = [i[0](*i[1:]) for i in zip(rop, cvs, right)]
-                if all(zl) and all(zr):
-                    break
-                loc += 1
+            # loc = 0
+            # while loc < self.L:
+            #     left = self.T[loc][0]
+            #     right = self.T[loc][1]
+            #     lop = self.Tops[loc][0]
+            #     rop = self.Tops[loc][1]
+            #     # Now check if cvs are within this range?
+            #     zl = [i[0](*i[1:]) for i in zip(lop, cvs, left)]
+            #     zr = [i[0](*i[1:]) for i in zip(rop, cvs, right)]
+            #     if all(zl) and all(zr):
+            #         break
+            #     loc += 1
             # print('We are in location: %d' % (loc))
+            loc, left, right = self.getloc(cvs)
 
             # First get the current value of the slope in this location
             Fxts = np.dot(self.A[loc], cvs) + self.B[loc]
@@ -226,9 +243,37 @@ class Solver(object):
             curr_time += self.R * dt
             ts.append(curr_time)
             if self.montecarlo:
-                self.path = dWt if self.path is None else np.append(self.path,
-                                                                    dWt)
+                self.dts = (np.array([dt]*len(dWt)) if self.dts is None
+                            else np.append(self.dts, np.array([dt]*len(dWt))))
+                self.path = (dWt*np.sqrt(dt) if self.path is None
+                             else np.append(self.path, dWt*np.sqrt(dt)))
             print(curr_time)
             if curr_time >= simtime:
                 break
         return vs, ts
+
+
+def nsimulate(values, solver, dts, dWt):
+    """This is the naive simulation using Euler-Maruyama on the same random
+    path as the quantized state solution.
+
+    """
+    curr_time = 0
+    vs = [values]
+    ts = [curr_time]
+    for dt, dwt in zip(dts, dWt):
+        cvs = vs[-1].copy()
+        # First get the location
+        loc, _, _ = solver.getloc(cvs)
+        # Get the current value of the slope in this location
+        Fxts = np.dot(solver.A[loc], cvs) + solver.B[loc]
+        Gxts = np.dot(solver.S, cvs) + solver.SB
+
+        # Now just compute the Euler-Maruyama equation
+        cvs = cvs + (Fxts * dt) + (Gxts * dwt)
+        vs.append(cvs)
+
+        # Increment the time
+        curr_time += dt
+        ts.append(curr_time)
+    return vs, ts

@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import operator as op
 from src.sdesolver import Solver
+from src.sdesolver import nsimulate
 
 
 if __name__ == '__main__':
@@ -61,7 +62,7 @@ if __name__ == '__main__':
     SB = np.array([1, 1])
     SB = SB.reshape(N, )
 
-    solver = Solver(T, Tops, A, B, S, SB, R=2**14)
+    solver = Solver(T, Tops, A, B, S, SB, R=2**10, montecarlo=True)
 
     # Initial values
     ivals = [-5, 5]
@@ -79,3 +80,9 @@ if __name__ == '__main__':
     plt.show()
 
     # TODO: Implement the same with same seed with ordinary EM
+    print(solver.path.shape, solver.dts.shape)
+    nvs2, nts2 = nsimulate(ivals, solver, solver.dts, solver.path)
+    xs = [i[0] for i in nvs2]
+    ys = [i[1] for i in nvs2]
+    plt.plot(xs, ys)
+    plt.show()
