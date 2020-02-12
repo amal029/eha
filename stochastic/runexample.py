@@ -64,18 +64,21 @@ if __name__ == '__main__':
     # Initial values
     ivals = [-5, 5]
 
-    solver = Solver(T, Tops, A, B, S, SB, R=2**10, montecarlo=True)
-    M = 2                    # The number of montecarlo runs
+    M = 5                    # The number of montecarlo runs
     fvs = np.array(0)
     fnvs = np.array(0)
     err = 0
     time1 = 0
     time2 = 0
+    avgdt = 0
+    SIM_TIME = 1.0
     # The arrays to hold the final result
     for i in range(M):
+        solver = Solver(T, Tops, A, B, S, SB, R=2**7, montecarlo=True)
         print('Doing ', i)
         st = time.time()
-        vs, ts = solver.simulate(ivals, 1.0)
+        vs, ts = solver.simulate(ivals, SIM_TIME)
+        avgdt += len(ts)
         time1 += (time.time() - st)
         print('simulate done')
         st = time.time()
@@ -87,7 +90,13 @@ if __name__ == '__main__':
 
     print('Total time taken by proposed technique:', time1/M)
     print('Total time taken by naive technique:', time2/M)
-    print('Error: %f' % np.sqrt(err/M))
+    avgdt = SIM_TIME/(avgdt/M)
+    print('Average Dt:', avgdt)
+    mean_error = np.log(np.sqrt(err/M))
+    # bound = np.sqrt(1 + np.log(1/avgdt)) * np.sqrt(avgdt)
+    bound = 0.5 * np.log((1 + np.log(1/avgdt))) + 0.5 * np.log(avgdt)
+    print('Log Error: %f, Log Bound: %f' % (mean_error, bound))
+    print('Log error <= O(sqrt(avgdt))', mean_error <= bound)
 
     # xs = [i[0] for i in vs]
     # ys = [i[1] for i in vs]
