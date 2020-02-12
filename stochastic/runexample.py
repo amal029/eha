@@ -67,9 +67,11 @@ if __name__ == '__main__':
     M = 10                    # The number of montecarlo runs
     SIM_TIME = 1.0
     toplot = np.array([])
+    timetaken = np.array([])
     dfile = (__file__.split('.')[1].split('/')[1])+'.csv'
+    dfile2 = (__file__.split('.')[1].split('/')[1])+'time.csv'
     # The arrays to hold the final result
-    for p in range(3, 4):
+    for p in range(8, 13):
         err = 0
         time1 = 0
         time2 = 0
@@ -100,7 +102,12 @@ if __name__ == '__main__':
         # Append to the array to plot it later
         toplot = np.append(toplot, [[avgdt, mean_error]])
         toplot = toplot.reshape(len(toplot)//2, 2)
+
+        timetaken = np.append(timetaken, [[time1/M, time2/M]])
+        timetaken = timetaken.reshape(len(timetaken)//2, 2)
     np.savetxt(dfile, toplot, header='Dt, Err', fmt='%+10.10f', delimiter=',')
+    np.savetxt(dfile2, timetaken, header='PT, NT', fmt='%+10.10f',
+               delimiter=',')
 
     # xs = [i[0] for i in vs]
     # ys = [i[1] for i in vs]
