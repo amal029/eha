@@ -4,6 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import operator as op
 from src.sdesolver import Solver
+import time
 
 if __name__ == '__main__':
     # np.random.seed(0)
@@ -60,27 +61,49 @@ if __name__ == '__main__':
     SB = np.array([1, 1])
     SB = SB.reshape(N, )
 
-    solver = Solver(T, Tops, A, B, S, SB, R=2**10, montecarlo=True)
-
     # Initial values
     ivals = [-5, 5]
-    vs, ts = solver.simulate(ivals, 1.0)
-    xs = [i[0] for i in vs]
-    ys = [i[1] for i in vs]
+
+    solver = Solver(T, Tops, A, B, S, SB, R=2**10, montecarlo=True)
+    M = 2                    # The number of montecarlo runs
+    fvs = np.array(0)
+    fnvs = np.array(0)
+    err = 0
+    time1 = 0
+    time2 = 0
+    # The arrays to hold the final result
+    for i in range(M):
+        print('Doing ', i)
+        st = time.time()
+        vs, ts = solver.simulate(ivals, 1.0)
+        time1 += (time.time() - st)
+        print('simulate done')
+        st = time.time()
+        nvs2, nts2 = solver.nsimulate(ivals)
+        time2 += (time.time() - st)
+        print('nsimulate done')
+        err += np.sum(np.square(nvs2[-1] - vs[-1]))
+        print('Total square error: %f' % err)
+
+    print('Total time taken by proposed technique:', time1/M)
+    print('Total time taken by naive technique:', time2/M)
+    print('Error: %f' % np.sqrt(err/M))
+
+    # xs = [i[0] for i in vs]
+    # ys = [i[1] for i in vs]
 
     # Plot the output
     # plt.plot(ts[2500:3200], xs[2500:3200])
     # plt.show()
     # plt.plot(ts[2500:3200], ys[2500:3200])
     # plt.show()
-    print(len(ts))
-    plt.plot(xs, ys)
-    plt.show()
+    # print(len(ts))
+    # plt.plot(xs, ys)
+    # plt.show()
 
     # TODO: Implement the same with same seed with ordinary EM
-    print(solver.path.shape, solver.dts.shape)
-    nvs2, nts2 = solver.nsimulate(ivals)
-    xs = [i[0] for i in nvs2]
-    ys = [i[1] for i in nvs2]
-    plt.plot(xs, ys)
-    plt.show()
+    # print(solver.path.shape, solver.dts.shape)
+    # xs = [i[0] for i in nvs2]
+    # ys = [i[1] for i in nvs2]
+    # plt.plot(xs, ys)
+    # plt.show()

@@ -248,7 +248,7 @@ class Solver(object):
                             else np.append(self.dts, np.array([dt]*len(dWt))))
                 self.path = (dWt*np.sqrt(dt) if self.path is None
                              else np.append(self.path, dWt*np.sqrt(dt)))
-            print(curr_time)
+            # print(curr_time)
             if curr_time >= simtime:
                 break
         return vs, ts
