@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import operator as op
 from src.sdesolver import Solver
 import time
@@ -64,39 +64,43 @@ if __name__ == '__main__':
     # Initial values
     ivals = [-5, 5]
 
-    M = 5                    # The number of montecarlo runs
-    fvs = np.array(0)
-    fnvs = np.array(0)
-    err = 0
-    time1 = 0
-    time2 = 0
-    avgdt = 0
+    M = 10                    # The number of montecarlo runs
     SIM_TIME = 1.0
+    toplot = np.array([])
+    dfile = (__file__.split('.')[1].split('/')[1])+'.csv'
     # The arrays to hold the final result
-    for i in range(M):
-        solver = Solver(T, Tops, A, B, S, SB, R=2**7, montecarlo=True)
-        print('Doing ', i)
-        st = time.time()
-        vs, ts = solver.simulate(ivals, SIM_TIME)
-        avgdt += len(ts)
-        time1 += (time.time() - st)
-        print('simulate done')
-        st = time.time()
-        nvs2, nts2 = solver.nsimulate(ivals)
-        time2 += (time.time() - st)
-        print('nsimulate done')
-        err += np.sum(np.square(nvs2[-1] - vs[-1]))
-        print('Total square error: %f' % err)
+    for p in range(3, 4):
+        err = 0
+        time1 = 0
+        time2 = 0
+        avgdt = 0
+        for i in range(M):
+            solver = Solver(T, Tops, A, B, S, SB, R=2**p, montecarlo=True)
+            print('Doing 2̂ᵖ=%d, M=%d' % (2**p, i))
+            st = time.time()
+            vs, ts = solver.simulate(ivals, SIM_TIME)
+            avgdt += len(ts)
+            time1 += (time.time() - st)
+            print('simulate done')
+            st = time.time()
+            nvs2, nts2 = solver.nsimulate(ivals)
+            time2 += (time.time() - st)
+            print('nsimulate done')
+            err += np.sum(np.square(nvs2[-1] - vs[-1]))
+            print('Total square error: %f' % err)
 
-    print('Total time taken by proposed technique:', time1/M)
-    print('Total time taken by naive technique:', time2/M)
-    avgdt = SIM_TIME/(avgdt/M)
-    print('Average Dt:', avgdt)
-    mean_error = np.log(np.sqrt(err/M))
-    # bound = np.sqrt(1 + np.log(1/avgdt)) * np.sqrt(avgdt)
-    bound = 0.5 * np.log((1 + np.log(1/avgdt))) + 0.5 * np.log(avgdt)
-    print('Log Error: %f, Log Bound: %f' % (mean_error, bound))
-    print('Log error <= O(sqrt(avgdt))', mean_error <= bound)
+        print('Total time taken by proposed technique:', time1/M)
+        print('Total time taken by naive technique:', time2/M)
+        avgdt = SIM_TIME/(avgdt/M)
+        print('Average Dt:', avgdt)
+        mean_error = np.log(np.sqrt(err/M))
+        bound = 0.5 * np.log((1 + np.log(1/avgdt))) + 0.5 * np.log(avgdt)
+        print('Log Error: %f, Log Bound: %f' % (mean_error, bound))
+        print('Log error <= Bound', mean_error <= bound)
+        # Append to the array to plot it later
+        toplot = np.append(toplot, [[avgdt, mean_error]])
+        toplot = toplot.reshape(len(toplot)//2, 2)
+    np.savetxt(dfile, toplot, header='Dt, Err', fmt='%+10.10f', delimiter=',')
 
     # xs = [i[0] for i in vs]
     # ys = [i[1] for i in vs]
