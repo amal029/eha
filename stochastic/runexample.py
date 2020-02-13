@@ -64,14 +64,14 @@ if __name__ == '__main__':
     # Initial values
     ivals = [-5, 5]
 
-    M = 10                    # The number of montecarlo runs
+    M = 100                    # The number of montecarlo runs
     SIM_TIME = 1.0
     toplot = np.array([])
     timetaken = np.array([])
     dfile = (__file__.split('.')[1].split('/')[1])+'.csv'
     dfile2 = (__file__.split('.')[1].split('/')[1])+'time.csv'
     # The arrays to hold the final result
-    for p in range(8, 13):
+    for p in range(4, 13):
         err = 0
         time1 = 0
         time2 = 0

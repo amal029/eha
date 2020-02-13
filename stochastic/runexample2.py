@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
+import time
 import operator as op
 from src.sdesolver import Solver
 
 if __name__ == '__main__':
     # np.random.seed(100)         # 100 works
-    # Example dx(t) = -5*sgn(x(t)) + x(t) dw(t), x(0) = -10
+    # Example dx(t) = -5*sgn(x(t)) + 2*dw(t), x(0) = 10
 
     L = 3
     N = 1
@@ -28,27 +29,56 @@ if __name__ == '__main__':
     B = B.reshape(L, N)
 
     # This is the brownian motion matrix
-    S = np.array([[1]])
+    S = np.array([[0]])
     S = S.reshape(N, N)
 
     # This is the SB matrix for brownian motion
-    SB = np.array([[0]])
+    SB = np.array([[2]])
     SB = SB.reshape(N, )
 
-    ET = 1.0
-    R = 2**11
-    solver = Solver(T, Tops, A, B, S, SB, R=R, montecarlo=True)
     ivals = [10]
-    vs, ts = solver.simulate(ivals, ET)
 
-    # Plot the output
-    print(len(ts))
-    plt.plot(ts, vs)
-    plt.show()
+    M = 100                    # The number of montecarlo runs
+    SIM_TIME = 1.0
+    toplot = np.array([])
+    timetaken = np.array([])
+    dfile = (__file__.split('.')[1].split('/')[1])+'.csv'
+    dfile2 = (__file__.split('.')[1].split('/')[1])+'time.csv'
+    # The arrays to hold the final result
+    for p in range(4, 13):
+        err = 0
+        time1 = 0
+        time2 = 0
+        avgdt = 0
+        for i in range(M):
+            solver = Solver(T, Tops, A, B, S, SB, R=2**p, montecarlo=True)
+            print('Doing 2̂ᵖ=%d, M=%d' % (2**p, i))
+            st = time.time()
+            vs, ts = solver.simulate(ivals, SIM_TIME)
+            avgdt += len(ts)
+            time1 += (time.time() - st)
+            print('simulate done')
+            st = time.time()
+            nvs2, nts2 = solver.nsimulate(ivals)
+            time2 += (time.time() - st)
+            print('nsimulate done')
+            err += np.sum(np.square(nvs2[-1] - vs[-1]))
+            print('Total square error: %f' % err)
 
-    # The naive way
-    # Simulate using EM
-    print(solver.path.shape, solver.dts.shape)
-    nvs2, nts2 = solver.nsimulate(ivals)
-    plt.plot(nts2, nvs2)
-    plt.show()
+        print('Total time taken by proposed technique:', time1/M)
+        print('Total time taken by naive technique:', time2/M)
+        avgdt = SIM_TIME/(avgdt/M)
+        print('Average Dt:', avgdt)
+        mean_error = np.log(np.sqrt(err/M))
+        bound = 0.5 * np.log((1 + np.log(1/avgdt))) + 0.5 * np.log(avgdt)
+        print('Log Error: %f, Log Bound: %f' % (mean_error, bound))
+        print('Log error <= Bound', mean_error <= bound)
+        # Append to the array to plot it later
+        toplot = np.append(toplot, [[avgdt, mean_error]])
+        toplot = toplot.reshape(len(toplot)//2, 2)
+
+        timetaken = np.append(timetaken, [[time1/M, time2/M]])
+        timetaken = timetaken.reshape(len(timetaken)//2, 2)
+    np.savetxt(dfile, toplot, header='Dt, Err', fmt='%+10.10f', delimiter=',')
+    np.savetxt(dfile2, timetaken, header='PT, NT', fmt='%+10.10f',
+               delimiter=',')
