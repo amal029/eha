@@ -62,12 +62,13 @@ if __name__ == '__main__':
 
     for ival in [[-5, 5], [5, 5], [-5, -5], [5, -5]]:
         ivals = ival
-        M = 100                    # The number of montecarlo runs
+        M = 10                    # The number of montecarlo runs
         SIM_TIME = 1.0
         toplot = np.array([])
         timetaken = np.array([])
         name = ('/tmp/results/'+__file__.split('.')[1].split('/')[1])+'inward'
         dfile = name+'_'+str(ival)+'.csv'
+        print(dfile)
         dfile2 = name+'_'+str(ival)+'time.csv'
         # The arrays to hold the final result
         for p in range(8, 13):
