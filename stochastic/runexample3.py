@@ -7,8 +7,7 @@ import operator as op
 from src.sdesolver import Solver
 
 if __name__ == '__main__':
-    # np.random.seed(100)         # 100 works
-    # Example dx(t) = -5*sgn(x(t)) + 2*dw(t)
+    # Example dx(t) = 5*sgn(x(t)) + 2*dw(t) outward
 
     L = 3
     N = 1
@@ -25,7 +24,7 @@ if __name__ == '__main__':
     A = A.reshape(L, N, N)
 
     # This is the B matrix in the system equation
-    B = np.array([[5], [-5], [0]])
+    B = np.array([[-5], [5], [0]])
     B = B.reshape(L, N)
 
     # This is the brownian motion matrix
@@ -44,7 +43,7 @@ if __name__ == '__main__':
         SIM_TIME = 1.0
         toplot = np.array([])
         timetaken = np.array([])
-        name = ('/tmp/results/'+__file__.split('.')[1].split('/')[1])+'inward'
+        name = ('/tmp/results/'+__file__.split('.')[1].split('/')[1])+'outward'
         dfile = name+'_'+str(ival)+'.csv'
         dfile2 = name+'_'+str(ival)+'time.csv'
         # The arrays to hold the final result
@@ -80,14 +79,14 @@ if __name__ == '__main__':
             print('Average Dt:', avgdt)
 
             mean_error = np.log(np.sqrt(err/M))
-            bound = 0.5 * np.log(avgdt)
             # bound = 0.5 * np.log((1 + np.log(1/avgdt))) + 0.5 * np.log(avgdt)
+            bound = 0.5 * np.log(avgdt)
             print('Log Error: %f, Log Bound: %f' % (mean_error, bound))
             # print('O(bound):', 0.5*np.log(avgdt))
             print('Log error <= Bound', mean_error <= bound)
 
             # Append to the array to plot it later
-            toplot = np.append(toplot, [[avgdt, np.sqrt(err/M), avgndt]])
+            toplot = np.append(toplot, [[avgdt, (np.sqrt(err/M)), avgndt]])
             toplot = toplot.reshape(len(toplot)//3, 3)
 
             timetaken = np.append(timetaken, [[time1/M, time2/M]])

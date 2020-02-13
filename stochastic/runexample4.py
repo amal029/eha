@@ -7,8 +7,7 @@ import operator as op
 from src.sdesolver import Solver
 
 if __name__ == '__main__':
-    # np.random.seed(100)         # 100 works
-    # Example dx(t) = -5*sgn(x(t)) + 2*dw(t)
+    # Example dx(t) = -5*sgn(x(t)) + (x + 1)*dw(t) inward
 
     L = 3
     N = 1
@@ -29,11 +28,11 @@ if __name__ == '__main__':
     B = B.reshape(L, N)
 
     # This is the brownian motion matrix
-    S = np.array([[0]])
+    S = np.array([[1]])
     S = S.reshape(N, N)
 
     # This is the SB matrix for brownian motion
-    SB = np.array([[2]])
+    SB = np.array([[1]])
     SB = SB.reshape(N, )
 
     # ivals = [10]
@@ -80,14 +79,14 @@ if __name__ == '__main__':
             print('Average Dt:', avgdt)
 
             mean_error = np.log(np.sqrt(err/M))
-            bound = 0.5 * np.log(avgdt)
             # bound = 0.5 * np.log((1 + np.log(1/avgdt))) + 0.5 * np.log(avgdt)
+            bound = 0.5 * np.log(avgdt)
             print('Log Error: %f, Log Bound: %f' % (mean_error, bound))
             # print('O(bound):', 0.5*np.log(avgdt))
             print('Log error <= Bound', mean_error <= bound)
 
             # Append to the array to plot it later
-            toplot = np.append(toplot, [[avgdt, np.sqrt(err/M), avgndt]])
+            toplot = np.append(toplot, [[avgdt, (np.sqrt(err/M)), avgndt]])
             toplot = toplot.reshape(len(toplot)//3, 3)
 
             timetaken = np.append(timetaken, [[time1/M, time2/M]])
