@@ -2,12 +2,11 @@
 
 import numpy as np
 import mpmath as mp
-from numba import njit
 
 
 class Solver(object):
     def __init__(self, T=None, Tops=None, A=None, B=None, S=None, SB=None,
-                 R=4, montecarlo=False):
+                 R=4, C=0.1, montecarlo=False):
         assert R > 1
         assert R % 2 == 0
         self.R = R
@@ -44,6 +43,9 @@ class Solver(object):
         self.montecarlo = montecarlo
         self.path = None
         self.dts = None
+
+        # The constant for tolerance
+        self.C = C
 
     @staticmethod
     def _compute_step(fxt, gxt, dq, R, dWt):
@@ -156,7 +158,7 @@ class Solver(object):
             xtemph = xtemph + (Dt/2 * Fxts) + part
 
             dt = float(dt)
-            tol = np.sqrt(1 + np.log(1/dt))*np.sqrt(dt)
+            tol = self.C * np.sqrt(1 + np.log(1/dt))*np.sqrt(dt)
 
             # XXX: Here we break it, if error is met,
             # else we half the dq
