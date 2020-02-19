@@ -116,7 +116,8 @@ class Solver(object):
             loc += 1
         return loc, left, right
 
-    def _get_step(self, x, index, loc, curr_fxt, curr_gxt, dq, dWt, R):
+    def _get_step(self, x, index, loc, curr_fxt, curr_gxt, dq, dWt, R,
+                  epsilon=1e-6):
         """The iterative process that gets the time step that satisfies this
         scalar continuous variable
 
@@ -158,12 +159,13 @@ class Solver(object):
             xtemph = xtemph + (Dt/2 * Fxts) + part
 
             dt = float(dt)
-            tol = self.C * np.sqrt(1 + np.log(1/dt))*np.sqrt(dt)
-
-            # XXX: Here we break it, if error is met,
-            # else we half the dq
-            err = np.sqrt(np.sum(np.square(xtemph - xtemp)))
-            if err <= tol:
+            # tol = self.C * np.sqrt(1 + np.log(1/dt))*np.sqrt(dt)
+            # err = np.sqrt(np.sum(np.square(xtemph - xtemp)))
+            err = (np.sum(np.abs((xtemp - xtemph)/(xtemph + epsilon)))
+                   <= self.C)   # XXX: This gives the best results.
+            # err = np.all(np.abs(xtemp - xtemph) <=
+            #              (self.C * np.abs(x)) + epsilon)
+            if err:
                 break
             else:
                 # Can we do better than this?
@@ -250,7 +252,7 @@ class Solver(object):
                             else np.append(self.dts, np.array([dt]*len(dWt))))
                 self.path = (dWt*np.sqrt(dt) if self.path is None
                              else np.append(self.path, dWt*np.sqrt(dt)))
-            print(curr_time)
+            # print(curr_time)
             if curr_time >= simtime:
                 break
         return vs, ts

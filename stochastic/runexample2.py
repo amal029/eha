@@ -38,17 +38,18 @@ if __name__ == '__main__':
 
     # ivals = [10]
 
-    for c in [1e-2, 1e-3, 1e-4]:      # The tolerance constant
+    for c in [1e-2, 1e-3, 1e-4, 1e-5]:      # The tolerance constant
         ivals = [10]            # Just one initial value
         M = 20                    # The number of montecarlo runs
         SIM_TIME = 1.0
         toplot = np.array([])
         timetaken = np.array([])
-        name = ('/tmp/results/'+__file__.split('.')[1].split('/')[1])+'inward'
+        name = __file__.split('.')[1].split('/')[1]
+        name = ('/tmp/results/'+name)+'newinward'
         dfile = name+'_'+str(c)+'.csv'
         dfile2 = name+'_'+str(c)+'time.csv'
         # The arrays to hold the final result
-        for p in range(8, 11):
+        for p in range(2, 5):
             err = 0
             aerr = 0
             time1 = 0
@@ -82,13 +83,13 @@ if __name__ == '__main__':
             avgdt = SIM_TIME/(avgdt/M)
             print('Average Dt:', avgdt)
 
-            mean_error = np.log(np.sqrt(err/M))
-            aerr = aerr/M
-            bound = 0.5 * np.log(avgdt)
+            # mean_error = np.log(np.sqrt(err/M))
+            # aerr = aerr/M
+            # bound = 0.5 * np.log(avgdt)
             # bound = 0.5 * np.log((1 + np.log(1/avgdt))) + 0.5 * np.log(avgdt)
-            print('Log Error: %f, Log Bound: %f' % (mean_error, bound))
+            # print('Log Error: %f, Log Bound: %f' % (mean_error, bound))
             # print('O(bound):', 0.5*np.log(avgdt))
-            print('Log error <= Bound', mean_error <= bound)
+            # print('Log error <= Bound', mean_error <= bound)
 
             # Append to the array to plot it later
             toplot = np.append(toplot, [[avgdt, np.sqrt(err/M), (aerr/M),
