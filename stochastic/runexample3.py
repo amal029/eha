@@ -37,17 +37,18 @@ if __name__ == '__main__':
 
     # ivals = [10]
 
-    for c in [1e-2, 1e-3, 1e-4]:      # The tolerance constant
+    for c in [1e-2, 1e-3, 1e-4, 1e-5]:      # The tolerance constant
         ivals = [10]            # Just one initial value
-        M = 20                    # The number of montecarlo runs
+        M = 1                    # The number of montecarlo runs
         SIM_TIME = 1.0
         toplot = np.array([])
         timetaken = np.array([])
-        name = ('/tmp/results/'+__file__.split('.')[1].split('/')[1])+'outward'
+        name = __file__.split('.')[1].split('/')[1]
+        name = ('/tmp/results/'+name)+'newoutward'
         dfile = name+'_'+str(c)+'.csv'
         dfile2 = name+'_'+str(c)+'time.csv'
         # The arrays to hold the final result
-        for p in range(8, 11):
+        for p in range(2, 5):
             err = 0
             aerr = 0
             time1 = 0
@@ -81,13 +82,13 @@ if __name__ == '__main__':
             avgdt = SIM_TIME/(avgdt/M)
             print('Average Dt:', avgdt)
 
-            mean_error = np.log(np.sqrt(err/M))
-            aerr = aerr/M
-            bound = 0.5 * np.log(avgdt)
+            # mean_error = np.log(np.sqrt(err/M))
+            # aerr = aerr/M
+            # bound = 0.5 * np.log(avgdt)
             # bound = 0.5 * np.log((1 + np.log(1/avgdt))) + 0.5 * np.log(avgdt)
-            print('Log Error: %f, Log Bound: %f' % (mean_error, bound))
+            # print('Log Error: %f, Log Bound: %f' % (mean_error, bound))
             # print('O(bound):', 0.5*np.log(avgdt))
-            print('Log error <= Bound', mean_error <= bound)
+            # print('Log error <= Bound', mean_error <= bound)
 
             # Append to the array to plot it later
             toplot = np.append(toplot, [[avgdt, np.sqrt(err/M), (aerr/M),
@@ -100,62 +101,3 @@ if __name__ == '__main__':
                    delimiter=',')
         np.savetxt(dfile2, timetaken, header='PT, NT', fmt='%+10.10f',
                    delimiter=',')
-
-    # for ival in [10, 5, -5, -10]:
-    #     ivals = [ival]
-    #     M = 100                    # The number of montecarlo runs
-    #     SIM_TIME = 1.0
-    #     toplot = np.array([])
-    #     timetaken = np.array([])
-    #     name = ('/tmp/results/'+__file__.split('.')[1].split('/')[1])+'outward'
-    #     dfile = name+'_'+str(ival)+'.csv'
-    #     dfile2 = name+'_'+str(ival)+'time.csv'
-    #     # The arrays to hold the final result
-    #     for p in range(8, 13):
-    #         err = 0
-    #         time1 = 0
-    #         time2 = 0
-    #         avgdt = 0
-    #         avgndt = 0
-    #         for i in range(M):
-    #             solver = Solver(T, Tops, A, B, S, SB, R=2**p, montecarlo=True)
-    #             print('Doing 2̂ᵖ=%d, M=%d' % (2**p, i))
-    #             st = time.time()
-    #             vs, ts = solver.simulate(ivals, SIM_TIME)
-    #             avgdt += len(ts)
-    #             avgndt += len(solver.dts)
-    #             time1 += (time.time() - st)
-    #             print('simulate done')
-    #             st = time.time()
-    #             nvs2, nts2 = solver.nsimulate(ivals)
-    #             time2 += (time.time() - st)
-    #             print('nsimulate done')
-    #             err += np.sum(np.square(nvs2[-1] - vs[-1]))
-    #             print('Total square error: %f' % err)
-
-    #         print('Total time taken by proposed technique:', time1/M)
-    #         print('Total time taken by naive technique:', time2/M)
-
-    #         avgndt = SIM_TIME/(avgndt/M)
-    #         print('Average dt:', avgndt)
-
-    #         avgdt = SIM_TIME/(avgdt/M)
-    #         print('Average Dt:', avgdt)
-
-    #         mean_error = np.log(np.sqrt(err/M))
-    #         # bound = 0.5 * np.log((1 + np.log(1/avgdt))) + 0.5 * np.log(avgdt)
-    #         bound = 0.5 * np.log(avgdt)
-    #         print('Log Error: %f, Log Bound: %f' % (mean_error, bound))
-    #         # print('O(bound):', 0.5*np.log(avgdt))
-    #         print('Log error <= Bound', mean_error <= bound)
-
-    #         # Append to the array to plot it later
-    #         toplot = np.append(toplot, [[avgdt, (np.sqrt(err/M)), avgndt]])
-    #         toplot = toplot.reshape(len(toplot)//3, 3)
-
-    #         timetaken = np.append(timetaken, [[time1/M, time2/M]])
-    #         timetaken = timetaken.reshape(len(timetaken)//2, 2)
-    #     np.savetxt(dfile, toplot, header='Dt, Err', fmt='%+10.10f',
-    #                delimiter=',')
-    #     np.savetxt(dfile2, timetaken, header='PT, NT', fmt='%+10.10f',
-    #                delimiter=',')
