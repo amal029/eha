@@ -32,17 +32,18 @@ class Solver(object):
         # print(B[0])
 
         # Now check that S is of size N x N
-        assert S.shape == (N, N)
+        assert S.shape == (L, N, N)
         self.S = S
 
         # Now check that SB is of size N x 1
-        assert SB.shape == (N, )
+        assert SB.shape == (L, N)
         self.SB = SB
 
         # The random path for montecarlo comparison
         self.montecarlo = montecarlo
         self.path = None
         self.dts = None
+        self.locs = None
 
         # The constant for tolerance
         self.C = C
@@ -138,7 +139,7 @@ class Solver(object):
             # EM
             # print(xtemp)
             Fxts = (np.dot(self.A[loc], xtemp) + self.B[loc]) * Dt
-            Gxts = (np.dot(self.S, xtemp) + self.SB) * Winc
+            Gxts = (np.dot(self.S[loc], xtemp) + self.SB[loc]) * Winc
             # print(Fxts + Gxts)
             xtemp = xtemp + Fxts + Gxts
             # xtemp += np.array([(Dt * curr_fxt) + (curr_gxt * Winc)]*len(x))
@@ -148,13 +149,13 @@ class Solver(object):
             # Try taking half steps and see what happens.
             # The first step until R/2
             Fxts = np.dot(self.A[loc], xtemph) + self.B[loc]
-            Gxts = np.dot(self.S, xtemph) + self.SB
+            Gxts = np.dot(self.S[loc], xtemph) + self.SB[loc]
             part = Gxts * np.sqrt(dt) * sum(dWt[0:R//2])
             xtemph = xtemph + (Dt/2 * Fxts) + part
 
             # The second step until R
             Fxts = np.dot(self.A[loc], xtemph) + self.B[loc]
-            Gxts = np.dot(self.S, xtemph) + self.SB
+            Gxts = np.dot(self.S[loc], xtemph) + self.SB[loc]
             part = Gxts * np.sqrt(dt) * sum(dWt[R//2:R])
             xtemph = xtemph + (Dt/2 * Fxts) + part
 
@@ -197,7 +198,7 @@ class Solver(object):
 
             # First get the current value of the slope in this location
             Fxts = np.dot(self.A[loc], cvs) + self.B[loc]
-            Gxts = np.dot(self.S, cvs) + self.SB
+            Gxts = np.dot(self.S[loc], cvs) + self.SB[loc]
 
             # Create dWt
             dWt = np.random.randn(self.R)
@@ -252,6 +253,9 @@ class Solver(object):
                             else np.append(self.dts, np.array([dt]*len(dWt))))
                 self.path = (dWt*np.sqrt(dt) if self.path is None
                              else np.append(self.path, dWt*np.sqrt(dt)))
+                self.locs = (np.array([loc]*len(dWt)) if self.locs is None
+                             else np.append(self.locs,
+                                            np.array([loc]*len(dWt))))
             # print(curr_time)
             if curr_time >= simtime:
                 break
@@ -266,13 +270,11 @@ class Solver(object):
         curr_time = 0
         vs = [values]
         ts = [curr_time]
-        for dt, dwt in zip(self.dts, self.path):
+        for dt, dwt, loc in zip(self.dts, self.path, self.locs):
             cvs = vs[-1].copy()
-            # First get the location
-            loc, _, _ = self.getloc(cvs)
             # Get the current value of the slope in this location
             Fxts = np.dot(self.A[loc], cvs) + self.B[loc]
-            Gxts = np.dot(self.S, cvs) + self.SB
+            Gxts = np.dot(self.S[loc], cvs) + self.SB[loc]
 
             # Now just compute the Euler-Maruyama equation
             cvs = cvs + (Fxts * dt) + (Gxts * dwt)

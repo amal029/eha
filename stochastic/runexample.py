@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import numpy as np
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import operator as op
 from src.sdesolver import Solver
 import time
@@ -54,25 +54,39 @@ if __name__ == '__main__':
     B = B.reshape(L, N)
     # print(B)
 
-    S = np.array([0, 0, 0, 0])
-    S = S.reshape(N, N)
+    S = np.array([0]*(L*N*N))
+    S = S.reshape(L, N, N)
 
-    SB = np.array([1, 1])
-    SB = SB.reshape(N, )
+    sbalpha = 1                   # This is a parameter
+    sbbeta = -1
+    # Now comes the control input of size B
+    fx1 = (lambda x: -sbalpha*np.sign(x-5))
+    fx2 = (lambda x: sbbeta*np.sign(x))
+    SB = np.array([[fx1(5), fx2(0)],
+                  [fx1(5), fx2(1)],
+                  [fx1(5), fx2(-1)],
+                  [fx1(-5), fx2(0)],
+                  [fx1(6), fx2(0)],
+                  [fx1(-4), fx2(-1)],
+                  [fx1(-4), fx2(1)],
+                  [fx1(6), fx2(-1)],
+                  [fx1(6), fx2(1)]])
+    SB = B.reshape(L, N)
 
-    for c in [1e-2, 1e-3, 1e-4, 1e-5]:      # The tolerance constant
-        ivals = [-5, 5]
+    for c in [1e-4]:      # The tolerance constant
+        # ivals = [5, 1]
+        ivals = [-0.5, 5.4]
         M = 1                    # The number of montecarlo runs
         SIM_TIME = 1.0
         toplot = np.array([])
         timetaken = np.array([])
-        name = __file__.split('.')[1].split('/')[1]
-        name = '/tmp/results/'+name+'new'
-        dfile = name+'_'+str(c)+'.csv'
-        dfile2 = name+'_'+str(c)+'time.csv'
-        print(dfile, dfile2)
+        # name = __file__.split('.')[1].split('/')[1]
+        # name = '/tmp/results/'+name+'new'
+        # dfile = name+'_'+str(c)+'.csv'
+        # dfile2 = name+'_'+str(c)+'time.csv'
+        # print(dfile, dfile2)
         # The arrays to hold the final result
-        for p in range(2, 5):
+        for p in range(3, 4):
             err = 0
             aerr = 0
             time1 = 0
@@ -121,13 +135,13 @@ if __name__ == '__main__':
 
             timetaken = np.append(timetaken, [[time1/M, time2/M]])
             timetaken = timetaken.reshape(len(timetaken)//2, 2)
-        np.savetxt(dfile, toplot, header='Dt, RMSE, MAPE, dt', fmt='%+10.10f',
-                   delimiter=',')
-        np.savetxt(dfile2, timetaken, header='PT, NT', fmt='%+10.10f',
-                   delimiter=',')
+        # np.savetxt(dfile, toplot, header='Dt, RMSE, MAPE, dt',
+        # fmt='%+10.10f', delimiter=',')
+        # np.savetxt(dfile2, timetaken, header='PT, NT', fmt='%+10.10f',
+        #            delimiter=',')
 
-    # xs = [i[0] for i in vs]
-    # ys = [i[1] for i in vs]
+    xs = [i[0] for i in vs]
+    ys = [i[1] for i in vs]
 
     # Plot the output
     # plt.plot(ts[2500:3200], xs[2500:3200])
@@ -140,7 +154,8 @@ if __name__ == '__main__':
 
     # TODO: Implement the same with same seed with ordinary EM
     # print(solver.path.shape, solver.dts.shape)
-    # xs = [i[0] for i in nvs2]
-    # ys = [i[1] for i in nvs2]
-    # plt.plot(xs, ys)
-    # plt.show()
+    plt.plot(xs, ys, marker='1')
+    xs = [i[0] for i in nvs2]
+    ys = [i[1] for i in nvs2]
+    plt.plot(xs, ys)
+    plt.show()
