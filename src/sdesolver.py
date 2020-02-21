@@ -198,10 +198,10 @@ class Solver(object):
             Gxts = np.dot(self.S[loc], cvs) + self.SB[loc]
 
             # System matrix does not change.
-            condf = all([i != 0 for i in Fxts])
+            condf = any([i != 0 for i in Fxts])
 
             # Browninan does not change.
-            condg = all([i != 0 for i in Gxts])
+            condg = any([i != 0 for i in Gxts])
 
             # Create dWt
             dWt = np.random.randn(self.R)
