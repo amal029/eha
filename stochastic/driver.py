@@ -35,7 +35,7 @@ if __name__ == '__main__':
     S = S.reshape(L, N, N)
 
     # This is the SB matrix for brownian motion
-    SB = np.array([1]*(L*N))
+    SB = np.array([[1], [1], [0]])
     SB = SB.reshape(L, N)
 
     # ivals = [10]

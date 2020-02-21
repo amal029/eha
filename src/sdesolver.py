@@ -6,7 +6,7 @@ import mpmath as mp
 
 class Solver(object):
     def __init__(self, T=None, Tops=None, A=None, B=None, S=None, SB=None,
-                 R=4, C=0.1, gstep=1e-7, montecarlo=False):
+                 R=4, C=0.1, gstep=1/2**14, montecarlo=False):
         assert R > 1
         assert R % 2 == 0
         self.R = R
@@ -265,7 +265,7 @@ class Solver(object):
                 self.locs = (np.array([loc]*len(dWt)) if self.locs is None
                              else np.append(self.locs,
                                             np.array([loc]*len(dWt))))
-            print(curr_time)
+            # print(curr_time)
             if curr_time >= simtime:
                 break
         return vs, ts
