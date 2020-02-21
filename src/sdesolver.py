@@ -181,19 +181,6 @@ class Solver(object):
         while(True):
             cvs = vs[len(vs)-1].copy()  # The current values
             # Step-1 check in what location are the current values in?
-            # loc = 0
-            # while loc < self.L:
-            #     left = self.T[loc][0]
-            #     right = self.T[loc][1]
-            #     lop = self.Tops[loc][0]
-            #     rop = self.Tops[loc][1]
-            #     # Now check if cvs are within this range?
-            #     zl = [i[0](*i[1:]) for i in zip(lop, cvs, left)]
-            #     zr = [i[0](*i[1:]) for i in zip(rop, cvs, right)]
-            #     if all(zl) and all(zr):
-            #         break
-            #     loc += 1
-            # print('We are in location: %d' % (loc))
             loc, left, right = self.getloc(cvs)
 
             # First get the current value of the slope in this location

@@ -8,7 +8,7 @@ from src.sdesolver import Solver
 
 # FIXME: Check why it goes above the zero-crossing sometimes.
 if __name__ == '__main__':
-    # np.random.seed(0)         # same as simulink
+    np.random.seed(100)         # same as simulink
     # Example dx(t) = -*sgn(x(t)-pi/2) + dw(t)
 
     L = 3
@@ -51,7 +51,7 @@ if __name__ == '__main__':
         # dfile = name+'_'+str(c)+'.csv'
         # dfile2 = name+'_'+str(c)+'time.csv'
         # The arrays to hold the final result
-        for p in range(9, 10):
+        for p in range(4, 5):
             err = 0
             aerr = 0
             time1 = 0
