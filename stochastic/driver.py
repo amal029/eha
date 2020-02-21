@@ -6,8 +6,9 @@ import time
 import operator as op
 from src.sdesolver import Solver
 
+# FIXME: Check why it goes above the zero-crossing sometimes.
 if __name__ == '__main__':
-    np.random.seed(0)         # same as simulink
+    # np.random.seed(0)         # same as simulink
     # Example dx(t) = -*sgn(x(t)-pi/2) + dw(t)
 
     L = 3

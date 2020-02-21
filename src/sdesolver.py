@@ -118,7 +118,7 @@ class Solver(object):
         return loc, left, right
 
     def _get_step(self, x, index, loc, curr_fxt, curr_gxt, dq, dWt, R,
-                  epsilon=1e-6):
+                  epsilon=1e-14):
         """The iterative process that gets the time step that satisfies this
         scalar continuous variable
 
@@ -162,10 +162,10 @@ class Solver(object):
             dt = float(dt)
             # tol = self.C * np.sqrt(1 + np.log(1/dt))*np.sqrt(dt)
             # err = np.sqrt(np.sum(np.square(xtemph - xtemp)))
-            err = (np.sum(np.abs((xtemp - xtemph)/(xtemph + epsilon)))
-                   <= self.C)   # XXX: This gives the best results.
-            # err = np.all(np.abs(xtemp - xtemph) <=
-            #              (self.C * np.abs(x)) + epsilon)
+            # err = (np.sum(np.abs((xtemp - xtemph)/(xtemph + epsilon)))
+            #        <= self.C)   # XXX: This gives the best results.
+            err = np.all(np.abs(xtemp - xtemph) <=
+                         (self.C * np.abs(x)) + epsilon)
             if err:
                 break
             else:
