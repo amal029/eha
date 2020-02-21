@@ -140,8 +140,8 @@ if __name__ == '__main__':
         # np.savetxt(dfile2, timetaken, header='PT, NT', fmt='%+10.10f',
         #            delimiter=',')
 
-    xs = [i[0] for i in vs]
-    ys = [i[1] for i in vs]
+    # xs = [i[0] for i in vs]
+    # ys = [i[1] for i in vs]
 
     # Plot the output
     # plt.plot(ts[2500:3200], xs[2500:3200])
@@ -154,8 +154,9 @@ if __name__ == '__main__':
 
     # TODO: Implement the same with same seed with ordinary EM
     # print(solver.path.shape, solver.dts.shape)
-    plt.plot(xs, ys, marker='1')
+    # plt.plot(xs, ys, marker='1')
     xs = [i[0] for i in nvs2]
     ys = [i[1] for i in nvs2]
+    plt.style.use('ggplot')
     plt.plot(xs, ys)
     plt.show()

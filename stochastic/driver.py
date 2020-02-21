@@ -106,8 +106,9 @@ if __name__ == '__main__':
         #            delimiter=',')
 
         # print(ts, vs)
+        plt.style.use('ggplot')
         plt.plot(nts2, nvs2)
         # plt.plot(ts, vs, marker='1')
         # plt.yticks(np.arange(0.5, 1.6, step=0.1))
-        plt.grid(which='both')
+        # plt.grid(which='both')
         plt.show()

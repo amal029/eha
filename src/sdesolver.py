@@ -57,12 +57,11 @@ class Solver(object):
         # This is the max dq we can take
         # FIXME: IMP
         # This can be negative, then what happens?
-        dq2 = gn**2 / (4 * fxt * R)
-        dq2 = abs(dq2)
+        dq2 = abs(gn**2 / (4 * fxt * R))
         # odq = dq
         dq = dq if dq <= dq2 else dq2
         # print('Given dq: %f, chosen dq: %f' % (odq, dq))
-        # First coefficient
+        # first coefficient
         a = R * (fxt**2)
         # Second coefficient
         b = ((2 * fxt * dq * R) - (gn**2))
@@ -73,7 +72,7 @@ class Solver(object):
         # There can be only one root.
         f = (lambda x: a*(x**2) + (b*x) + c)
         try:
-            root1 = mp.findroot(f, 0)
+            root1 = mp.findroot(f, 0, tol=1e-14, solver='mnewton')
             # Debug
             # print('root1:', root1)
             root1 = root1 if root1 >= 0 else None
@@ -85,7 +84,7 @@ class Solver(object):
         b = ((2 * fxt * dq * R) + (gn**2))
         f = (lambda x: a*(x**2) - (b*x) + c)
         try:
-            root2 = mp.findroot(f, 0)
+            root2 = mp.findroot(f, 0, tol=1e-14, solver='mnewton')
             # print('root2:', root2)
             root2 = root2 if root2 >= 0 else None
         except ValueError:
@@ -158,17 +157,23 @@ class Solver(object):
             Gxts = np.dot(self.S[loc], xtemph) + self.SB[loc]
             part = Gxts * np.sqrt(dt) * sum(dWt[R//2:R])
             xtemph = xtemph + (Dt/2 * Fxts) + part
+            # for dwt in dWt:
+            #     Fxts = np.dot(self.A[loc], xtemph) + self.B[loc]
+            #     Gxts = np.dot(self.S[loc], xtemph) + self.SB[loc]
+            #     part = Gxts * np.sqrt(dt) * dwt
+            #     xtemph = xtemph + (dt * Fxts) + part
 
             dt = float(dt)
             # tol = self.C * np.sqrt(1 + np.log(1/dt))*np.sqrt(dt)
             # err = np.sqrt(np.sum(np.square(xtemph - xtemp)))
-            # err = (np.sum(np.abs((xtemp - xtemph)/(xtemph + epsilon)))
-            #        <= self.C)   # XXX: This gives the best results.
-            err = np.all(np.abs(xtemp - xtemph) <=
-                         (self.C * np.abs(x)) + epsilon)
+            err = (np.sum(np.abs((xtemp - xtemph)/(xtemph + epsilon)))
+                   <= self.C)   # XXX: This gives the best results.
+            # err = np.all(np.abs(xtemp - xtemph) <=
+            #              (self.C * np.abs(x)) + epsilon)
             if err:
                 break
             else:
+                # print('reducing dq')
                 # Can we do better than this?
                 dq = dq/2       # Half it and try again
         return dt
