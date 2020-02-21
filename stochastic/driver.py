@@ -8,7 +8,7 @@ from src.sdesolver import Solver
 
 # FIXME: Check why it goes above the zero-crossing sometimes.
 if __name__ == '__main__':
-    np.random.seed(100)         # same as simulink
+    # np.random.seed(0)         # same as simulink
     # Example dx(t) = -*sgn(x(t)-pi/2) + dw(t)
 
     L = 3
@@ -43,7 +43,7 @@ if __name__ == '__main__':
     for c in [1e-7]:      # The tolerance constant
         ivals = [0.5]            # Just one initial value
         M = 1                    # The number of montecarlo runs
-        SIM_TIME = 5.0
+        SIM_TIME = 1.0
         toplot = np.array([])
         timetaken = np.array([])
         # name = __file__.split('.')[1].split('/')[1]
@@ -51,7 +51,7 @@ if __name__ == '__main__':
         # dfile = name+'_'+str(c)+'.csv'
         # dfile2 = name+'_'+str(c)+'time.csv'
         # The arrays to hold the final result
-        for p in range(4, 5):
+        for p in range(2, 3):
             err = 0
             aerr = 0
             time1 = 0
@@ -106,6 +106,7 @@ if __name__ == '__main__':
         #            delimiter=',')
 
         # print(ts, vs)
+        # print(nvs2)
         plt.style.use('ggplot')
         plt.plot(nts2, nvs2)
         # plt.plot(ts, vs, marker='1')

@@ -6,7 +6,7 @@ import mpmath as mp
 
 class Solver(object):
     def __init__(self, T=None, Tops=None, A=None, B=None, S=None, SB=None,
-                 R=4, C=0.1, montecarlo=False):
+                 R=4, C=0.1, gstep=1e-7, montecarlo=False):
         assert R > 1
         assert R % 2 == 0
         self.R = R
@@ -45,6 +45,10 @@ class Solver(object):
         self.dts = None
         self.locs = None
 
+        # The time step to push the system into brownian when you reach
+        # a stable point.
+        self.gstep = gstep
+
         # The constant for tolerance
         self.C = C
 
@@ -56,7 +60,7 @@ class Solver(object):
         gn = gxt * Winc
         # This is the max dq we can take
         # FIXME: IMP
-        # This can be negative, then what happens?
+        # This can be negative, or zero then what happens?
         dq2 = abs(gn**2 / (4 * fxt * R))
         # odq = dq
         dq = dq if dq <= dq2 else dq2
@@ -139,6 +143,7 @@ class Solver(object):
             # print(xtemp)
             Fxts = (np.dot(self.A[loc], xtemp) + self.B[loc]) * Dt
             Gxts = (np.dot(self.S[loc], xtemp) + self.SB[loc]) * Winc
+
             # print(Fxts + Gxts)
             xtemp = xtemp + Fxts + Gxts
             # xtemp += np.array([(Dt * curr_fxt) + (curr_gxt * Winc)]*len(x))
@@ -184,13 +189,19 @@ class Solver(object):
         vs = [values]
         ts = [curr_time]
         while(True):
-            cvs = vs[len(vs)-1].copy()  # The current values
+            cvs = vs[-1].copy()  # The current values
             # Step-1 check in what location are the current values in?
             loc, left, right = self.getloc(cvs)
 
             # First get the current value of the slope in this location
             Fxts = np.dot(self.A[loc], cvs) + self.B[loc]
             Gxts = np.dot(self.S[loc], cvs) + self.SB[loc]
+
+            # System matrix does not change.
+            condf = all([i != 0 for i in Fxts])
+
+            # Browninan does not change.
+            condg = all([i != 0 for i in Gxts])
 
             # Create dWt
             dWt = np.random.randn(self.R)
@@ -201,18 +212,24 @@ class Solver(object):
                 # print(i, left[i], right[i])
                 if abs(left[i]) != np.inf:
                     dq = abs(left[i] - cvs[i])
-                    if dq != 0:
+                    # This is reqiured to simulate if diffusion changes,
+                    # all the time.
+                    if (dq > epsilon) and condf:
                         dtl = self._get_step(cvs, i, loc, fxt, gxt,
                                              dq, dWt, self.R)
+                    elif condg:
+                        dtl = self.gstep
                     else:
                         dtl = 0
                 else:
                     dtl = np.inf
                 if abs(right[i]) != np.inf:
                     dq = abs(right[i] - cvs[i])
-                    if dq != 0:
+                    if dq > epsilon and condf:
                         dtr = self._get_step(cvs, i, loc, fxt, gxt,
                                              dq, dWt, self.R)
+                    elif condg:
+                        dtr = self.gstep
                     else:
                         dtr = 0
                 else:
@@ -248,7 +265,7 @@ class Solver(object):
                 self.locs = (np.array([loc]*len(dWt)) if self.locs is None
                              else np.append(self.locs,
                                             np.array([loc]*len(dWt))))
-            # print(curr_time)
+            print(curr_time)
             if curr_time >= simtime:
                 break
         return vs, ts
