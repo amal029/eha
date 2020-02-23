@@ -2,53 +2,75 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-import time
 import operator as op
 from src.sdesolver import Solver
+import time
 
+# FIXME: Something gives me a slope of zero in this example.
 if __name__ == '__main__':
-    # Example dx(t) = 10*sgn(x(t)) + dw(t) outward
-
-    L = 3
-    N = 1
-    # This is the bounds matrix θ for different locations
-    T = np.array([[(-np.inf), (0)], [(0), (np.inf)], [(0), (0)]])
-    T = T.reshape((L, 2, N))
-
-    Tops = np.array([[(op.gt), (op.lt)], [(op.gt), (op.lt)],
-                     [(op.ge), (op.le)]])
+    L = 9
+    N = 2
+    T = np.array([[(0, 0), (0, 0)],      # (=0, =0)
+                  [(0, 0), (0, np.inf)],  # (=0, >0)
+                  [(0, -np.inf), (0, 0)],  # (=0 <0)
+                  [(-np.inf, 0), (0, 0)],  # (<0, =0)
+                  [(0, 0), (np.inf, 0)],   # (>0, =0)
+                  [(-np.inf, -np.inf), (0, 0)],  # (<0 <0)
+                  [(-np.inf, 0), (0, np.inf)],   # (<0 >0)
+                  [(0, -np.inf), (np.inf, 0)],   # (>0 <0)
+                  [(0, 0), (np.inf, np.inf)]])   # (>0 >0)
+    T = T.reshape(L, 2, N)
+    Tops = [[(op.ge, op.ge), (op.le, op.le)],
+            [(op.ge, op.gt), (op.le, op.lt)],
+            [(op.ge, op.gt), (op.le, op.lt)],
+            [(op.gt, op.ge), (op.lt, op.le)],
+            [(op.gt, op.ge), (op.lt, op.le)],
+            [(op.gt, op.gt), (op.lt, op.lt)]*(L-5)]
+    Tops = np.array([item for sublist in Tops for item in sublist])
     Tops = Tops.reshape(L, 2, N)
 
-    # This is the system matrix at different locations
-    A = np.array([[0], [0], [0]])
+    # First y(t) then x(t)
+    A = np.array([[0, 0], [1, 0]]*L)
     A = A.reshape(L, N, N)
+    # print(A)
 
-    # This is the B matrix in the system equation
-    B = np.array([[-10], [10], [0]])
+    b = 3
+    s = 1
+    # Now comes the control input of size B
+    fy = (lambda x, y: -(b+s)/2*np.sign(x) - (b-s)/2*np.sign(y))
+    B = np.array([[fy(0, 0), 0],
+                  [fy(0, 1), 0],
+                  [fy(0, -1), 0],
+                  [fy(-1, 0), 0],
+                  [fy(6, 0), 0],
+                  [fy(-4, -4), 0],
+                  [fy(-4, 4), 0],
+                  [fy(6, -1), 0],
+                  [fy(6, 4), 0]])
     B = B.reshape(L, N)
+    # print(B)
 
-    # This is the brownian motion matrix
     S = np.array([0]*(L*N*N))
     S = S.reshape(L, N, N)
 
-    # This is the SB matrix for brownian motion
-    SB = np.array([1]*(L*N))
-    SB = SB.reshape(L, N)
+    # Now comes the control input of size B
+    SB = np.append(np.array([0]), [1]*((L-1)*N))
+    SB = B.reshape(L, N)
 
-    # ivals = [10]
-
-    for c in [1e-5]:      # The tolerance constant
-        ivals = [0]            # Just one initial value
+    for c in [1e-4]:      # The tolerance constant
+        # ivals = [5, 1]
+        ivals = [2, 3]
         M = 1                    # The number of montecarlo runs
         SIM_TIME = 1.0
         toplot = np.array([])
         timetaken = np.array([])
         # name = __file__.split('.')[1].split('/')[1]
-        # name = ('/tmp/results/'+name)+'newoutward'
+        # name = '/tmp/results/'+name+'new'
         # dfile = name+'_'+str(c)+'.csv'
         # dfile2 = name+'_'+str(c)+'time.csv'
+        # print(dfile, dfile2)
         # The arrays to hold the final result
-        for p in range(3, 4):
+        for p in range(8, 9):
             err = 0
             aerr = 0
             time1 = 0
@@ -97,15 +119,28 @@ if __name__ == '__main__':
 
             timetaken = np.append(timetaken, [[time1/M, time2/M]])
             timetaken = timetaken.reshape(len(timetaken)//2, 2)
-        # np.savetxt(dfile, toplot, header='Dt, RMSE, MAPE, dt', fmt='%+10.10f',
-        #            delimiter=',')
+        # np.savetxt(dfile, toplot, header='Dt, RMSE, MAPE, dt',
+        # fmt='%+10.10f', delimiter=',')
         # np.savetxt(dfile2, timetaken, header='PT, NT', fmt='%+10.10f',
         #            delimiter=',')
 
-        plt.style.use('ggplot')
-        plt.plot(ts, vs)
-        plt.plot(nts2, nvs2)
-        # plt.plot(ts, vs, marker='1')
-        # plt.yticks(np.arange(0.5, 1.6, step=0.1))
-        # plt.grid(which='both')
-        plt.show()
+    xs = [i[0] for i in vs]
+    ys = [i[1] for i in vs]
+
+    # Plot the output
+    # plt.plot(ts[2500:3200], xs[2500:3200])
+    # plt.show()
+    # plt.plot(ts[2500:3200], ys[2500:3200])
+    # plt.show()
+    # print(len(ts))
+    # plt.plot(xs, ys)
+    # plt.show()
+
+    # TODO: Implement the same with same seed with ordinary EM
+    # print(solver.path.shape, solver.dts.shape)
+    # plt.plot(xs, ys, marker='1')
+    # xs = [i[0] for i in nvs2]
+    # ys = [i[1] for i in nvs2]
+    plt.style.use('ggplot')
+    plt.plot(xs, ys)
+    plt.show()
