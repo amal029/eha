@@ -54,14 +54,14 @@ if __name__ == '__main__':
     S = S.reshape(L, N, N)
 
     # Now comes the control input of size B
-    SB = np.append(np.array([0]), [1]*((L-1)*N))
-    SB = B.reshape(L, N)
+    SB = np.append(np.array([0, 0]), [1, 1]*(L-1))
+    SB = SB.reshape(L, N)
 
     for c in [1e-4]:      # The tolerance constant
         # ivals = [5, 1]
         ivals = [2, 3]
         M = 1                    # The number of montecarlo runs
-        SIM_TIME = 1.0
+        SIM_TIME = 5.0
         toplot = np.array([])
         timetaken = np.array([])
         # name = __file__.split('.')[1].split('/')[1]

@@ -236,7 +236,6 @@ class Solver(object):
                     dtr = np.inf
                 dts[i] = min(dtl, dtr)
 
-            # print(dts)
             dts = [i for i in dts if i != 0]  # Remove all 0s
 
             # If we have reached the stable point and nothing can change
