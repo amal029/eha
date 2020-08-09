@@ -34,8 +34,8 @@ if __name__ == '__main__':
     A = A.reshape(L, N, N)
     # print(A)
 
-    b = 3
-    s = 1
+    b = 10
+    s = 8
     # Now comes the control input of size B
     fy = (lambda x, y: -(b+s)/2*np.sign(x) - (b-s)/2*np.sign(y))
     B = np.array([[fy(0, 0), 0],
@@ -61,7 +61,7 @@ if __name__ == '__main__':
         # ivals = [5, 1]
         ivals = [2, 3]
         M = 1                    # The number of montecarlo runs
-        SIM_TIME = 5.0
+        SIM_TIME = 1
         toplot = np.array([])
         timetaken = np.array([])
         # name = __file__.split('.')[1].split('/')[1]
@@ -70,7 +70,7 @@ if __name__ == '__main__':
         # dfile2 = name+'_'+str(c)+'time.csv'
         # print(dfile, dfile2)
         # The arrays to hold the final result
-        for p in range(8, 9):
+        for p in range(2, 3):
             err = 0
             aerr = 0
             time1 = 0
@@ -116,6 +116,7 @@ if __name__ == '__main__':
             toplot = np.append(toplot, [[avgdt, np.sqrt(err/M), (aerr/M),
                                          avgndt]])
             toplot = toplot.reshape(len(toplot)//4, 4)
+            print('RMSE:', toplot[0][1], 'MAPE:', toplot[0][2]*100)
 
             timetaken = np.append(timetaken, [[time1/M, time2/M]])
             timetaken = timetaken.reshape(len(timetaken)//2, 2)
@@ -124,8 +125,8 @@ if __name__ == '__main__':
         # np.savetxt(dfile2, timetaken, header='PT, NT', fmt='%+10.10f',
         #            delimiter=',')
 
-    xs = [i[0] for i in vs]
-    ys = [i[1] for i in vs]
+    ys = [i[0] for i in vs]
+    xs = [i[1] for i in vs]
 
     # Plot the output
     # plt.plot(ts[2500:3200], xs[2500:3200])
@@ -142,5 +143,9 @@ if __name__ == '__main__':
     # xs = [i[0] for i in nvs2]
     # ys = [i[1] for i in nvs2]
     plt.style.use('ggplot')
-    plt.plot(xs, ys)
+    plt.plot(ys, xs, marker='2')
+    plt.xlabel('y(t)', fontweight='bold')
+    plt.ylabel('x(t)', fontweight='bold')
     plt.show()
+    # plt.savefig('/Users/amal029_old/sdeemsoft2020/figures/tmc.pdf',
+    #             bbox_inches='tight')

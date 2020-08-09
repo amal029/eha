@@ -73,11 +73,11 @@ if __name__ == '__main__':
                   [fx1(6), fx2(1)]])
     SB = B.reshape(L, N)
 
-    for c in [1e-4]:      # The tolerance constant
+    for c in [1e-8]:      # The tolerance constant
         # ivals = [5, 1]
         ivals = [-0.5, 5.4]
         M = 1                    # The number of montecarlo runs
-        SIM_TIME = 1.0
+        SIM_TIME = 0.001
         toplot = np.array([])
         timetaken = np.array([])
         # name = __file__.split('.')[1].split('/')[1]
@@ -132,6 +132,7 @@ if __name__ == '__main__':
             toplot = np.append(toplot, [[avgdt, np.sqrt(err/M), (aerr/M),
                                          avgndt]])
             toplot = toplot.reshape(len(toplot)//4, 4)
+            print('RMSE:', toplot[0][1], 'MAPE:', toplot[0][2]*100)
 
             timetaken = np.append(timetaken, [[time1/M, time2/M]])
             timetaken = timetaken.reshape(len(timetaken)//2, 2)
@@ -157,6 +158,11 @@ if __name__ == '__main__':
     # plt.plot(xs, ys, marker='1')
     # xs = [i[0] for i in nvs2]
     # ys = [i[1] for i in nvs2]
-    plt.style.use('ggplot')
-    plt.plot(xs, ys)
-    plt.show()
+    # plt.style.use('ggplot')
+    # plt.plot(xs, ys, marker='2')
+    # plt.xlabel('x1(t)', fontweight='bold')
+    # plt.ylabel('x2(t)', fontweight='bold')
+
+    # plt.show()
+    # plt.savefig('/Users/amal029_old/sdeemsoft2020/figures/CDS2.pdf',
+    #             bbox_inches='tight')

@@ -188,7 +188,7 @@ class Solver(object):
         curr_time = 0
         vs = [values]
         ts = [curr_time]
-        while(True):
+        while(curr_time <= simtime):
             cvs = vs[-1].copy()  # The current values
             # Step-1 check in what location are the current values in?
             loc, left, right = self.getloc(cvs)
@@ -212,7 +212,7 @@ class Solver(object):
                 # print(i, left[i], right[i])
                 if abs(left[i]) != np.inf:
                     dq = abs(left[i] - cvs[i])
-                    # This is reqiured to simulate if diffusion changes,
+                    # This is required to simulate if diffusion changes,
                     # all the time.
                     if (dq > epsilon) and condf:
                         dtl = self._get_step(cvs, i, loc, fxt, gxt,
@@ -264,9 +264,7 @@ class Solver(object):
                 self.locs = (np.array([loc]*len(dWt)) if self.locs is None
                              else np.append(self.locs,
                                             np.array([loc]*len(dWt))))
-            # print(curr_time)
-            if curr_time >= simtime:
-                break
+            print(curr_time)
         return vs, ts
 
     # @njit
