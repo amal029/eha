@@ -48,25 +48,26 @@ dynamics = {'Move': {S.sympify('x(t)'): [v*wv*S.sympify('-sin(th(t))'),
                                          S.sympify('0')],
                      S.sympify('y(t)'): [v*wv*S.sympify('cos(th(t))'),
                                          S.sympify('0')],
-                     S.sympify('th(t)'): [S.sympify('wv'), S.sympify('0')],
+                     S.sympify('th(t)'): [S.sympify('wv').subs('wv', wv),
+                                          S.sympify('0')],
                      S.sympify('z(t)'): [S.sympify('0'), S.sympify('0')]},
             'Inner': {S.sympify('x(t)'): [v*S.sympify('cos(th(t))'),
-                                          S.sympify('v')],
+                                          S.sympify('v').subs('v', v)],
                       S.sympify('y(t)'): [v*S.sympify('sin(th(t))'),
-                                          S.sympify('v')],
+                                          S.sympify('v').subs('v', v)],
                       S.sympify('th(t)'): [S.sympify('0'), S.sympify('0')],
                       S.sympify('z(t)'): [S.sympify('x(t)'), S.sympify('0')]},
             'Outter': {S.sympify('x(t)'): [v*S.sympify('cos(th(t))'),
-                                           S.sympify('v')],
+                                           S.sympify('v').subs('v', v)],
                        S.sympify('y(t)'): [v*S.sympify('sin(th(t))'),
-                                           S.sympify('v')],
+                                           S.sympify('v').subs('v', v)],
                        S.sympify('th(t)'): [S.sympify('0'), S.sympify('0')],
                        S.sympify('z(t)'): [S.sympify('x(t)'), S.sympify('0')]},
             'Changetheta': {S.sympify('x(t)'): [S.sympify('0'),
                                                 S.sympify('0')],
                             S.sympify('y(t)'): [S.sympify('0'),
                                                 S.sympify('0')],
-                            S.sympify('th(t)'): [S.sympify('v'),
+                            S.sympify('th(t)'): [S.sympify('v').subs('v', v),
                                                  S.sympify('0')],
                             S.sympify('z(t)'): [S.sympify('th(t)**3'),
                                                 S.sympify('0')]}}
@@ -97,8 +98,8 @@ def main(x, y, th, z, t):
                                  dWt=dWy, vars=vars, T=t)
         dWth = np.random.randn(R)
         dth = Compute.var_compute(left=S.sympify('th(t)'),
-                                  right=DM[location][S.sympify('th(t)')],
-                                  deps=DM[location], dWt=dWth, vars=vars,
+                                  right=DM[S.sympify('th(t)')],
+                                  deps=DM, dWt=dWth, vars=vars,
                                   T=t)
 
         # XXX: This is for computing the spontaneous jump if any
@@ -156,69 +157,70 @@ def main(x, y, th, z, t):
             return 0, T, False
 
     def Inner(first_time):
-        # FIXME: Change the guards and transitions
-        if first_time:
-            Uz = -np.log(np.random.rand())
+        """Location Inner
+        """
         global th, z, x, y, t
+        if first_time:
+            # This is the spontaneous jump condition
+            Uz = -np.log(np.random.rand())
         # First compute the outgoing edges and take them
-        if (x**2 + y**2 - v**2 <= -e):
+        if (abs(x**2 + y**2 - v**2) <= e):
             # Set the outputs
-            th, z = 0, 0
-            state = 1           # destination location is Inner
+            th = np.arctan(y/x)
+            z = 0
+            state = 0           # destination location is Move
             return state, 0, True
-        elif (x**2 + y**2 - v**2 >= e):
-            th, z = S.pi, 0
-            state = 2           # destination is Outter
+        elif abs(z - Uz) <= e:
+            z = 0
+            state = 3           # destination is Changetheta
             return state, 0, True
         else:
             # XXX: Accounting for the guards
-            g1 = S.sympify('x(t)**2 + y(t)**2') - (v**2 - e)
-            g2 = S.sympify('x(t)**2 + y(t)**2') - (v**2 + e)
+            g1 = S.sympify('x(t)**2 + y(t)**2') - v**2
+            g2 = S.sympify('z(t)') - Uz
             T = __compute('Inner', [g1, g2], Uz)
             return 1, T, False
 
     def Outter(first_time):
-        # FIXME: Change the guards and transitions
+        global th, z, x, y, t
         if first_time:
             Uz = -np.log(np.random.rand())
-        global th, z, x, y, t
         # First compute the outgoing edges and take them
-        if (x**2 + y**2 - v**2 <= -e):
+        if abs(x**2 + y**2 - v**2) <= e:
             # Set the outputs
-            th, z = 0, 0
-            state = 1           # destination location is Inner
+            th = np.arctan(y/x)
+            z = 0
+            state = 0           # destination location is Move
             return state, 0, True
-        elif (x**2 + y**2 - v**2 >= e):
-            th, z = S.pi, 0
-            state = 2           # destination is Outter
+        elif abs(z - Uz) <= e:
+            z = 0
+            state = 3           # destination is Changetheta
             return state, 0, True
         else:
             # XXX: Accounting for the guards
-            g1 = S.sympify('x(t)**2 + y(t)**2') - (v**2 - e)
-            g2 = S.sympify('x(t)**2 + y(t)**2') - (v**2 + e)
-            __compute('Move', [g1, g2], Uz)
+            g1 = S.sympify('x(t)**2 + y(t)**2') - v**2
+            g2 = S.sympify('z(t)') - Uz
+            T = __compute('Outter', [g1, g2], Uz)
             return 2, T, False
 
     def Changetheta(first_time):
-        # FIXME: Change guards and transitions
+        global th, z, x, y, t
         if first_time:
             Uz = -np.log(np.random.rand())
-        global th, z, x, y, t
         # First compute the outgoing edges and take them
-        if (x**2 + y**2 - v**2 <= -e):
+        if (x**2 + y**2 - v**2 <= -e) and abs(z - Uz) <= e:
             # Set the outputs
-            th, z = 0, 0
+            z = 0
             state = 1           # destination location is Inner
             return state, 0, True
-        elif (x**2 + y**2 - v**2 >= e):
-            th, z = S.pi, 0
+        elif (x**2 + y**2 - v**2 >= e) and abs(z - Uz) <= e:
+            z = 0
             state = 2           # destination is Outter
             return state, 0, True
         else:
             # XXX: Accounting for the guards
-            g1 = S.sympify('x(t)**2 + y(t)**2') - (v**2 - e)
-            g2 = S.sympify('x(t)**2 + y(t)**2') - (v**2 + e)
-            __compute('Move', [g1, g2], Uz)
+            g1 = S.sympify('z(t)') - Uz
+            T = __compute('Changetheta', [g1], Uz)
             return 3, T, False
 
     locations = {
@@ -258,7 +260,7 @@ def main(x, y, th, z, t):
         print('%.4f: state:%s, x:%s, y:%s, th:%s, z:%s' % (t, strloc[state],
                                                            x, y, th, z))
 
-        if t > SIM_TIME:
+        if t >= SIM_TIME:
             break
 
 
