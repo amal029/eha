@@ -11,21 +11,50 @@ class Compute:
     epsilon = 1e-7
 
     @staticmethod
-    def var_compute(left=None, right=None, deps=None, dWt=None, vars=None,
+    def var_compute(left=None, right=None, deps=None, dWts=None, vars=None,
                     T=0):
         pass
 
     @staticmethod
     def rate_compute(left=None, right=None, deps=None, Uz=None, vars=None,
-                     T=0):
-        pass
+                     T=0, dWts=None):
+        # XXX: We will only do 2ⁿᵈ order Taylor polynomials everywhere.
+        # XXX: First compute the second derivative of the right
+        t = S.var('t')
+        Dt = S.var('Dt')        # This will be the time step
+        if not right[1] == 0:
+            raise Exception(('Rate %s cannot be a stochastic DE' % left))
+        if Uz is None or Uz == np.inf:
+            return np.inf
+
+        # Now start computing the actual step
+        right = right[0]
+        zdt = right             # This the first derivative
+        z2dt = right.diff(t)  # This is the second derivative
+        # Now substitute the resultants in second derivatives for all vars
+        # First build the derivative keys
+        toreplace = {i.diff(S.sympify('t')): j for (i, j) in deps.items()}
+        print(zdt, z2dt, toreplace)
+        # Now substitute the derivatives in z2dt
+        for i, j in toreplace.items():
+            print(z2dt)
+            # Here "j" can be a stochastic DE, need to take care of that
+            z2dt = z2dt.subs(i, j[0])
+        # Now replace vars with current values
+        for i, j in vars.items():
+            zdt = zdt.replace(i, j)
+            z2dt = z2dt.replace(i, j)
+        # Finally replace t if left over with current value T
+        zdt = zdt.replace(t, T)
+        z2dt = z2dt.replace(t, T)
+        print(zdt, z2dt)
 
     @staticmethod
     def guard_compute(expr=None, deps=None, vars=None, T=0):
         pass
 
     @staticmethod
-    def subs(expr=None, vars=None):
+    def subs(expr=None, vars=None, T=0):
         pass
 
 
@@ -77,6 +106,7 @@ dynamics = {'Move': {S.sympify('x(t)'): [v*wv*S.sympify('-sin(th(t))'),
 def main(x, y, th, z, t):
     """The generalised stochastic hybrid automaton
     """
+    # The current values at some time T
     vars = {S.sympify('x(t)'): x,
             S.sympify('y(t)'): y,
             S.sympify('th(t)'): th,
@@ -88,24 +118,25 @@ def main(x, y, th, z, t):
         DM = dynamics[location]
         # XXX: Should we give the random path from here?
         # Create dWt
-        dWx = np.random.randn(R)
+        dWts = {S.sympify('x(t)'): np.random.randn(R),
+                S.sympify('y(t)'): np.random.randn(R),
+                S.sympify('th(t)'): np.random.randn(R)}
         dx = Compute.var_compute(left=S.sympify('x(t)'),
                                  right=DM[S.sympify('x(t)')], deps=DM,
-                                 dWt=dWx, vars=vars, T=t)
-        dWy = np.random.randn(R)
+                                 dWts=dWts, vars=vars, T=t)
         dy = Compute.var_compute(left=S.sympify('y(t)'),
                                  right=DM[S.sympify('y(t)')], deps=DM,
-                                 dWt=dWy, vars=vars, T=t)
-        dWth = np.random.randn(R)
+                                 dWts=dWts, vars=vars, T=t)
         dth = Compute.var_compute(left=S.sympify('th(t)'),
                                   right=DM[S.sympify('th(t)')],
-                                  deps=DM, dWt=dWth, vars=vars,
+                                  deps=DM, dWts=dWts, vars=vars,
                                   T=t)
 
         # XXX: This is for computing the spontaneous jump if any
         dz = Compute.rate_compute(left=S.sympify('z(t)'),
                                   right=DM[S.sympify('z(t)')], deps=DM,
-                                  vars=vars, T=t, Uz=None)
+                                  vars=vars, T=t, Uz=Uz,
+                                  dWts=dWts)
 
         # XXX: Accounting for the guards
         dgs = [Compute.guard_compute(expr=i, deps=DM, vars=vars, T=t)
@@ -122,15 +153,15 @@ def main(x, y, th, z, t):
         # eval.
         x += (Compute.subs(DM[S.sympify('x(t)')][0], vars) * T
               + (np.sqrt(T/R) * Compute.subs([S.sympify('x(t)')][1])
-                 * np.sum(dWx)))
+                 * np.sum(dWts[S.sympify('x(t)')])))
 
         y += (Compute.subs(DM[S.sympify('y(t)')][0], vars) * T
               + (np.sqrt(T/R) * Compute.subs([S.sympify('y(t)')][1])
-                 * np.sum(dWy)))
+                 * np.sum(dWts[S.sympify('y(t)')])))
 
         th += (Compute.subs(DM[S.sympify('th(t)')][0], vars) * T
                + (np.sqrt(T/R) * Compute.subs([S.sympify('th(t)')][1])
-                  * np.sum(dWth)))
+                  * np.sum(dWts[S.sympify('th(t)')])))
 
         z += (Compute.subs(DM[S.sympify('z(t)')][0], vars) * T)
         return T
