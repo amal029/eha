@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sympy as S
 import numpy as np
+import mpmath as M
 
 
 class Compute:
@@ -21,7 +22,7 @@ class Compute:
         # XXX: We will only do 2ⁿᵈ order Taylor polynomials everywhere.
         # XXX: First compute the second derivative of the right
         t = S.var('t')
-        Dt = S.var('Dt')        # This will be the time step
+        Dt = S.var('T')        # This will be the time step
         if not right[1] == 0:
             raise Exception(('Rate %s cannot be a stochastic DE' % left))
         if Uz is None or Uz == np.inf:
@@ -33,21 +34,33 @@ class Compute:
         z2dt = right.diff(t)  # This is the second derivative
         # Now substitute the resultants in second derivatives for all vars
         # First build the derivative keys
-        toreplace = {i.diff(S.sympify('t')): j for (i, j) in deps.items()}
-        print(zdt, z2dt, toreplace)
+        toreplace = {i.diff(t): j for (i, j) in deps.items()}
+        # The stochastic keys
+        dWts = {i.diff(t): np.sum(dWts[i]) for i in dWts}
+        # print(zdt, z2dt, toreplace, dWts, R)
         # Now substitute the derivatives in z2dt
-        for i, j in toreplace.items():
-            print(z2dt)
-            # Here "j" can be a stochastic DE, need to take care of that
-            z2dt = z2dt.subs(i, j[0])
+        for i in toreplace:
+            z2dt = z2dt.subs(i, (toreplace[i][0] +
+                                 toreplace[i][1]*dWts[i]*S.sqrt(Dt/R)/Dt))
         # Now replace vars with current values
         for i, j in vars.items():
             zdt = zdt.replace(i, j)
             z2dt = z2dt.replace(i, j)
         # Finally replace t if left over with current value T
-        zdt = zdt.replace(t, T)
-        z2dt = z2dt.replace(t, T)
-        print(zdt, z2dt)
+        zdt = zdt.replace(t, T)*Dt
+        z2dt = z2dt.replace(t, T)*Dt**2/2
+        # print(zdt, z2dt)
+        eq = zdt + z2dt + vars[left] - Uz
+        eq = eq.expand().evalf()
+        leq = S.lambdify(Dt, eq)
+        root = M.findroot(leq, 0, solver='secant')
+        if M.im(root) <= Compute.epsilon:
+            root = root if root >= 0 else None
+            print('%s = %s root: %0.4f' % (left.diff(t), right, root))
+        else:
+            raise Exception('Complex root detected for %s' % left)
+        # FIXME: Need to make the second part for restricting error
+        return root
 
     @staticmethod
     def guard_compute(expr=None, deps=None, vars=None, T=0):
@@ -120,7 +133,8 @@ def main(x, y, th, z, t):
         # Create dWt
         dWts = {S.sympify('x(t)'): np.random.randn(R),
                 S.sympify('y(t)'): np.random.randn(R),
-                S.sympify('th(t)'): np.random.randn(R)}
+                S.sympify('th(t)'): np.random.randn(R),
+                S.sympify('z(t)'): np.zeros(R)}
         dx = Compute.var_compute(left=S.sympify('x(t)'),
                                  right=DM[S.sympify('x(t)')], deps=DM,
                                  dWts=dWts, vars=vars, T=t)
