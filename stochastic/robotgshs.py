@@ -56,27 +56,30 @@ class Compute:
         # Now start computing the actual step
         right = right[0]
         zdt = right             # This the first derivative
-        z2dt = right.diff(t)  # This is the second derivative
+
+        # XXX: The below is zero because of Ito's lemma
+        # z2dt = right.diff(t)  # This is the second derivative
+
         # Now substitute the resultants in second derivatives for all vars
         # First build the derivative keys
-        toreplace = {i.diff(t): j for (i, j) in deps.items()}
+        # toreplace = {i.diff(t): j for (i, j) in deps.items()}
         # The stochastic keys
         # dWtsu = {i.diff(t): sum(dWts[i]) for i in dWts}
         # print(zdt, z2dt, toreplace, dWts, R)
         # Now substitute the derivatives in z2dt
-        for i in toreplace:
-            z2dt = z2dt.subs(i,
-                             (toreplace[i][0] + 0
-                              # XXX: The below is zero because of Ito's lemma
-                              # toreplace[i][1]*dWtsu[i]*S.sqrt(Dt/R)/Dt
-                              ))
+
+        # XXX: The below is zero because of Ito's lemma
+        # for i in toreplace:
+        #     z2dt = z2dt.subs(i, (toreplace[i][0] +
+        #                          toreplace[i][1]*dWtsu[i]*S.sqrt(Dt/R)/Dt))
         # Now replace vars with current values
         for i, j in vars.items():
             zdt = zdt.replace(i, j)
-            z2dt = z2dt.replace(i, j)
+            # z2dt = z2dt.replace(i, j)
         # Finally replace t if left over with current value T
         zdt = zdt.replace(t, T)*Dt
-        z2dt = z2dt.replace(t, T)*(Dt**2)/2
+        # XXX: The below is zero because of Ito's lemma
+        z2dt = 0  # z2dt.replace(t, T)*(Dt**2)/2
 
         # Now doing the two sided root finding
         L = (Uz - vars[left])   # This is the level crossing
