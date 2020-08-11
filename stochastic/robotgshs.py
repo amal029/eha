@@ -9,12 +9,18 @@ class Compute:
 
     """
     # Static error bound
-    epsilon = 1e-7
+    epsilon = 1e-3
 
     @staticmethod
     def var_compute(left=None, right=None, deps=None, dWts=None, vars=None,
                     T=0):
         pass
+
+    @staticmethod
+    def build_eq(f, K):
+        eq = f - K
+        eq = eq.expand().evalf()
+        return eq
 
     @staticmethod
     def rate_compute(left=None, right=None, deps=None, Uz=None, vars=None,
@@ -36,12 +42,13 @@ class Compute:
         # First build the derivative keys
         toreplace = {i.diff(t): j for (i, j) in deps.items()}
         # The stochastic keys
-        dWts = {i.diff(t): np.sum(dWts[i]) for i in dWts}
+        dWts = {i.diff(t): dWts[i] for i in dWts}
         # print(zdt, z2dt, toreplace, dWts, R)
         # Now substitute the derivatives in z2dt
         for i in toreplace:
-            z2dt = z2dt.subs(i, (toreplace[i][0] +
-                                 toreplace[i][1]*dWts[i]*S.sqrt(Dt/R)/Dt))
+            z2dt = z2dt.subs(i,
+                             (toreplace[i][0] +
+                              toreplace[i][1]*sum(dWts[i])*S.sqrt(Dt/R)/Dt))
         # Now replace vars with current values
         for i, j in vars.items():
             zdt = zdt.replace(i, j)
@@ -49,25 +56,80 @@ class Compute:
         # Finally replace t if left over with current value T
         zdt = zdt.replace(t, T)*Dt
         z2dt = z2dt.replace(t, T)*Dt**2/2
-        # print(zdt, z2dt)
-        eq = zdt + z2dt + vars[left] - Uz
-        eq = eq.expand().evalf()
-        leq = S.lambdify(Dt, eq)
-        root = M.findroot(leq, 0, solver='secant')
-        if M.im(root) <= Compute.epsilon:
-            root = root if root >= 0 else None
-            print('%s = %s root: %0.4f' % (left.diff(t), right, root))
-        else:
-            raise Exception('Complex root detected for %s' % left)
-        # FIXME: Need to make the second part for restricting error
-        return root
+
+        # Now doing the two sided root finding
+        L = (Uz - vars[left])   # This is the level crossing
+        f = zdt + z2dt          # This is the part without the Level
+
+        while(True):
+            eq1 = Compute.build_eq(f, L)
+            leq1 = S.lambdify(Dt, eq1)
+            root1 = M.findroot(leq1, 0, solver='secant', tol=Compute.epsilon,
+                               verify=False)
+            if M.im(root1) <= Compute.epsilon:
+                root1 = M.re(root1) if M.re(root1) >= 0 else None
+            else:
+                root1 = None
+
+            # This is the second equation
+            eq2 = Compute.build_eq(f, -L)
+            leq2 = S.lambdify(Dt, eq2)
+            root2 = M.findroot(leq2, 0, solver='secant', tol=Compute.epsilon,
+                               verify=False)
+            if M.im(root2) <= Compute.epsilon:
+                root2 = M.re(root2) if M.re(root2) >= 0 else None
+            else:
+                root2 = None
+
+            Dtv = None
+            if root1 is not None and root2 is not None:
+                Dtv = min(root1, root2)
+            elif root1 is not None:
+                Dtv = root1
+            elif root2 is not None:
+                Dtv = root2
+            else:
+                raise Exception('Complex root detected for %s' % left.diff(t))
+            dtv = Dtv/R           # This is the small dt
+
+            # Now check of the error bound is met using standard
+            # Euler-Maruyama
+
+            # Taking one big step Dtv
+            temp1 = {i: Compute.EM(vars[i], deps[i][0], deps[i][1],
+                                   Dtv, dtv, dWts[i.diff(t)], vars, T, i)
+                     for i in vars}
+
+            # Taking step to Dtv/2
+            nvars = {i: Compute.EM(vars[i], deps[i][0], deps[i][1],
+                                   Dtv/2, dtv, dWts[i.diff(t)][0:R//2], vars,
+                                   T, i)
+                     for i in vars}
+            # Taking step from Dtv/2 --> Dtv
+            nvars = {i: Compute.EM(nvars[i], deps[i][0], deps[i][1],
+                                   Dtv/2, dtv, dWts[i.diff(t)][R//2:R], nvars,
+                                   T+(Dtv/2), i)
+                     for i in vars}
+            z1 = temp1[left]
+            z2 = nvars[left]
+            err = (np.sum(np.abs((z1 - z2)/(z2 + Compute.epsilon)))
+                   <= Compute.epsilon)   # XXX: This gives the best results.
+            if err:
+                print('Found rate step:', z1, z2, Dtv)
+                return Dtv, dtv
+            else:
+                L = L/2
+
+    @staticmethod
+    def EM(init, f, g, Dt, dt, dWts, vars, T, v):
+        for i in vars:
+            f = f.subs(i, vars[i])
+            g = g.subs(i, vars[i])
+        res = init + f*Dt + g*np.sqrt(dt)*np.sum(dWts)
+        return res.subs(S.var('t'), T).evalf()
 
     @staticmethod
     def guard_compute(expr=None, deps=None, vars=None, T=0):
-        pass
-
-    @staticmethod
-    def subs(expr=None, vars=None, T=0):
         pass
 
 
