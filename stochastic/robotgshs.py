@@ -30,12 +30,10 @@ class Compute:
                                Dtv/2, dtv, dWts[i][R//2:R], nvars,
                                T+(Dtv/2), i)
                  for i in vars}
-        z1 = temp1[left]
-        z2 = nvars[left]
-        err = (np.sum(np.abs((z1 - z2)/(z2 + Compute.epsilon)))
-               <= Compute.epsilon)   # XXX: This gives the best results.
-        # XXX: What should we do in case of the normal variable
-        return err, z1, z2
+        errs = ((np.sum(np.abs((temp1[i] - nvars[i]) /
+                               (nvars[i] + Compute.epsilon)))
+                 <= Compute.epsilon) for i in nvars)
+        return all(errs), temp1.items(), nvars.items()
 
     @staticmethod
     def build_eq(f, K):
@@ -63,20 +61,22 @@ class Compute:
         # First build the derivative keys
         toreplace = {i.diff(t): j for (i, j) in deps.items()}
         # The stochastic keys
-        dWtsu = {i.diff(t): sum(dWts[i]) for i in dWts}
+        # dWtsu = {i.diff(t): sum(dWts[i]) for i in dWts}
         # print(zdt, z2dt, toreplace, dWts, R)
         # Now substitute the derivatives in z2dt
         for i in toreplace:
             z2dt = z2dt.subs(i,
-                             (toreplace[i][0] +
-                              toreplace[i][1]*dWtsu[i]*S.sqrt(Dt/R)/Dt))
+                             (toreplace[i][0] + 0
+                              # XXX: The below is zero because of Ito's lemma
+                              # toreplace[i][1]*dWtsu[i]*S.sqrt(Dt/R)/Dt
+                              ))
         # Now replace vars with current values
         for i, j in vars.items():
             zdt = zdt.replace(i, j)
             z2dt = z2dt.replace(i, j)
         # Finally replace t if left over with current value T
         zdt = zdt.replace(t, T)*Dt
-        z2dt = z2dt.replace(t, T)*Dt**2/2
+        z2dt = z2dt.replace(t, T)*(Dt**2)/2
 
         # Now doing the two sided root finding
         L = (Uz - vars[left])   # This is the level crossing
@@ -116,14 +116,14 @@ class Compute:
             # Now check of the error bound is met using standard
             # Euler-Maruyama
 
-            err, z1, z2 = Compute.var_compute(left, right, deps, dWts, vars, T,
-                                              Dtv, dtv)
+            err, z1s, z2s = Compute.var_compute(left, right, deps, dWts,
+                                                vars, T, Dtv, dtv)
 
             # FIXME: We need to make sure that other variables are also
             # satisfied.
             if err:
-                print('Found rate step:', z1, z2, Dtv)
-                return Dtv, dtv
+                print('Found rate step:', Dtv)
+                return Dtv, z1s
             else:
                 L = L/2
 
@@ -205,21 +205,10 @@ def main(x, y, th, z, t):
                 S.sympify('th(t)'): np.random.randn(R),
                 S.sympify('z(t)'): np.zeros(R)}
         # XXX: This is for computing the spontaneous jump if any
-        Dz, dz = Compute.rate_compute(left=S.sympify('z(t)'),
-                                      right=DM[S.sympify('z(t)')], deps=DM,
-                                      vars=vars, T=t, Uz=Uz,
-                                      dWts=dWts)
-        # dx = Compute.var_compute(left=S.sympify('x(t)'),
-        #                          right=DM[S.sympify('x(t)')], deps=DM,
-        #                          dWts=dWts, vars=vars, T=t)
-        # dy = Compute.var_compute(left=S.sympify('y(t)'),
-        #                          right=DM[S.sympify('y(t)')], deps=DM,
-        #                          dWts=dWts, vars=vars, T=t)
-        # dth = Compute.var_compute(left=S.sympify('th(t)'),
-        #                           right=DM[S.sympify('th(t)')],
-        #                           deps=DM, dWts=dWts, vars=vars,
-        #                           T=t)
-
+        Dz, vals = Compute.rate_compute(left=S.sympify('z(t)'),
+                                        right=DM[S.sympify('z(t)')],
+                                        deps=DM, vars=vars, T=t, Uz=Uz,
+                                        dWts=dWts)
         # XXX: Accounting for the guards
         dgs = [Compute.guard_compute(expr=i, deps=DM, vars=vars, T=t)
                for i in guards]
@@ -227,14 +216,10 @@ def main(x, y, th, z, t):
         # XXX: dz might be np.inf if there is no spontaneous output
         # This is the step size we will take
         # XXX: T == Δ == δ*R (assumption)
-        T = min(dz, *dgs)
+        T = min(Dz, *dgs)
 
-        # Now compute the actual values of x, y, th, z using Euler
-        # maruyama for step size T First substitute the value of
-        # vars with the current values in the argument and then
-        # eval.
-
-        # FIXME: The below should be remove and called by EM
+        # XXX: The final values of the variables
+        # FIXME: This should just be an if else statement
         x += (Compute.subs(DM[S.sympify('x(t)')][0], vars) * T
               + (np.sqrt(T/R) * Compute.subs([S.sympify('x(t)')][1])
                  * np.sum(dWts[S.sympify('x(t)')])))
