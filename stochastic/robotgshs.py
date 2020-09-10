@@ -10,9 +10,10 @@ class Compute:
     """
     # Static error bound
     epsilon = 1e-3
+    iter_count = 50
 
     @staticmethod
-    def var_compute(left=None, right=None, deps=None, dWts=None, vars=None,
+    def var_compute(deps=None, dWts=None, vars=None,
                     T=0, Dtv=None, dtv=None):
         # print(dWts, left, right, deps, vars, Dtv, dtv)
         # Taking one big step Dtv
@@ -33,7 +34,7 @@ class Compute:
         errs = ((np.sum(np.abs((temp1[i] - nvars[i]) /
                                (nvars[i] + Compute.epsilon)))
                  <= Compute.epsilon) for i in nvars)
-        return all(errs), temp1.items(), nvars.items()
+        return all(errs), temp1, nvars
 
     @staticmethod
     def build_eq(f, K):
@@ -84,7 +85,7 @@ class Compute:
         # Now doing the two sided root finding
         L = (Uz - vars[left])   # This is the level crossing
         f = zdt + z2dt          # This is the part without the Level
-
+        count = 0
         while(True):
             eq1 = Compute.build_eq(f, L)
             leq1 = S.lambdify(Dt, eq1)
@@ -118,16 +119,17 @@ class Compute:
 
             # Now check of the error bound is met using standard
             # Euler-Maruyama
+            err, z1s, z2s = Compute.var_compute(deps, dWts, vars, T, Dtv, dtv)
 
-            err, z1s, z2s = Compute.var_compute(left, right, deps, dWts,
-                                                vars, T, Dtv, dtv)
-
-            # FIXME: We need to make sure that other variables are also
+            # XXX: We need to make sure that other variables are also
             # satisfied.
             if err:
                 print('Found rate step:', Dtv)
                 return Dtv, z1s
             else:
+                count += 1
+                if count == Compute.iter_count:
+                    raise Exception('Too many iterations Rate compute')
                 L = L/2
 
     @staticmethod
@@ -139,8 +141,114 @@ class Compute:
         return res.subs(S.var('t'), T).evalf()
 
     @staticmethod
-    def guard_compute(expr=None, deps=None, vars=None, T=0):
-        pass
+    def guard_compute(expr=None, deps=None, vars=None, T=0,
+                      dWts=None):
+        t = S.var('t')
+        dt = S.var('dt')
+        dWt = {i: S.var('dWt_%s' % str(i.func)) for i in vars}
+        kvars = list(vars.keys())
+        dvars = S.Matrix(1, len(kvars), [i.diff(t) for i in kvars])
+
+        # XXX: First compute all the partial derivatives that we need.
+        gfirst = [expr.diff(i) for i in kvars]
+        gradient = S.Matrix(len(kvars), 1, gfirst)
+        fp = (dvars*gradient)[0]
+
+        # Use a hessian matrix for the second order partials
+        hessian = S.hessian(expr, kvars)
+        sp = 0.5*((dvars*hessian*dvars.transpose())[0])
+        # print('fp:', fp)
+        # print('sp:', sp)
+        ddeps = {i.diff(t): deps[i][0]*dt+deps[i][1]*dWt[i] for i in deps}
+
+        # XXX: Now replace the derivates with their equivalents
+        fp = fp.subs(ddeps)
+        sp = sp.subs(ddeps)
+        # print('fp:', fp)
+        # print('sp:', sp)
+
+        # XXX: Now replace the vars with the current values
+        fp = fp.subs(vars)
+        sp = sp.subs(vars)
+        # print('fp:', fp)
+        # print('sp:', sp)
+
+        # XXX: Substitute any remaining t with T
+        fp = fp.subs(t, T)
+        sp = sp.subs(t, T)
+
+        # XXX: Now expand the equations
+        fp = fp.expand()
+        sp = sp.expand()
+        # print('fpe:', fp)
+        # print('spe:', sp)
+
+        # XXX: Now apply Ito's lemma
+        # dWt*dt = dt**2 = 0
+        # dWt**2 = dt
+
+        # FIXME: Check this things robustness later on
+        fp = fp.subs(dt**2, 0)
+        for i in dWt:
+            # Now the dodgy one
+            fp = fp.subs(dWt[i]*dt, 0)
+        for i in dWt:
+            fp = fp.subs(dWt[i]**2, dt)
+        # print(fp)
+
+        sp = sp.subs(dt**2, 0)
+        for i in dWt:
+            # Now the dodgy one
+            sp = sp.subs(dWt[i]*dt, 0)
+        for i in dWt:
+            sp = sp.subs(dWt[i]**2, dt)
+        # print(sp)
+
+        # Finally, substitute dWts, independently
+        ddWts = {str('dWt_%s' % i.func): np.sum(dWts[i])*S.sqrt(dt/R)
+                 for i in dWts}
+        fp = fp.subs(ddWts)
+        sp = sp.subs(ddWts)
+        # print('fp:', fp)
+        # print('sp:', sp)
+
+        # XXX: Now get the value of the guart at time T
+        gv = expr.subs(vars)
+        gv = gv.subs(t, T)
+        # print('gv:', gv)
+
+        # XXX: Now we can start solving for the root
+        L = -gv
+        f = fp + sp
+        count = 0
+        while(True):
+            eq = Compute.build_eq(f, L)
+            # print(eq)
+            roots = S.solve(eq, dt)
+            root = min(list(filter(lambda x: x >= 0, roots)))
+            # print(root)
+            if M.im(root) <= Compute.epsilon:
+                root = M.re(root) if M.re(root) >= 0 else None
+            else:
+                raise Exception('Cannot find a real +ve root for guard: %s'
+                                % expr)
+            Dtv = root
+            dtv = Dtv/R
+
+            # Now check of the error bound is met using standard
+            # Euler-Maruyama
+            err, v1s, v2s = Compute.var_compute(deps, dWts, vars, T, Dtv, dtv)
+
+            # XXX: We need to make sure that other variables are also
+            # satisfied.
+            if err:
+                print('Found rate step:', Dtv)
+                return Dtv, v1s
+            else:
+                count += 1
+                if count == Compute.iter_count:
+                    raise Exception('Too many iterations %s' % expr)
+                L = L/2
 
 
 # Total simulation time
@@ -207,13 +315,16 @@ def main(x, y, th, z, t):
                 S.sympify('y(t)'): np.random.randn(R),
                 S.sympify('th(t)'): np.random.randn(R),
                 S.sympify('z(t)'): np.zeros(R)}
+
         # XXX: This is for computing the spontaneous jump if any
         Dz, vals = Compute.rate_compute(left=S.sympify('z(t)'),
                                         right=DM[S.sympify('z(t)')],
                                         deps=DM, vars=vars, T=t, Uz=Uz,
                                         dWts=dWts)
         # XXX: Accounting for the guards
-        dgs = [Compute.guard_compute(expr=i, deps=DM, vars=vars, T=t)
+        # This one does not have the spontaneous jump in it.
+        dgs = [Compute.guard_compute(expr=i, deps=DM, vars=vars, T=t,
+                                     dWts=dWts)
                for i in guards]
 
         # XXX: dz might be np.inf if there is no spontaneous output
@@ -243,12 +354,12 @@ def main(x, y, th, z, t):
         """
         global th, z, x, y, t
         # First compute the outgoing edges and take them
-        if (x**2 + y**2 - v**2 <= -e):
+        if (abs(x**2 + y**2 - v**2) <= -e):
             # Set the outputs
             th, z = 0, 0
             state = 1           # destination location is Inner
             return state, 0, True
-        elif (x**2 + y**2 - v**2 >= e):
+        elif (abs(x**2 + y**2 - v**2) >= e):
             th, z = S.pi, 0
             state = 2           # destination is Outter
             return state, 0, True
@@ -280,8 +391,8 @@ def main(x, y, th, z, t):
         else:
             # XXX: Accounting for the guards
             g1 = S.sympify('x(t)**2 + y(t)**2') - v**2
-            g2 = S.sympify('z(t)') - Uz
-            T = __compute('Inner', [g1, g2], Uz)
+            # g2 = S.sympify('z(t)') - Uz
+            T = __compute('Inner', [g1], Uz)
             return 1, T, False
 
     def Outter(first_time):
@@ -302,8 +413,8 @@ def main(x, y, th, z, t):
         else:
             # XXX: Accounting for the guards
             g1 = S.sympify('x(t)**2 + y(t)**2') - v**2
-            g2 = S.sympify('z(t)') - Uz
-            T = __compute('Outter', [g1, g2], Uz)
+            # g2 = S.sympify('z(t)') - Uz
+            T = __compute('Outter', [g1], Uz)
             return 2, T, False
 
     def Changetheta(first_time):
@@ -322,8 +433,8 @@ def main(x, y, th, z, t):
             return state, 0, True
         else:
             # XXX: Accounting for the guards
-            g1 = S.sympify('z(t)') - Uz
-            T = __compute('Changetheta', [g1], Uz)
+            # g1 = S.sympify('z(t)') - Uz
+            T = __compute('Changetheta', [], Uz)
             return 3, T, False
 
     locations = {
