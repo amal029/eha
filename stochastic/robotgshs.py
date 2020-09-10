@@ -31,9 +31,9 @@ class Compute:
                                Dtv/2, dtv, dWts[i][R//2:R], nvars,
                                T+(Dtv/2), i)
                  for i in vars}
-        errs = ((np.sum(np.abs((temp1[i] - nvars[i]) /
-                               (nvars[i] + Compute.epsilon)))
-                 <= Compute.epsilon) for i in nvars)
+        errs = list((np.sum(np.abs((temp1[i] - nvars[i]) /
+                                   (nvars[i] + Compute.epsilon)))
+                     <= Compute.epsilon) for i in nvars)
         return all(errs), temp1, nvars
 
     @staticmethod
@@ -58,21 +58,6 @@ class Compute:
         right = right[0]
         zdt = right             # This the first derivative
 
-        # XXX: The below is zero because of Ito's lemma
-        # z2dt = right.diff(t)  # This is the second derivative
-
-        # Now substitute the resultants in second derivatives for all vars
-        # First build the derivative keys
-        # toreplace = {i.diff(t): j for (i, j) in deps.items()}
-        # The stochastic keys
-        # dWtsu = {i.diff(t): sum(dWts[i]) for i in dWts}
-        # print(zdt, z2dt, toreplace, dWts, R)
-        # Now substitute the derivatives in z2dt
-
-        # XXX: The below is zero because of Ito's lemma
-        # for i in toreplace:
-        #     z2dt = z2dt.subs(i, (toreplace[i][0] +
-        #                          toreplace[i][1]*dWtsu[i]*S.sqrt(Dt/R)/Dt))
         # Now replace vars with current values
         for i, j in vars.items():
             zdt = zdt.replace(i, j)
@@ -124,7 +109,7 @@ class Compute:
             # XXX: We need to make sure that other variables are also
             # satisfied.
             if err:
-                print('Found rate step:', Dtv)
+                print('Found rate step z(t):', Dtv)
                 return Dtv, z1s
             else:
                 count += 1
@@ -142,7 +127,7 @@ class Compute:
 
     @staticmethod
     def guard_compute(expr=None, deps=None, vars=None, T=0,
-                      dWts=None):
+                      dWts=None, Dz=None):
         t = S.var('t')
         dt = S.var('dt')
         dWt = {i: S.var('dWt_%s' % str(i.func)) for i in vars}
@@ -232,7 +217,7 @@ class Compute:
             else:
                 raise Exception('Cannot find a real +ve root for guard: %s'
                                 % expr)
-            Dtv = root
+            Dtv = Dz if Dz <= root else root
             dtv = Dtv/R
 
             # Now check of the error bound is met using standard
@@ -307,47 +292,36 @@ def main(x, y, th, z, t):
 
     def __compute(location=None, guards=None, Uz=None):
         global th, z, x, y, t
-        # Compute the dynamics in state Move
+        # Compute the dynamics in the state
         DM = dynamics[location]
-        # XXX: Should we give the random path from here?
+
         # Create dWt
         dWts = {S.sympify('x(t)'): np.random.randn(R),
                 S.sympify('y(t)'): np.random.randn(R),
                 S.sympify('th(t)'): np.random.randn(R),
                 S.sympify('z(t)'): np.zeros(R)}
 
+        Dts = dict()
         # XXX: This is for computing the spontaneous jump if any
         Dz, vals = Compute.rate_compute(left=S.sympify('z(t)'),
                                         right=DM[S.sympify('z(t)')],
                                         deps=DM, vars=vars, T=t, Uz=Uz,
                                         dWts=dWts)
+        Dts[Dz] = vals
+
         # XXX: Accounting for the guards
         # This one does not have the spontaneous jump in it.
-        dgs = [Compute.guard_compute(expr=i, deps=DM, vars=vars, T=t,
-                                     dWts=dWts)
-               for i in guards]
+        for i in guards:
+            Dt, Dval = Compute.guard_compute(expr=i, deps=DM, vars=vars, T=t,
+                                             dWts=dWts, Dz=Dz)
+            Dts[Dt] = Dval
 
         # XXX: dz might be np.inf if there is no spontaneous output
         # This is the step size we will take
         # XXX: T == Δ == δ*R (assumption)
-        T = min(Dz, *dgs)
-
-        # XXX: The final values of the variables
-        # FIXME: This should just be an if else statement
-        x += (Compute.subs(DM[S.sympify('x(t)')][0], vars) * T
-              + (np.sqrt(T/R) * Compute.subs([S.sympify('x(t)')][1])
-                 * np.sum(dWts[S.sympify('x(t)')])))
-
-        y += (Compute.subs(DM[S.sympify('y(t)')][0], vars) * T
-              + (np.sqrt(T/R) * Compute.subs([S.sympify('y(t)')][1])
-                 * np.sum(dWts[S.sympify('y(t)')])))
-
-        th += (Compute.subs(DM[S.sympify('th(t)')][0], vars) * T
-               + (np.sqrt(T/R) * Compute.subs([S.sympify('th(t)')][1])
-                  * np.sum(dWts[S.sympify('th(t)')])))
-
-        z += (Compute.subs(DM[S.sympify('z(t)')][0], vars) * T)
-        return T
+        k = list(Dts.keys())
+        T = min(*k) if len(k) > 1 else k[0]
+        return T, Dts[T].values()
 
     def Move(first_time):
         """Location Move
@@ -358,17 +332,17 @@ def main(x, y, th, z, t):
             # Set the outputs
             th, z = 0, 0
             state = 1           # destination location is Inner
-            return state, 0, True
+            return state, 0, (x, y, th, z), True
         elif (abs(x**2 + y**2 - v**2) >= e):
             th, z = S.pi, 0
             state = 2           # destination is Outter
-            return state, 0, True
+            return state, 0, (x, y, th, z), True
         else:
             # XXX: Accounting for the guards
             g1 = S.sympify('x(t)**2 + y(t)**2') - (v**2 - e)
             g2 = S.sympify('x(t)**2 + y(t)**2') - (v**2 + e)
-            T = __compute('Move', [g1, g2], None)
-            return 0, T, False
+            T, vars = __compute('Move', [g1, g2], None)
+            return 0, T, vars, False
 
     def Inner(first_time):
         """Location Inner
@@ -383,17 +357,17 @@ def main(x, y, th, z, t):
             th = np.arctan(y/x)
             z = 0
             state = 0           # destination location is Move
-            return state, 0, True
+            return state, 0, (x, y, th, z), True
         elif abs(z - Uz) <= e:
             z = 0
             state = 3           # destination is Changetheta
-            return state, 0, True
+            return state, 0, (x, y, th, z), True
         else:
             # XXX: Accounting for the guards
             g1 = S.sympify('x(t)**2 + y(t)**2') - v**2
             # g2 = S.sympify('z(t)') - Uz
-            T = __compute('Inner', [g1], Uz)
-            return 1, T, False
+            T, vars = __compute('Inner', [g1], Uz)
+            return 1, T, vars, False
 
     def Outter(first_time):
         global th, z, x, y, t
@@ -405,17 +379,17 @@ def main(x, y, th, z, t):
             th = np.arctan(y/x)
             z = 0
             state = 0           # destination location is Move
-            return state, 0, True
+            return state, 0, (x, y, th, z), True
         elif abs(z - Uz) <= e:
             z = 0
             state = 3           # destination is Changetheta
-            return state, 0, True
+            return state, 0, (x, y, th, z), True
         else:
             # XXX: Accounting for the guards
             g1 = S.sympify('x(t)**2 + y(t)**2') - v**2
             # g2 = S.sympify('z(t)') - Uz
-            T = __compute('Outter', [g1], Uz)
-            return 2, T, False
+            T, vars = __compute('Outter', [g1], Uz)
+            return 2, T, vars, False
 
     def Changetheta(first_time):
         global th, z, x, y, t
@@ -426,16 +400,16 @@ def main(x, y, th, z, t):
             # Set the outputs
             z = 0
             state = 1           # destination location is Inner
-            return state, 0, True
+            return state, 0, (x, y, th, z), True
         elif (x**2 + y**2 - v**2 >= e) and abs(z - Uz) <= e:
             z = 0
             state = 2           # destination is Outter
-            return state, 0, True
+            return state, 0, (x, y, th, z), True
         else:
             # XXX: Accounting for the guards
             # g1 = S.sympify('z(t)') - Uz
-            T = __compute('Changetheta', [], Uz)
-            return 3, T, False
+            T, vars = __compute('Changetheta', [], Uz)
+            return 3, T, vars, False
 
     locations = {
         0: Move,
@@ -467,18 +441,20 @@ def main(x, y, th, z, t):
     while(True):
         # Call the dynamics and run these until some time
         first_time = True
-        state, T, first_time = locations[state](first_time)
+        state, T, (x, y, th, z), first_time = locations[state](first_time)
 
         t += T
         # Print the outputs
-        print('%.4f: state:%s, x:%s, y:%s, th:%s, z:%s' % (t, strloc[state],
-                                                           x, y, th, z))
+        print('%f: state:%s, x:%s, y:%s, th:%s, z:%s' % (t, strloc[state],
+                                                         x, y, th, z))
 
         if t >= SIM_TIME:
             break
 
 
 if __name__ == '__main__':
+    # the random seed
+    # np.random.seed(1000)
     # These are the initial values
     x = 1
     y = 0
