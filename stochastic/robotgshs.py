@@ -73,16 +73,7 @@ class Compute:
         # FIXME: If the derivative is zero then it will never reach the
         # level. Change this later if needed
         if f == 0:
-            # print('Choosing default step')
-            Dtv = Compute.DEFAULT_STEP
-            while(True):
-                dtv = Dtv/R
-                err, z1s, z2s = Compute.var_compute(deps, dWts, vars, T, Dtv,
-                                                    dtv)
-                if err:
-                    return Dtv, z1s
-                else:
-                    Dtv /= 2
+            return Compute.default_compute(deps, dWts, vars, T)
 
         count = 0
         while(True):
@@ -142,6 +133,18 @@ class Compute:
         g = g.subs(vars).subs(S.var('t'), T)
         res = (init + f*Dt + g*numpy.sqrt(dt)*numpy.sum(dWts)).evalf()
         return res
+
+    @staticmethod
+    def default_compute(deps, dWts, vars, T):
+        print('Choosing default step')
+        Dtv = Compute.DEFAULT_STEP
+        while(True):
+            dtv = Dtv/R
+            err, z1s, z2s = Compute.var_compute(deps, dWts, vars, T, Dtv, dtv)
+            if err:
+                return Dtv, z1s
+            else:
+                Dtv /= 2
 
     @staticmethod
     def guard_compute(expr=None, deps=None, vars=None, T=0,
@@ -224,19 +227,13 @@ class Compute:
         # XXX: Now we can start solving for the root
         L = -gv
         f = fp + sp
-        # FIXME: If the derivative is zero then it will never reach the
-        # level. Change this later if needed
+
+        # XXX: If the derivative is zero then it will never reach the
+        # level.
         if f == 0:
-            print('Choosing default step')
-            Dtv = Compute.DEFAULT_STEP
-            while(True):
-                dtv = Dtv/R
-                err, z1s, z2s = Compute.var_compute(deps, dWts, vars, T, Dtv,
-                                                    dtv)
-                if err:
-                    return Dtv, z1s
-                else:
-                    Dtv /= 2
+            return Compute.default_compute(deps, dWts, vars, T)
+
+        # XXX: Now the real computation of the time step
         count = 0
         while(True):
             # FIXME: Here we need to be able to verify roots, else we
@@ -248,8 +245,6 @@ class Compute:
             root1 = optimize.root(lambda x: leq1(x[0]), 0,
                                   method='lm')
             root1 = root1.x[0]
-            # root1 = M.findroot(leq1, 0, solver='secant', tol=Compute.epsilon,
-            #                    verify=True)
             if M.im(root1) <= Compute.epsilon:
                 root1 = M.re(root1) if M.re(root1) >= 0 else None
             else:
@@ -259,8 +254,6 @@ class Compute:
             leq2 = S.lambdify(dt, eq2, 'scipy')
             root2 = optimize.root(lambda x: leq2(x[0]), 0,
                                   method='lm').x[0]
-            # root2 = M.findroot(leq2, 0, solver='secant', tol=Compute.epsilon,
-            #                    verify=False)
             if M.im(root2) <= Compute.epsilon:
                 root2 = M.re(root2) if M.re(root2) >= 0 else None
             else:
@@ -286,7 +279,6 @@ class Compute:
             # Now check of the error bound is met using standard
             # Euler-Maruyama
             err, v1s, v2s = Compute.var_compute(deps, dWts, vars, T, Dtv, dtv)
-            # print('Err:', err)
 
             # XXX: We need to make sure that other variables are also
             # satisfied.
@@ -384,7 +376,11 @@ def main(x, y, th, z, t):
         # XXX: T == Δ == δ*R (assumption)
         k = list(Dts.keys())
         T = min(*k) if len(k) > 1 else k[0]
-        return T, Dts[T].values()
+        if T == numpy.inf:
+            T, val = Compute.default_compute(DM, dWts, vars, t)
+            return T, val.values()
+        else:
+            return T, Dts[T].values()
 
     def Move(x, y, th, z, t, first_time):
         """Location Move
@@ -418,8 +414,8 @@ def main(x, y, th, z, t):
             z = 0
             state = 0           # destination location is Move
             return state, 0, (x, y, th, z), True
-        elif (x**2 + y**2 >= (v**2 + e)):
-            raise Exception
+        # elif (x**2 + y**2 >= (v**2 + e)):
+        #     raise Exception
         elif abs(z - Uz) <= e:
             z = 0
             state = 3           # destination is Changetheta
