@@ -3,6 +3,7 @@ import sympy as S
 import numpy
 import mpmath as M
 import matplotlib.pyplot as plt
+from scipy import optimize
 
 
 class Compute:
@@ -72,7 +73,7 @@ class Compute:
         # FIXME: If the derivative is zero then it will never reach the
         # level. Change this later if needed
         if f == 0:
-            print('Choosing default step')
+            # print('Choosing default step')
             Dtv = Compute.DEFAULT_STEP
             while(True):
                 dtv = Dtv/R
@@ -241,19 +242,25 @@ class Compute:
             # FIXME: Here we need to be able to verify roots, else we
             # get incorrect roots!
             eq1 = Compute.build_eq(f, L)
-            print(eq1)
-            leq1 = S.lambdify(dt, eq1, [{'sqrt': M.sqrt}, 'numpy'])
-            root1 = M.findroot(leq1, 0, solver='secant', tol=Compute.epsilon,
-                               verify=True)
+            # print(eq1)
+            leq1 = S.lambdify(dt, eq1, 'scipy')
+
+            root1 = optimize.root(lambda x: leq1(x[0]), 0,
+                                  method='lm')
+            root1 = root1.x[0]
+            # root1 = M.findroot(leq1, 0, solver='secant', tol=Compute.epsilon,
+            #                    verify=True)
             if M.im(root1) <= Compute.epsilon:
                 root1 = M.re(root1) if M.re(root1) >= 0 else None
             else:
                 root1 = None
 
             eq2 = Compute.build_eq(f, -L)
-            leq2 = S.lambdify(dt, eq2, [{'sqrt': M.sqrt}, 'numpy'])
-            root2 = M.findroot(leq2, 0, solver='secant', tol=Compute.epsilon,
-                               verify=False)
+            leq2 = S.lambdify(dt, eq2, 'scipy')
+            root2 = optimize.root(lambda x: leq2(x[0]), 0,
+                                  method='lm').x[0]
+            # root2 = M.findroot(leq2, 0, solver='secant', tol=Compute.epsilon,
+            #                    verify=False)
             if M.im(root2) <= Compute.epsilon:
                 root2 = M.re(root2) if M.re(root2) >= 0 else None
             else:
@@ -272,19 +279,19 @@ class Compute:
                 print('Choosing Dz:', Dz)
                 Dtv = Dz
 
-            print('choosing:', Dtv, Dz, expr)
+            # print('choosing:', Dtv, Dz, expr)
             Dtv = min(Dtv, Dz)
             dtv = Dtv/R
 
             # Now check of the error bound is met using standard
             # Euler-Maruyama
             err, v1s, v2s = Compute.var_compute(deps, dWts, vars, T, Dtv, dtv)
-            print('Err:', err)
+            # print('Err:', err)
 
             # XXX: We need to make sure that other variables are also
             # satisfied.
             if err:
-                print('Found rate step:', Dtv, v1s)
+                # print('Found rate step:', Dtv, v1s)
                 return Dtv, v1s
             else:
                 count += 1
@@ -300,7 +307,7 @@ SIM_TIME = 2
 # The constants in the HA
 v = 4
 wv = 0.1
-e = 1e-3
+e = 1e-2
 
 # The length of the stochastic path
 p = 3
@@ -516,15 +523,15 @@ def main(x, y, th, z, t):
 
 if __name__ == '__main__':
     # the random seed
-    numpy.random.seed(1)
+    numpy.random.seed(42)
     # These are the initial values
-    x = 2
+    x = 1
     y = 2
-    th = 0
+    th = float(M.atan(y/x))
     z = 0
     t = 0
     xs, ys, xy2s, ts = main(x, y, th, z, t)
-
+    print('Count:', len(ts))
     plt.style.use('ggplot')
     plt.subplot(211)
     plt.plot(xs, ys, marker='*')
