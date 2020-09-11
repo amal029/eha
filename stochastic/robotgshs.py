@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import sympy as S
-import numpy as np
+import numpy
 import mpmath as M
+import matplotlib.pyplot as plt
 
 
 class Compute:
@@ -11,6 +12,7 @@ class Compute:
     # Static error bound
     epsilon = 1e-3
     iter_count = 50
+    DEFAULT_STEP = 1e-3
 
     @staticmethod
     def var_compute(deps=None, dWts=None, vars=None,
@@ -31,8 +33,8 @@ class Compute:
                                Dtv/2, dtv, dWts[i][R//2:R], nvars,
                                T+(Dtv/2), i)
                  for i in vars}
-        errs = list((np.sum(np.abs((temp1[i] - nvars[i]) /
-                                   (nvars[i] + Compute.epsilon)))
+        errs = list((numpy.sum(numpy.abs((temp1[i] - nvars[i]) /
+                                         (nvars[i] + Compute.epsilon)))
                      <= Compute.epsilon) for i in nvars)
         return all(errs), temp1, nvars
 
@@ -49,8 +51,8 @@ class Compute:
         Dt = S.var('T')        # This will be the time step
         if not right[1] == 0:
             raise Exception(('Rate %s cannot be a stochastic DE' % left))
-        if Uz is None or Uz == np.inf:
-            return np.inf
+        if Uz is None or Uz == numpy.inf:
+            return numpy.inf, vars
 
         # Now start computing the actual step
         right = right[0]
@@ -66,6 +68,21 @@ class Compute:
         # Now doing the two sided root finding
         L = (Uz - vars[left])   # This is the level crossing
         f = zdt
+
+        # FIXME: If the derivative is zero then it will never reach the
+        # level. Change this later if needed
+        if f == 0:
+            print('Choosing default step')
+            Dtv = Compute.DEFAULT_STEP
+            while(True):
+                dtv = Dtv/R
+                err, z1s, z2s = Compute.var_compute(deps, dWts, vars, T, Dtv,
+                                                    dtv)
+                if err:
+                    return Dtv, z1s
+                else:
+                    Dtv /= 2
+
         count = 0
         while(True):
             eq1 = Compute.build_eq(f, L)
@@ -116,11 +133,14 @@ class Compute:
 
     @staticmethod
     def EM(init, f, g, Dt, dt, dWts, vars, T, v):
-        for i in vars:
-            f = f.subs(i, vars[i])
-            g = g.subs(i, vars[i])
-        res = init + f*Dt + g*np.sqrt(dt)*np.sum(dWts)
-        return res.subs(S.var('t'), T).evalf()
+        # for i in vars:
+        #     f = f.subs(i, vars[i])
+        #     g = g.subs(i, vars[i])
+        # res = init + f*Dt + g*numpy.sqrt(dt)*numpy.sum(dWts)
+        f = f.subs(vars).subs(S.var('t'), T)
+        g = g.subs(vars).subs(S.var('t'), T)
+        res = (init + f*Dt + g*numpy.sqrt(dt)*numpy.sum(dWts)).evalf()
+        return res
 
     @staticmethod
     def guard_compute(expr=None, deps=None, vars=None, T=0,
@@ -132,9 +152,10 @@ class Compute:
         dvars = S.Matrix(1, len(kvars), [i.diff(t) for i in kvars])
 
         # XXX: First compute all the partial derivatives that we need.
-        gfirst = [expr.diff(i) for i in kvars]
-        gradient = S.Matrix(len(kvars), 1, gfirst)
-        fp = (dvars*gradient)[0]
+        jacobian = S.Matrix([expr]).jacobian(kvars)
+        # gfirst = [expr.diff(i) for i in kvars]
+        # gradient = S.Matrix(len(kvars), 1, gfirst)
+        fp = (dvars*jacobian.transpose())[0]
 
         # Use a hessian matrix for the second order partials
         hessian = S.hessian(expr, kvars)
@@ -187,7 +208,7 @@ class Compute:
         # print(sp)
 
         # Finally, substitute dWts, independently
-        ddWts = {str('dWt_%s' % i.func): np.sum(dWts[i])*S.sqrt(dt/R)
+        ddWts = {str('dWt_%s' % i.func): numpy.sum(dWts[i])*S.sqrt(dt/R)
                  for i in dWts}
         fp = fp.subs(ddWts)
         sp = sp.subs(ddWts)
@@ -202,29 +223,68 @@ class Compute:
         # XXX: Now we can start solving for the root
         L = -gv
         f = fp + sp
+        # FIXME: If the derivative is zero then it will never reach the
+        # level. Change this later if needed
+        if f == 0:
+            print('Choosing default step')
+            Dtv = Compute.DEFAULT_STEP
+            while(True):
+                dtv = Dtv/R
+                err, z1s, z2s = Compute.var_compute(deps, dWts, vars, T, Dtv,
+                                                    dtv)
+                if err:
+                    return Dtv, z1s
+                else:
+                    Dtv /= 2
         count = 0
         while(True):
-            eq = Compute.build_eq(f, L)
-            # print(eq)
-            roots = S.solve(eq, dt)
-            root = min(list(filter(lambda x: x >= 0, roots)))
-            # print(root)
-            if M.im(root) <= Compute.epsilon:
-                root = M.re(root) if M.re(root) >= 0 else None
+            # FIXME: Here we need to be able to verify roots, else we
+            # get incorrect roots!
+            eq1 = Compute.build_eq(f, L)
+            print(eq1)
+            leq1 = S.lambdify(dt, eq1, [{'sqrt': M.sqrt}, 'numpy'])
+            root1 = M.findroot(leq1, 0, solver='secant', tol=Compute.epsilon,
+                               verify=True)
+            if M.im(root1) <= Compute.epsilon:
+                root1 = M.re(root1) if M.re(root1) >= 0 else None
             else:
-                raise Exception('Cannot find a real +ve root for guard: %s'
-                                % expr)
-            Dtv = Dz if Dz <= root else root
+                root1 = None
+
+            eq2 = Compute.build_eq(f, -L)
+            leq2 = S.lambdify(dt, eq2, [{'sqrt': M.sqrt}, 'numpy'])
+            root2 = M.findroot(leq2, 0, solver='secant', tol=Compute.epsilon,
+                               verify=False)
+            if M.im(root2) <= Compute.epsilon:
+                root2 = M.re(root2) if M.re(root2) >= 0 else None
+            else:
+                root2 = None
+
+            Dtv = None
+            if root1 is not None and root2 is not None:
+                Dtv = min(root1, root2)
+            elif root1 is not None:
+                Dtv = root1
+            elif root2 is not None:
+                Dtv = root2
+            else:
+                print('Cannot find a real +ve root for \
+                guard: %s eq: %s root: %s' % (expr, eq1, root1))
+                print('Choosing Dz:', Dz)
+                Dtv = Dz
+
+            print('choosing:', Dtv, Dz, expr)
+            Dtv = min(Dtv, Dz)
             dtv = Dtv/R
 
             # Now check of the error bound is met using standard
             # Euler-Maruyama
             err, v1s, v2s = Compute.var_compute(deps, dWts, vars, T, Dtv, dtv)
+            print('Err:', err)
 
             # XXX: We need to make sure that other variables are also
             # satisfied.
             if err:
-                # print('Found rate step:', Dtv)
+                print('Found rate step:', Dtv, v1s)
                 return Dtv, v1s
             else:
                 count += 1
@@ -240,7 +300,7 @@ SIM_TIME = 2
 # The constants in the HA
 v = 4
 wv = 0.1
-e = 1e-7
+e = 1e-3
 
 # The length of the stochastic path
 p = 3
@@ -292,10 +352,10 @@ def main(x, y, th, z, t):
         DM = dynamics[location]
 
         # Create dWt
-        dWts = {S.sympify('x(t)'): np.random.randn(R),
-                S.sympify('y(t)'): np.random.randn(R),
-                S.sympify('th(t)'): np.random.randn(R),
-                S.sympify('z(t)'): np.zeros(R)}
+        dWts = {S.sympify('x(t)'): numpy.random.randn(R),
+                S.sympify('y(t)'): numpy.random.randn(R),
+                S.sympify('th(t)'): numpy.random.randn(R),
+                S.sympify('z(t)'): numpy.zeros(R)}
 
         Dts = dict()
         # XXX: This is for computing the spontaneous jump if any
@@ -323,12 +383,12 @@ def main(x, y, th, z, t):
         """Location Move
         """
         # First compute the outgoing edges and take them
-        if (x**2 + y**2 - v**2 <= -e):
+        if (x**2 + y**2 - (v**2 - e) <= 0):
             # Set the outputs
             th, z = 0, 0
             state = 1           # destination location is Inner
             return state, 0, (x, y, th, z), True
-        elif (x**2 + y**2 - v**2 >= e):
+        elif (x**2 + y**2 - (v**2 + e) >= 0):
             th, z = S.pi, 0
             state = 2           # destination is Outter
             return state, 0, (x, y, th, z), True
@@ -336,21 +396,23 @@ def main(x, y, th, z, t):
             # XXX: Accounting for the guards
             g1 = S.sympify('x(t)**2 + y(t)**2') - (v**2 - e)
             g2 = S.sympify('x(t)**2 + y(t)**2') - (v**2 + e)
-            T, vars = __compute(x, y, th, z, t, 'Move', [g1, g2], None)
+            T, vars = __compute(x, y, th, z, t, 'Move', [], None)
             return 0, T, vars, False
 
     def Inner(x, y, th, z, t, first_time):
         """Location Inner
         """
         global Uz
-        Uz = -np.log(np.random.rand()) if first_time else Uz
+        Uz = -numpy.log(numpy.random.rand()) if first_time else Uz
         # First compute the outgoing edges and take them
-        if (abs(x**2 + y**2 - v**2) <= e):
+        if (x**2 + y**2 - v**2 >= -e) and (x**2 + y**2 - v**2 <= e):
             # Set the outputs
-            th = np.arctan(y/x)
+            th = float(M.atan((y/x)))
             z = 0
             state = 0           # destination location is Move
             return state, 0, (x, y, th, z), True
+        elif (x**2 + y**2 >= (v**2 + e)):
+            raise Exception
         elif abs(z - Uz) <= e:
             z = 0
             state = 3           # destination is Changetheta
@@ -358,17 +420,16 @@ def main(x, y, th, z, t):
         else:
             # XXX: Accounting for the guards
             g1 = S.sympify('x(t)**2 + y(t)**2') - v**2
-            # g2 = S.sympify('z(t)') - Uz
             T, vars = __compute(x, y, th, z, t, 'Inner', [g1], Uz)
             return 1, T, vars, False
 
     def Outter(x, y, th, z, t, first_time):
         global Uz
-        Uz = -np.log(np.random.rand()) if first_time else Uz
+        Uz = -numpy.log(numpy.random.rand()) if first_time else Uz
         # First compute the outgoing edges and take them
-        if abs(x**2 + y**2 - v**2) <= e:
+        if x**2 + y**2 - (v**2 + e) <= 0:
             # Set the outputs
-            th = np.arctan(y/x)
+            th = float(M.atan(y/x))
             z = 0
             state = 0           # destination location is Move
             return state, 0, (x, y, th, z), True
@@ -378,28 +439,29 @@ def main(x, y, th, z, t):
             return state, 0, (x, y, th, z), True
         else:
             # XXX: Accounting for the guards
-            g1 = S.sympify('x(t)**2 + y(t)**2') - v**2
+            g1 = S.sympify('x(t)**2 + y(t)**2') - (v**2 + e)
             # g2 = S.sympify('z(t)') - Uz
             T, vars = __compute(x, y, th, z, t, 'Outter', [g1], Uz)
             return 2, T, vars, False
 
     def Changetheta(x, y, th, z, t, first_time):
         global Uz
-        Uz = -np.log(np.random.rand()) if first_time else Uz
+        Uz = -numpy.log(numpy.random.rand()) if first_time else Uz
         # First compute the outgoing edges and take them
-        if (x**2 + y**2 - v**2 <= -e) and abs(z - Uz) <= e:
+        if (x**2 + y**2 - (v**2 - e) <= 0) and abs(z - Uz) <= e:
             # Set the outputs
             z = 0
             state = 1           # destination location is Inner
             return state, 0, (x, y, th, z), True
-        elif (x**2 + y**2 - v**2 >= e) and abs(z - Uz) <= e:
+        elif (x**2 + y**2 - (v**2 + e) >= 0) and abs(z - Uz) <= e:
             z = 0
             state = 2           # destination is Outter
             return state, 0, (x, y, th, z), True
         else:
             # XXX: Accounting for the guards
-            # g1 = S.sympify('z(t)') - Uz
-            T, vars = __compute(x, y, th, z, t, 'Changetheta', [], Uz)
+            g1 = S.sympify('x(t)**2 + y(t)**2') - (v**2 - e)
+            g2 = S.sympify('x(t)**2 + y(t)**2') - (v**2 + e)
+            T, vars = __compute(x, y, th, z, t, 'Changetheta', [g1, g2], Uz)
             return 3, T, vars, False
 
     locations = {
@@ -409,10 +471,10 @@ def main(x, y, th, z, t):
         3: Changetheta
     }
     strloc = {
-        0: 'Move',
-        1: 'Inner',
-        2: 'Outter',
-        3: 'Changetheta'
+        0: 'M',
+        1: 'I',
+        2: 'O',
+        3: 'CT'
     }
 
     # First compute the invariant to decide upon the location I should
@@ -430,26 +492,46 @@ def main(x, y, th, z, t):
     print('%.4f: state:%s, x:%s, y:%s, th:%s, z:%s' % (t, strloc[state], x, y,
                                                        th, z))
     first_time = True
+    xs = []
+    ys = []
+    ts = []
+    xy2s = []
     while(True):
         # Call the dynamics and run these until some time
         state, T, (x, y, th, z), first_time = locations[state](x, y, th, z, t,
                                                                first_time)
+        xs.append(x)
+        ys.append(y)
+        ts.append(t)
+        xy2s.append(x**2+y**2)
         t += T
         # Print the outputs
-        print('%f: state:%s, x:%s, y:%s, th:%s, z:%s' % (t, strloc[state],
-                                                         x, y, th, z))
+        print('%f: state:%s, x:%f, y:%f, xy**2:%f, th:%f, z:%f' %
+              (t, strloc[state], x, y, (x**2+y**2), th, z))
 
         if t >= SIM_TIME:
             break
+    return xs, ys, xy2s, ts
 
 
 if __name__ == '__main__':
     # the random seed
-    # np.random.seed(1000)
+    numpy.random.seed(1)
     # These are the initial values
-    x = 1
-    y = 0
+    x = 2
+    y = 2
     th = 0
     z = 0
     t = 0
-    main(x, y, th, z, t)
+    xs, ys, xy2s, ts = main(x, y, th, z, t)
+
+    plt.style.use('ggplot')
+    plt.subplot(211)
+    plt.plot(xs, ys, marker='*')
+    plt.xlabel('X (units)', fontweight='bold')
+    plt.ylabel('Y (units)', fontweight='bold')
+    plt.subplot(212)
+    plt.plot(ts, xy2s, marker='*')
+    plt.xlabel('Time (seconds)', fontweight='bold')
+    plt.ylabel('XY^2 (units)', fontweight='bold')
+    plt.show()
