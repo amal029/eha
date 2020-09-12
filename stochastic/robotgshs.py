@@ -49,12 +49,13 @@ class Compute:
     def getroot(leq1, leq2, expr):
         # root1 = M.findroot(leq1, 0, solver='secant', tol=Compute.epsilon,
         #                    verify=True)
-        root1 = optimize.root(lambda x: leq1(x[0]), 0, method='lm')
+        root1 = optimize.root(lambda x: leq1(x[0]), 0, method='hybr')
         if root1.success:
             root1 = root1.x[0]
         else:
-            raise Exception('Could not find a root')
-        if M.im(root1) <= Compute.epsilon:
+            root1 = None
+            # raise Exception('Could not find a root')
+        if root1 is not None and M.im(root1) <= Compute.epsilon:
             root1 = M.re(root1) if M.re(root1) >= 0 else None
         else:
             root1 = None
@@ -62,8 +63,9 @@ class Compute:
         if root2.success:
             root2 = root2.x[0]
         else:
-            raise Exception('Could not find a root')
-        if M.im(root2) <= Compute.epsilon:
+            root2 = None
+            # raise Exception('Could not find a root')
+        if root2 is not None and M.im(root2) <= Compute.epsilon:
             root2 = M.re(root2) if M.re(root2) >= 0 else None
         else:
             root2 = None
@@ -275,7 +277,7 @@ class Compute:
 
 
 # Total simulation time
-SIM_TIME = 0.15
+SIM_TIME = 1.5
 
 # Defining the dynamics in different modes
 # The constants in the HA
@@ -501,8 +503,8 @@ if __name__ == '__main__':
     # the random seed
     numpy.random.seed(42)
     # These are the initial values
-    x = 1
-    y = 2
+    x = 2
+    y = 1
     th = float(M.atan(y/x))
     z = 0
     t = 0
