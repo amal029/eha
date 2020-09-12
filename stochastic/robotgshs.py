@@ -46,6 +46,39 @@ class Compute:
         return eq
 
     @staticmethod
+    def getroot(leq1, leq2, expr):
+        # root1 = M.findroot(leq1, 0, solver='secant', tol=Compute.epsilon,
+        #                    verify=True)
+        root1 = optimize.root(lambda x: leq1(x[0]), 0, method='lm')
+        if root1.success:
+            root1 = root1.x[0]
+        else:
+            raise Exception('Could not find a root')
+        if M.im(root1) <= Compute.epsilon:
+            root1 = M.re(root1) if M.re(root1) >= 0 else None
+        else:
+            root1 = None
+        root2 = optimize.root(lambda x: leq2(x[0]), 0, method='lm')
+        if root2.success:
+            root2 = root2.x[0]
+        else:
+            raise Exception('Could not find a root')
+        if M.im(root2) <= Compute.epsilon:
+            root2 = M.re(root2) if M.re(root2) >= 0 else None
+        else:
+            root2 = None
+        Dtv = None
+        if root1 is not None and root2 is not None:
+            Dtv = min(root1, root2)
+        elif root1 is not None:
+            Dtv = root1
+        elif root2 is not None:
+            Dtv = root2
+        else:
+            raise Exception('Complex root detected for %s' % expr)
+        return Dtv
+
+    @staticmethod
     def rate_compute(left=None, right=None, deps=None, Uz=None, vars=None,
                      T=0, dWts=None):
         t = S.var('t')
@@ -73,40 +106,17 @@ class Compute:
         # FIXME: If the derivative is zero then it will never reach the
         # level. Change this later if needed
         if f == 0:
-            return Compute.default_compute(deps, dWts, vars, T)
+            return numpy.inf, vars
 
         count = 0
         while(True):
             eq1 = Compute.build_eq(f, L)
-            leq1 = S.lambdify(Dt, eq1)
-            root1 = M.findroot(leq1, 0, solver='secant', tol=Compute.epsilon,
-                               verify=False)
-            if M.im(root1) <= Compute.epsilon:
-                root1 = M.re(root1) if M.re(root1) >= 0 else None
-            else:
-                root1 = None
-
+            leq1 = S.lambdify(Dt, eq1, 'scipy')
             # This is the second equation
             eq2 = Compute.build_eq(f, -L)
-            leq2 = S.lambdify(Dt, eq2)
-            root2 = M.findroot(leq2, 0, solver='secant', tol=Compute.epsilon,
-                               verify=False)
-            if M.im(root2) <= Compute.epsilon:
-                root2 = M.re(root2) if M.re(root2) >= 0 else None
-            else:
-                root2 = None
-
-            Dtv = None
-            if root1 is not None and root2 is not None:
-                Dtv = min(root1, root2)
-            elif root1 is not None:
-                Dtv = root1
-            elif root2 is not None:
-                Dtv = root2
-            else:
-                raise Exception('Complex root detected for %s' % left.diff(t))
-            dtv = Dtv/R           # This is the small dt
-
+            leq2 = S.lambdify(Dt, eq2, 'scipy')
+            Dtv = Compute.getroot(leq1, leq2, left.diff(t))
+            dtv = Dtv/R
             # Now check of the error bound is met using standard
             # Euler-Maruyama
             # FIXME: Somehow the z variable is not being computed correctly!
@@ -125,10 +135,6 @@ class Compute:
 
     @staticmethod
     def EM(init, f, g, Dt, dt, dWts, vars, T, v):
-        # for i in vars:
-        #     f = f.subs(i, vars[i])
-        #     g = g.subs(i, vars[i])
-        # res = init + f*Dt + g*numpy.sqrt(dt)*numpy.sum(dWts)
         f = f.subs(vars).subs(S.var('t'), T)
         g = g.subs(vars).subs(S.var('t'), T)
         res = (init + f*Dt + g*numpy.sqrt(dt)*numpy.sum(dWts)).evalf()
@@ -136,7 +142,6 @@ class Compute:
 
     @staticmethod
     def default_compute(deps, dWts, vars, T):
-        print('Choosing default step')
         Dtv = Compute.DEFAULT_STEP
         while(True):
             dtv = Dtv/R
@@ -226,54 +231,31 @@ class Compute:
 
         # XXX: Now we can start solving for the root
         L = -gv
+
+        # XXX: If I use second order here, but then I use a first order
+        # approximation when actually doing things then stuff goes
+        # wrong.
+        # sp = 0
+
         f = fp + sp
 
         # XXX: If the derivative is zero then it will never reach the
         # level.
         if f == 0:
-            return Compute.default_compute(deps, dWts, vars, T)
+            return numpy.inf, vars
 
         # XXX: Now the real computation of the time step
         count = 0
         while(True):
-            # FIXME: Here we need to be able to verify roots, else we
-            # get incorrect roots!
             eq1 = Compute.build_eq(f, L)
-            # print(eq1)
             leq1 = S.lambdify(dt, eq1, 'scipy')
-
-            root1 = optimize.root(lambda x: leq1(x[0]), 0,
-                                  method='lm')
-            root1 = root1.x[0]
-            if M.im(root1) <= Compute.epsilon:
-                root1 = M.re(root1) if M.re(root1) >= 0 else None
-            else:
-                root1 = None
-
             eq2 = Compute.build_eq(f, -L)
             leq2 = S.lambdify(dt, eq2, 'scipy')
-            root2 = optimize.root(lambda x: leq2(x[0]), 0,
-                                  method='lm').x[0]
-            if M.im(root2) <= Compute.epsilon:
-                root2 = M.re(root2) if M.re(root2) >= 0 else None
-            else:
-                root2 = None
-
-            Dtv = None
-            if root1 is not None and root2 is not None:
-                Dtv = min(root1, root2)
-            elif root1 is not None:
-                Dtv = root1
-            elif root2 is not None:
-                Dtv = root2
-            else:
-                print('Cannot find a real +ve root for \
-                guard: %s eq: %s root: %s' % (expr, eq1, root1))
-                print('Choosing Dz:', Dz)
-                Dtv = Dz
-
-            # print('choosing:', Dtv, Dz, expr)
-            Dtv = min(Dtv, Dz)
+            Dtv = Compute.getroot(leq1, leq2, expr)
+            if Dtv is None:
+                print('choosing Dz!')
+                raise Exception
+            Dtv = min(Dtv, Dz) if Dtv is not None else Dz
             dtv = Dtv/R
 
             # Now check of the error bound is met using standard
@@ -293,7 +275,7 @@ class Compute:
 
 
 # Total simulation time
-SIM_TIME = 2
+SIM_TIME = 0.15
 
 # Defining the dynamics in different modes
 # The constants in the HA
@@ -397,8 +379,6 @@ def main(x, y, th, z, t):
             return state, 0, (x, y, th, z), True
         else:
             # XXX: Accounting for the guards
-            g1 = S.sympify('x(t)**2 + y(t)**2') - (v**2 - e)
-            g2 = S.sympify('x(t)**2 + y(t)**2') - (v**2 + e)
             T, vars = __compute(x, y, th, z, t, 'Move', [], None)
             return 0, T, vars, False
 
@@ -410,7 +390,7 @@ def main(x, y, th, z, t):
         # First compute the outgoing edges and take them
         if (x**2 + y**2 - v**2 >= -e) and (x**2 + y**2 - v**2 <= e):
             # Set the outputs
-            th = float(M.atan((y/x)))
+            th = float(M.atan(y/x))
             z = 0
             state = 0           # destination location is Move
             return state, 0, (x, y, th, z), True
@@ -430,7 +410,7 @@ def main(x, y, th, z, t):
         global Uz
         Uz = -numpy.log(numpy.random.rand()) if first_time else Uz
         # First compute the outgoing edges and take them
-        if x**2 + y**2 - (v**2 + e) <= 0:
+        if (x**2 + y**2 - v**2 >= -e) and (x**2 + y**2 - v**2 <= e):
             # Set the outputs
             th = float(M.atan(y/x))
             z = 0
@@ -442,7 +422,7 @@ def main(x, y, th, z, t):
             return state, 0, (x, y, th, z), True
         else:
             # XXX: Accounting for the guards
-            g1 = S.sympify('x(t)**2 + y(t)**2') - (v**2 + e)
+            g1 = S.sympify('x(t)**2 + y(t)**2') - v**2
             # g2 = S.sympify('z(t)') - Uz
             T, vars = __compute(x, y, th, z, t, 'Outter', [g1], Uz)
             return 2, T, vars, False
@@ -509,8 +489,8 @@ def main(x, y, th, z, t):
         xy2s.append(x**2+y**2)
         t += T
         # Print the outputs
-        print('%f: state:%s, x:%f, y:%f, xy**2:%f, th:%f, z:%f' %
-              (t, strloc[state], x, y, (x**2+y**2), th, z))
+        print('%f: state:%s, x:%f, y:%f, xy**2:%f, diff:%s, th:%f, z:%f' %
+              (t, strloc[state], x, y, (x**2+y**2), (x**2+y**2)-v**2, th, z))
 
         if t >= SIM_TIME:
             break
@@ -530,11 +510,11 @@ if __name__ == '__main__':
     print('Count:', len(ts))
     plt.style.use('ggplot')
     plt.subplot(211)
-    plt.plot(xs, ys, marker='*')
+    plt.plot(xs, ys, marker='^')
     plt.xlabel('X (units)', fontweight='bold')
     plt.ylabel('Y (units)', fontweight='bold')
     plt.subplot(212)
-    plt.plot(ts, xy2s, marker='*')
+    plt.plot(ts, xy2s)
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel('XY^2 (units)', fontweight='bold')
     plt.show()
