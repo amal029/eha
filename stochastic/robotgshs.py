@@ -77,7 +77,7 @@ class Compute:
         elif root2 is not None:
             Dtv = root2
         else:
-            raise Exception('Complex root detected for %s' % expr)
+            print('Non positive root detected for %s' % expr)
         return Dtv
 
     @staticmethod
@@ -256,7 +256,6 @@ class Compute:
             Dtv = Compute.getroot(leq1, leq2, expr)
             if Dtv is None:
                 print('choosing Dz!')
-                raise Exception
             Dtv = min(Dtv, Dz) if Dtv is not None else Dz
             dtv = Dtv/R
 
@@ -283,7 +282,7 @@ SIM_TIME = 1.5
 # The constants in the HA
 v = 4
 wv = 0.1
-e = 1e-2
+e = 1e-1
 
 # The length of the stochastic path
 p = 3
@@ -511,12 +510,13 @@ if __name__ == '__main__':
     xs, ys, xy2s, ts = main(x, y, th, z, t)
     print('Count:', len(ts))
     plt.style.use('ggplot')
-    plt.subplot(211)
-    plt.plot(xs, ys, marker='^')
-    plt.xlabel('X (units)', fontweight='bold')
-    plt.ylabel('Y (units)', fontweight='bold')
-    plt.subplot(212)
+    # plt.subplot(211)
+    # plt.plot(xs, ys, marker='^')
+    # plt.xlabel('X (units)', fontweight='bold')
+    # plt.ylabel('Y (units)', fontweight='bold')
+    # plt.subplot(212)
     plt.plot(ts, xy2s)
     plt.xlabel('Time (seconds)', fontweight='bold')
-    plt.ylabel('XY^2 (units)', fontweight='bold')
-    plt.show()
+    plt.ylabel('xy^2 (units)', fontweight='bold')
+    plt.savefig('/tmp/robot.pdf', bbox_inches='tight')
+    # plt.show()
