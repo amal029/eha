@@ -306,22 +306,22 @@ dynamics = {'Move': {S.sympify('x(t)'): [v*wv*S.sympify('-sin(th(t))'),
                                           S.sympify('0')],
                      S.sympify('z(t)'): [S.sympify('0'), S.sympify('0')]},
             'Inner': {S.sympify('x(t)'): [v*S.sympify('cos(th(t))'),
-                                          S.sympify('v').subs('v', v)],
+                                          S.sympify(v)],
                       S.sympify('y(t)'): [v*S.sympify('sin(th(t))'),
-                                          S.sympify('v').subs('v', v)],
+                                          S.sympify(v)],
                       S.sympify('th(t)'): [S.sympify('0'), S.sympify('0')],
                       S.sympify('z(t)'): [S.sympify('0'), S.sympify('0')]},
             'Outter': {S.sympify('x(t)'): [v*S.sympify('cos(th(t))'),
-                                           S.sympify('v').subs('v', v)],
+                                           S.sympify(v)],
                        S.sympify('y(t)'): [v*S.sympify('sin(th(t))'),
-                                           S.sympify('v').subs('v', v)],
+                                           S.sympify(v)],
                        S.sympify('th(t)'): [S.sympify('0'), S.sympify('0')],
                        S.sympify('z(t)'): [S.sympify('0'), S.sympify('0')]},
             'Changetheta': {S.sympify('x(t)'): [S.sympify('0'),
                                                 S.sympify('0')],
                             S.sympify('y(t)'): [S.sympify('0'),
                                                 S.sympify('0')],
-                            S.sympify('th(t)'): [S.sympify('2*v').subs('v', v),
+                            S.sympify('th(t)'): [S.sympify(2*v),
                                                  S.sympify('0')],
                             S.sympify('z(t)'): [
                                 S.sympify('(x(t)**2+y(t)**2)*th(t)**3'),
@@ -330,8 +330,7 @@ dynamics = {'Move': {S.sympify('x(t)'): [v*wv*S.sympify('-sin(th(t))'),
                                                   S.sympify('0')],
                               S.sympify('y(t)'): [S.sympify('0'),
                                                   S.sympify('0')],
-                              S.sympify('th(t)'): [S.sympify('wv').subs('wv',
-                                                                        wv),
+                              S.sympify('th(t)'): [S.sympify(wv),
                                                    S.sympify('0')],
                               S.sympify('z(t)'): [S.sympify('0'),
                                                   S.sympify('0')]}}
@@ -385,11 +384,11 @@ class GSHS:
         # First compute the outgoing edges and take them
         if (x**2 + y**2 - v**2 <= -e):
             # Set the outputs
-            th = 0
+            # th = 0
             state = 1           # destination location is Inner
             return state, 0, (x, y, th, z), True
         elif (x**2 + y**2 - v**2 >= e):
-            th = S.pi
+            # th = S.pi
             state = 2           # destination is Outter
             return state, 0, (x, y, th, z), True
         else:
@@ -404,12 +403,12 @@ class GSHS:
         # First compute the outgoing edges and take them
         if (x**2 + y**2 - v**2 >= -e) and (x**2 + y**2 - v**2 <= e):
             # Set the outputs
-            th = float(M.atan(y/x))
+            # th = float(M.atan(y/x))
             state = 0           # destination location is Move
             return state, 0, (x, y, th, z), True
         elif (x**2 + y**2 - v**2 >= e):
             state = 2
-            th = S.pi
+            # th = S.pi
             return state, 0, (x, y, th, z), True
         else:
             g1 = S.sympify('x(t)**2 + y(t)**2') - v**2
@@ -423,12 +422,12 @@ class GSHS:
         # First compute the outgoing edges and take them
         if (x**2 + y**2 - v**2 <= e) and (x**2 + y**2 - v**2 >= -e):
             # Set the outputs
-            th = float(M.atan(y/x))
+            # th = float(M.atan(y/x))
             state = 0           # destination location is Move
             return state, 0, (x, y, th, z), True
         elif x**2 + y**2 - v**2 <= -e:
             state = 1           # Destination Inner
-            th = 0
+            # th = 0
             return state, 0, (x, y, th, z), True
             pass
         else:
@@ -465,6 +464,7 @@ class GSHS:
     def ThetaNochange(x, y, th, z, t, dWts, first_time):
         if (x**2 + y**2 - v**2 <= -e) or (x**2 + y**2 - v**2 >= e):
             z = 0
+            th = float(M.atan(y/x))
             state = 0           # Dest Changetheta
             return state, 0, (x, y, th, z), True
         else:
@@ -538,27 +538,34 @@ def main(x, y, th, z, t):
         nstate2, T2, (x2, y2, th2, z2), FT2 = THETA_loc[state2](x, y,
                                                                 th, z, t, dWts,
                                                                 FT2)
-        # Compute the values of x, y, th, z at T
-        # FIXME: HOW DO WE HANDLE SHARED VARIABLE UPDATES!
-        if T2 <= T1:
-            T = T2
-            [x, y] = [Compute.EM(vars[i], dynamics[XY_strloc[state1]][i][0],
-                                 dynamics[XY_strloc[state1]][i][1],
-                                 T, T/R, dWts[i], vars, t)
-                      for i in [S.sympify('x(t)'), S.sympify('y(t)')]]
-            th = th2
-            z = z2
-        elif T1 <= T2:
-            T = T1
-            # XXX: This is a hack!
-            if nstate1 != 'Move':
+        if not FT1 and not FT2:
+            # Intra-Intra
+            if T2 <= T1:
+                T = T2
+                [x, y] = [Compute.EM(vars[i],
+                                     dynamics[XY_strloc[state1]][i][0],
+                                     dynamics[XY_strloc[state1]][i][1],
+                                     T, T/R, dWts[i], vars, t)
+                          for i in [S.sympify('x(t)'), S.sympify('y(t)')]]
+                th, z = th2, z2
+            elif T1 <= T2:
+                T = T1
                 [th, z] = [Compute.EM(vars[i],
                                       dynamics[THETA_strloc[state2]][i][0],
                                       dynamics[THETA_strloc[state2]][i][1],
                                       T, T/R, dWts[i], vars, t)
                            for i in [S.sympify('th(t)'), S.sympify('z(t)')]]
-            x = x1
-            y = y1
+                x, y = x1, y1
+        elif not FT1 and FT2:
+            # Intra-Inter
+            x, y, th, z = x, y, th2, z2
+        elif FT1 and not FT2:
+            # Inter-Intra
+            x, y, th, z = x1, y1, th, z
+        elif FT1 and FT2:
+            # Inter-Inter
+            x, y, th, z = x1, y1, th2, z2
+
         # Set the new states
         state1 = nstate1
         state2 = nstate2
