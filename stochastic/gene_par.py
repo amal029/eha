@@ -3,7 +3,7 @@
 import sympy as S
 import numpy
 import matplotlib.pyplot as plt
-from sdesolver import Compute
+from src.sdesolver import Compute
 
 
 # Total simulation time
@@ -126,6 +126,20 @@ def main(x, z, t):
             return xs, ts
 
 
+def set_plt_params():
+    plt.rcParams['font.family'] = 'serif'
+    plt.rcParams['font.serif'] = 'Ubuntu'
+    plt.rcParams['font.monospace'] = 'Ubuntu Mono'
+    plt.rcParams['font.size'] = 10
+    plt.rcParams['axes.labelsize'] = 10
+    plt.rcParams['axes.labelweight'] = 'bold'
+    plt.rcParams['axes.titlesize'] = 10
+    plt.rcParams['xtick.labelsize'] = 8
+    plt.rcParams['ytick.labelsize'] = 8
+    plt.rcParams['legend.fontsize'] = 10
+    plt.rcParams['figure.titlesize'] = 12
+
+
 if __name__ == '__main__':
     numpy.random.seed(0)
     x = 0
@@ -133,9 +147,10 @@ if __name__ == '__main__':
     t = 0
     xs, ts = main(x, z, t)
     print('count:', len(ts))
+    set_plt_params()
     plt.style.use('ggplot')
     plt.plot(ts, xs)
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x$ (units)', fontweight='bold')
-    # plt.savefig('/tmp/robot.pdf', bbox_inches='tight')
+    plt.savefig('/tmp/gene.pdf', bbox_inches='tight')
     plt.show()
