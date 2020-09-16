@@ -354,10 +354,11 @@ class Compute:
             root1 = optimize.root(lambda x: leq1(x[0]), 0, method='hybr')
             if root1.success:
                 root1 = root1.x[0]
+                # print('r1:', root1)
             else:
                 root1 = None
         if root1 is not None and M.im(root1) <= Compute.epsilon:
-            root1 = M.re(root1) if M.re(root1) >= 0 else None
+            root1 = M.re(root1) if M.re(root1) > 0 else None
         else:
             root1 = None
 
@@ -374,10 +375,11 @@ class Compute:
             root2 = optimize.root(lambda x: leq2(x[0]), 0, method='lm')
             if root2.success:
                 root2 = root2.x[0]
+                # print('r2:', root2)
             else:
                 root2 = None
         if root2 is not None and M.im(root2) <= Compute.epsilon:
-            root2 = M.re(root2) if M.re(root2) >= 0 else None
+            root2 = M.re(root2) if M.re(root2) > 0 else None
         else:
             root2 = None
         Dtv = None
@@ -390,6 +392,7 @@ class Compute:
         else:
             print('Non positive root detected for %s' % expr)
             print('root1: %s, root2: %s' % (root1, root2))
+        # print('Dtv:', Dtv)
         return Dtv
 
     @staticmethod
