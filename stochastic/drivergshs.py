@@ -46,7 +46,7 @@ class GSHS:
 
     @staticmethod
     def S1(x, t, dWts):
-        if S.cos(x) >= -e and S.cos(x) <= e:
+        if abs(S.cos(x)) <= e:
             state = 3           # Destination S3
             return state, 0, (x,)
         elif S.cos(x) >= e:
@@ -60,7 +60,7 @@ class GSHS:
 
     @staticmethod
     def S2(x, t, dWts):
-        if S.cos(x) >= 0 and S.cos(x) <= e:
+        if abs(S.cos(x)) <= e:
             state = 3
             return state, 0, (x,)
         elif S.cos(x) <= -e:
