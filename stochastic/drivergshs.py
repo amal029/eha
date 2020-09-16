@@ -46,7 +46,7 @@ class GSHS:
 
     @staticmethod
     def S1(x, t, dWts):
-        if S.cos(x) >= -e and S.cos(x) <= 0:
+        if S.cos(x) >= -e and S.cos(x) <= e:
             state = 3           # Destination S3
             return state, 0, (x,)
         elif S.cos(x) >= e:
@@ -131,8 +131,10 @@ def set_plt_params():
 
 
 if __name__ == '__main__':
-    # 4580, 4585 possible seed options
-    np.random.seed(4580)
+    # 4580, 4585, 4907 (preferred)
+    Compute.ROOT_FUNC = 'mpmath'
+    Compute.DEFAULT_STEP = 1
+    np.random.seed(4907)
     x = 0.5
     t = 0
     xs, ts = main(x, t)

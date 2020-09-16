@@ -344,7 +344,6 @@ class Compute:
         dtc = f.collect(dt).coeff(dt, 1)
         eq = (f - dtc*dt)**2 - (K - dtc*dt)**2
         eq = eq.expand().evalf()
-        # print(eq)
         # raise Exception
         return eq
 
@@ -352,7 +351,7 @@ class Compute:
     # XXX: We should convert the radical function into a poylnomial
     def getroot(dt, eq1, eq2, expr):
         if Compute.ROOT_FUNC == 'mpmath':
-            leq1 = S.lambdify(dt, eq1, [{'sqrt': M.sqrt}, 'mpmath'])
+            leq1 = S.lambdify(dt, eq1, 'mpmath')
             try:
                 root1 = M.findroot(leq1, 0.0, solver='secant',
                                    tol=Compute.epsilon,
@@ -373,7 +372,7 @@ class Compute:
             root1 = None
 
         if Compute.ROOT_FUNC == 'mpmath':
-            leq2 = S.lambdify(dt, eq2, [{'sqrt': M.sqrt}, 'mpmath'])
+            leq2 = S.lambdify(dt, eq2, 'mpmath')
             try:
                 root2 = M.findroot(leq2, 0, solver='secant',
                                    tol=Compute.epsilon,
