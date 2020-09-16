@@ -339,6 +339,16 @@ class Compute:
         return eq
 
     @staticmethod
+    def build_eq_g(dt, fp, sp, K):
+        f = fp + sp
+        dtc = f.collect(dt).coeff(dt, 1)
+        eq = (f - dtc*dt)**2 - (K - dtc*dt)**2
+        eq = eq.expand().evalf()
+        # print(eq)
+        # raise Exception
+        return eq
+
+    @staticmethod
     # XXX: We should convert the radical function into a poylnomial
     def getroot(dt, eq1, eq2, expr):
         if Compute.ROOT_FUNC == 'mpmath':
@@ -491,6 +501,8 @@ class Compute:
         sp = 0.5*((dvars*hessian*dvars.transpose())[0])
         # print('fp:', fp)
         # print('sp:', sp)
+
+        # FIXME: This is where we should separate things.
         ddeps = {i.diff(t): deps[i][0]*dt+deps[i][1]*dWt[i] for i in deps}
 
         # XXX: Now replace the derivates with their equivalents
@@ -567,8 +579,8 @@ class Compute:
         # XXX: Now the real computation of the time step
         count = 0
         while(True):
-            eq1 = Compute.build_eq(f, L)
-            eq2 = Compute.build_eq(f, -L)
+            eq1 = Compute.build_eq_g(dt, fp, sp, L)
+            eq2 = Compute.build_eq_g(dt, fp, sp, -L)
             Dtv = Compute.getroot(dt, eq1, eq2, expr)
 
             if Dtv is None:

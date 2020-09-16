@@ -330,4 +330,4 @@ if __name__ == '__main__':
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x^2+y^2$ (units)', fontweight='bold')
     plt.savefig('/tmp/robot.pdf', bbox_inches='tight')
-    # plt.show()
+    plt.show()

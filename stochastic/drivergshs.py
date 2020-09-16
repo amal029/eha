@@ -131,9 +131,8 @@ def set_plt_params():
 
 
 if __name__ == '__main__':
-    # 49, 118949 possible seed options
-    # Compute.ROOT_FUNC = 'mpmath'
-    np.random.seed(118949)
+    # 4580, 4585 possible seed options
+    np.random.seed(4580)
     x = 0.5
     t = 0
     xs, ts = main(x, t)
