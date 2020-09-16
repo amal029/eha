@@ -306,6 +306,7 @@ class Compute:
     DEFAULT_STEP = 1
     p = 3
     R = 2**p
+    ROOT_FUNC = 'scipy'
 
     @staticmethod
     def var_compute(deps=None, dWts=None, vars=None,
@@ -338,25 +339,43 @@ class Compute:
         return eq
 
     @staticmethod
-    def getroot(leq1, leq2, expr):
-        # root1 = M.findroot(leq1, 0, solver='secant', tol=Compute.epsilon,
-        #                    verify=True)
-        root1 = optimize.root(lambda x: leq1(x[0]), 0, method='hybr')
-        if root1.success:
-            root1 = root1.x[0]
+    # XXX: We should convert the radical function into a poylnomial
+    def getroot(dt, eq1, eq2, expr):
+        if Compute.ROOT_FUNC == 'mpmath':
+            leq1 = S.lambdify(dt, eq1, [{'sqrt': M.sqrt}, 'mpmath'])
+            try:
+                root1 = M.findroot(leq1, 0.0, solver='secant',
+                                   tol=Compute.epsilon,
+                                   verify=True)
+            except ValueError:
+                root1 = None
         else:
-            root1 = None
-            # raise Exception('Could not find a root')
+            leq1 = S.lambdify(dt, eq1, 'scipy')
+            root1 = optimize.root(lambda x: leq1(x[0]), 0, method='hybr')
+            if root1.success:
+                root1 = root1.x[0]
+            else:
+                root1 = None
         if root1 is not None and M.im(root1) <= Compute.epsilon:
             root1 = M.re(root1) if M.re(root1) >= 0 else None
         else:
             root1 = None
-        root2 = optimize.root(lambda x: leq2(x[0]), 0, method='lm')
-        if root2.success:
-            root2 = root2.x[0]
+
+        if Compute.ROOT_FUNC == 'mpmath':
+            leq2 = S.lambdify(dt, eq2, [{'sqrt': M.sqrt}, 'mpmath'])
+            try:
+                root2 = M.findroot(leq2, 0, solver='secant',
+                                   tol=Compute.epsilon,
+                                   verify=True)
+            except ValueError:
+                root2 = None
         else:
-            root2 = None
-            # raise Exception('Could not find a root')
+            leq2 = S.lambdify(dt, eq2, 'scipy')
+            root2 = optimize.root(lambda x: leq2(x[0]), 0, method='lm')
+            if root2.success:
+                root2 = root2.x[0]
+            else:
+                root2 = None
         if root2 is not None and M.im(root2) <= Compute.epsilon:
             root2 = M.re(root2) if M.re(root2) >= 0 else None
         else:
@@ -406,11 +425,11 @@ class Compute:
         count = 0
         while(True):
             eq1 = Compute.build_eq(f, L)
-            leq1 = S.lambdify(Dt, eq1, 'scipy')
+            # leq1 = S.lambdify(Dt, eq1, 'scipy')
             # This is the second equation
             eq2 = Compute.build_eq(f, -L)
-            leq2 = S.lambdify(Dt, eq2, 'scipy')
-            Dtv = Compute.getroot(leq1, leq2, left.diff(t))
+            # leq2 = S.lambdify(Dt, eq2, 'scipy')
+            Dtv = Compute.getroot(Dt, eq1, eq2, left.diff(t))
             # XXX: This can be problematic
             if Dtv is None:
                 return np.inf, vars
@@ -546,10 +565,8 @@ class Compute:
         count = 0
         while(True):
             eq1 = Compute.build_eq(f, L)
-            leq1 = S.lambdify(dt, eq1, 'scipy')
             eq2 = Compute.build_eq(f, -L)
-            leq2 = S.lambdify(dt, eq2, 'scipy')
-            Dtv = Compute.getroot(leq1, leq2, expr)
+            Dtv = Compute.getroot(dt, eq1, eq2, expr)
 
             if Dtv is None:
                 print('choosing Dz!', Dz)
