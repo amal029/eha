@@ -310,6 +310,7 @@ def main(x, y, th, z, t):
 
 if __name__ == '__main__':
     # the random seed
+    Compute.ROOT_FUNC = 'mpmath'
     Compute.DEFAULT_STEP = 1e-1
     numpy.random.seed(0)
     # These are the initial values

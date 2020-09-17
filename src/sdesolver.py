@@ -339,12 +339,13 @@ class Compute:
         return eq
 
     @staticmethod
-    def build_eq_g(dt, fp, sp, K):
+    # XXX: We have the proof of correctness for this one.
+    def build_eq_g(dt, fp, sp, L, t):
         f = fp + sp
-        dtc = f.collect(dt).coeff(dt, 1)
-        eq = (f - dtc*dt)**2 - (K - dtc*dt)**2
+        fe = f.evalf()
+        dtc = fe.collect(dt).coeff(dt, 1)
+        eq = (-dtc*dt - L)**2 - (f - dtc*dt)**2
         eq = eq.expand().evalf()
-        # raise Exception
         return eq
 
     @staticmethod
@@ -354,7 +355,7 @@ class Compute:
             leq1 = S.lambdify(dt, eq1, 'mpmath')
             try:
                 root1 = M.findroot(leq1, 0.0, solver='secant',
-                                   tol=Compute.epsilon,
+                                   # tol=Compute.epsilon,
                                    verify=True)
             except ValueError:
                 root1 = None
@@ -375,7 +376,7 @@ class Compute:
             leq2 = S.lambdify(dt, eq2, 'mpmath')
             try:
                 root2 = M.findroot(leq2, 0, solver='secant',
-                                   tol=Compute.epsilon,
+                                   # tol=Compute.epsilon,
                                    verify=True)
             except ValueError:
                 root2 = None
@@ -561,7 +562,7 @@ class Compute:
         # print('gv:', gv)
 
         # XXX: Now we can start solving for the root
-        L = -gv
+        L = gv
 
         # XXX: If I use second order here, but then I use a first order
         # approximation when actually doing things then stuff goes
@@ -578,8 +579,8 @@ class Compute:
         # XXX: Now the real computation of the time step
         count = 0
         while(True):
-            eq1 = Compute.build_eq_g(dt, fp, sp, L)
-            eq2 = Compute.build_eq_g(dt, fp, sp, -L)
+            eq1 = Compute.build_eq_g(dt, fp, sp, L, T)
+            eq2 = Compute.build_eq_g(dt, fp, sp, -L, T)
             Dtv = Compute.getroot(dt, eq1, eq2, expr)
 
             if Dtv is None:
