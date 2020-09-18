@@ -22,12 +22,10 @@ ku = 0.001
 kd = 0.01
 kb = 0.01
 
-dynamics = {'X0': {S.sympify('x(t)'): [S.sympify(kp), S.sympify(0)],
+dynamics = {'X0': {S.sympify('x(t)'): [kp-kd*S.sympify('x(t)'), S.sympify(0)],
                    S.sympify('z(t)'): [kb*S.sympify('x(t)'), S.sympify(0)]},
-            'X1': {S.sympify('x(t)'): [S.sympify(0), S.sympify(0)],
-                   S.sympify('z(t)'): [S.sympify(ku), S.sympify(0)]},
-            'D': {S.sympify('x(t)'): [-kd*S.sympify('x(t)'), S.sympify(0)],
-                  S.sympify('z(t)'): [S.sympify(0), S.sympify(0)]}}
+            'X1': {S.sympify('x(t)'): [-kd*S.sympify('x(t)'), S.sympify(0)],
+                   S.sympify('z(t)'): [S.sympify(ku), S.sympify(0)]}}
 
 
 class GSHS:
@@ -92,11 +90,6 @@ class GSHS:
             T, vars = GSHS.__compute(x, z, t, dWts, 'X1', [], Uz)
             return 1, T, vars, False
 
-    @staticmethod
-    def D(x, z, t, dWts, FT):
-        T, vars = GSHS.__compute(x, z, t, dWts, 'D', [], None)
-        return 0, T, vars, False
-
 
 def main(x, z, t):
     X_loc = {
@@ -107,70 +100,28 @@ def main(x, z, t):
         0: 'X0',
         1: 'X1',
     }
-    D_loc = {0: GSHS.D}
-    D_strloc = {0: 'D'}
 
     state = 0
-    state2 = 0
 
     # Print the outputs
-    print('%.4f: Locs:(%s, %s), x:%s, z:%s' %
-          (t, X_strloc[state], D_strloc[state2], x, z))
+    print('%.4f: Locs:%s, x:%s, z:%s' % (t, X_strloc[state], x, z))
 
     FT1 = True
-    FT2 = True
-
     xs = []
     ts = []
-
     while(True):
         # Create dWt
         dWts = {S.sympify('x(t)'): numpy.zeros(R),
                 S.sympify('z(t)'): numpy.zeros(R)}
 
-        vars = {S.sympify('x(t)'): x,
-                S.sympify('z(t)'): z}
-
         # Call the dynamics and run these until some time
-        state, T1, (x1, z1), FT1 = X_loc[state](x, z, t, dWts, FT1)
-        state2, T2, (x2, _), FT2 = D_loc[state2](x, z, t, dWts, FT2)
-
-        # print(x1, x2)
-        # print('T1, T2', T1, T2)
-
-        # Update depending upon which one is smaller
-        if not FT1 and not FT2:
-            if T2 <= T1:
-                T = T2
-                [x1, z] = [Compute.EM(vars[i],
-                                      dynamics[X_strloc[state]][i][0],
-                                      dynamics[X_strloc[state]][i][1],
-                                      T, T/Compute.R, dWts[i], vars, t)
-                           for i in [S.sympify('x(t)'), S.sympify('z(t)')]]
-            elif T1 <= T2:
-                T = T1
-                [x2] = [Compute.EM(vars[i],
-                                   dynamics[D_strloc[state2]][i][0],
-                                   dynamics[D_strloc[state2]][i][1],
-                                   T, T/Compute.R, dWts[i], vars, t)
-                        for i in [S.sympify('x(t)')]]
-                # print('new x2:', x2)
-                z = z1
-            # Combination like Esterel with `+'
-            x = x1 + x2 - vars[S.sympify('x(t)')]
-        elif FT1 and not FT2:
-            z = z1
-            x = x1          # Because T1 = 0
-        else:
-            raise Exception('HA2 cannot take a transition')
+        state, T, (x, z), FT1 = X_loc[state](x, z, t, dWts, FT1)
 
         xs.append(x)
         ts.append(t)
-        t += min(T1, T2)
+        t += T
 
-        print('%.4f: Locs:(%s, %s), x:%s, z:%s' %
-              (t, X_strloc[state], D_strloc[state2], x, z))
-
+        print('%.4f: Locs:%s, x:%s, z:%s' % (t, X_strloc[state], x, z))
         if t >= SIM_TIME:
             return xs, ts
 
@@ -190,7 +141,6 @@ def set_plt_params():
 
 
 if __name__ == '__main__':
-    Compute.DEFAULT_STEP = 1
     numpy.random.seed(0)
     x = 0
     z = 0
