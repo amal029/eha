@@ -346,7 +346,22 @@ class Compute:
         dtc = fe.collect(dt).coeff(dt, 1)
         eq = (-dtc*dt - L)**2 - (f - dtc*dt)**2
         eq = eq.expand().evalf()
-        return eq
+        eqc = eq.collect(dt)
+        a = eqc.coeff(dt, 2)
+        b = eqc.coeff(dt, 1)
+        c = eqc.coeff(dt, 0)
+        D = b**2 - 4*a*c
+        root = None
+        if D >= 0:
+            root1 = (-b + M.sqrt(D))/(2*a)
+            root2 = (-b - M.sqrt(D))/(2*a)
+            if root1 > 0 and root2 > 0:
+                root = min(root1, root2)
+            elif root1 > 0:
+                root = root1
+            elif root2 > 0:
+                root2 = root
+        return eq, root
 
     @staticmethod
     # XXX: We should convert the radical function into a poylnomial
@@ -579,9 +594,16 @@ class Compute:
         # XXX: Now the real computation of the time step
         count = 0
         while(True):
-            eq1 = Compute.build_eq_g(dt, fp, sp, L, T)
-            eq2 = Compute.build_eq_g(dt, fp, sp, -L, T)
-            Dtv = Compute.getroot(dt, eq1, eq2, expr)
+            eq1, root1 = Compute.build_eq_g(dt, fp, sp, L, T)
+            eq2, root2 = Compute.build_eq_g(dt, fp, sp, -L, T)
+            if root1 is not None and root2 is not None:
+                Dtv = M.mpf(min(root1, root2))
+            elif root1 is not None:
+                Dtv = M.mpf(root1)
+            elif root2 is not None:
+                Dtv = M.mpf(root2)
+            else:
+                Dtv = Compute.getroot(dt, eq1, eq2, expr)
 
             if Dtv is None:
                 print('choosing Dz!', Dz)
