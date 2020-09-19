@@ -9,15 +9,10 @@ from src.sdesolver import Compute
 # Total simulation time
 SIM_TIME = 1.2
 
-# Defining the dynamics in different modes
 # The constants in the HA
 v = 4
 wv = 0.1
 e = 1e-1
-
-# The length of the stochastic path
-# p = 3
-# R = 2**p
 
 # Mode move
 # We have drift and diffusion dynamics in all cases

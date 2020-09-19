@@ -603,6 +603,7 @@ class Compute:
             elif root2 is not None:
                 Dtv = M.mpf(root2)
             else:
+                raise Exception
                 Dtv = Compute.getroot(dt, eq1, eq2, expr)
 
             if Dtv is None:
