@@ -563,6 +563,12 @@ class Compute:
             sp = sp.subs(dWt[i]**2, dt)
         # print(sp)
 
+        # XXX: Substitute the final Ito's lemma condition dWt1*dWt2 = 0
+        # We consider uncorrelated wiener processes.
+        for i in dWts:
+            for j in dWts:
+                sp = sp.subs(dWt[i]*dWt[j], 0) if i != j else sp
+
         # Finally, substitute dWts, independently
         ddWts = {str('dWt_%s' % i.func): np.sum(dWts[i])*S.sqrt(dt/Compute.R)
                  for i in dWts}
