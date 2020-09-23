@@ -13,8 +13,8 @@ SIM_TIME = 2000.0
 e = 1e-1
 
 # The length of the stochastic path
-p = 3
-R = 2**p
+# p = 3
+# R = 2**p
 
 # Constants
 kp = 1
@@ -125,8 +125,8 @@ def main(x, z, t):
 
     while(True):
         # Create dWt
-        dWts = {S.sympify('x(t)'): numpy.zeros(R),
-                S.sympify('z(t)'): numpy.zeros(R)}
+        dWts = {S.sympify('x(t)'): numpy.zeros(Compute.R),
+                S.sympify('z(t)'): numpy.zeros(Compute.R)}
 
         vars = {S.sympify('x(t)'): x,
                 S.sympify('z(t)'): z}
@@ -190,7 +190,7 @@ def set_plt_params():
 
 
 if __name__ == '__main__':
-    Compute.DEFAULT_STEP = 1
+    # Compute.DEFAULT_STEP = 1
     numpy.random.seed(0)
     x = 0
     z = 0
