@@ -134,8 +134,8 @@ def main(x1, x2, v1, t):
         state, T, (x1, x2, v1) = X_loc[state](x1, x2, v1, t, dWts)
 
         xs.append((x1, x2, v1))
-        ts.append(t)
         t += T
+        ts.append(t)
 
         print('%.4f: Loc:%s, (x1, x2, v1):(%s, %s, %s)' % (t, X_strloc[state],
                                                            x1, x2, v1))
@@ -160,7 +160,6 @@ def set_plt_params():
 if __name__ == '__main__':
     Compute.ROOT_FUNC = 'mpmath'
     Compute.DEFAULT_STEP = 1.0
-    # Seed 1, 4 with 1.0 step seems one option
     # np.random.seed(10010)
     np.random.seed(4)
     x1 = 1
@@ -175,9 +174,8 @@ if __name__ == '__main__':
     x2s = [x[1] for x in xs]
     v1s = [x[2] for x in xs]
     ax = plt.subplot(111)
-    ax.plot(ts, x1s, label=r'$x1_{pos}$')
+    ax.plot(ts, x1s, label=r'$x1_{pos}$',)
     ax.plot(ts, x2s, label=r'$x2_{pos}$')
-    # ax.plot(ts, v1s, label='v1_velocity')
     ax.legend()
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$Position$ (units)', fontweight='bold')
