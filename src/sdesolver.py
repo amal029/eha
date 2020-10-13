@@ -352,7 +352,7 @@ class Compute:
         c = eqc.coeff(dt, 0)
         D = b**2 - 4*a*c
         root = None
-        if D >= 0:
+        if D >= 0 and a != 0:
             root1 = (-b + M.sqrt(D))/(2*a)
             root2 = (-b - M.sqrt(D))/(2*a)
             if root1 > 0 and root2 > 0:
@@ -361,6 +361,9 @@ class Compute:
                 root = root1
             elif root2 > 0:
                 root2 = root
+        else:
+            # FIXME: Need to fix this to be the linear equation.
+            root = np.inf
         return eq, root
 
     @staticmethod
