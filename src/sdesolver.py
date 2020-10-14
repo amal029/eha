@@ -361,8 +361,12 @@ class Compute:
                 root = root1
             elif root2 > 0:
                 root2 = root
+        # elif D >= 0 and a == 0:
+        #     # FIXME: Need to fix this to be the linear equation.
+        #     # print('DANGER:', a, b, c)
+        #     root = -c/b
+        #     print(root)
         else:
-            # FIXME: Need to fix this to be the linear equation.
             root = np.inf
         return eq, root
 

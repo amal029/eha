@@ -159,7 +159,7 @@ def set_plt_params():
 
 if __name__ == '__main__':
     Compute.ROOT_FUNC = 'mpmath'
-    Compute.DEFAULT_STEP = 1.0
+    Compute.DEFAULT_STEP = 1
     # np.random.seed(10010)
     np.random.seed(4)
     x1 = 1
@@ -174,8 +174,8 @@ if __name__ == '__main__':
     x2s = [x[1] for x in xs]
     v1s = [x[2] for x in xs]
     ax = plt.subplot(111)
-    ax.plot(ts, x1s, label=r'$x1_{pos}$',)
-    ax.plot(ts, x2s, label=r'$x2_{pos}$')
+    ax.plot(ts, x2s, label=r'$x1_{pos}$')
+    ax.plot(ts, x1s, label=r'$x2_{pos}$',)
     ax.legend()
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$Position$ (units)', fontweight='bold')
