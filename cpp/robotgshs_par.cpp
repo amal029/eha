@@ -174,8 +174,6 @@ int main() {
     }
     else if(!ft1 && ft2){
       // XXX: Intra-Inter
-      xval = xval;
-      yval = yval;
       thval = toret2["th"];
       zval = toret2["z"];
     }
@@ -183,8 +181,6 @@ int main() {
       // XXX: Inter-Intra
       xval = toret1["x"];
       yval = toret1["y"];
-      thval = thval;
-      zval = zval;
     }
     else if (ft1 && ft2){
      // XXX: Inter-Inter 
