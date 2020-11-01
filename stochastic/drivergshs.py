@@ -133,7 +133,7 @@ def set_plt_params():
 if __name__ == '__main__':
     Compute.ROOT_FUNC = 'mpmath'
     Compute.DEFAULT_STEP = 1
-    # np.random.seed(4907)
+    np.random.seed(4907)
     x = 0.5
     t = 0
     xs, ts = main(x, t)
