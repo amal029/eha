@@ -176,16 +176,20 @@ int main(void) {
       }
     } else if (!ft1 && ft2) {
       // XXX: Intra-Inter
-      xval = xval, yval = yval;
-      thval = toret2["th"], zval = toret2["z"];
-    } else if (ft1 and !ft2) {
+      thval = toret2["th"];
+      zval = toret2["z"];
+    }
+    else if (ft1 and !ft2){
       // XXX: Inter-Intra
-      xval = toret1["x"], yval = toret1["y"];
-      thval = thval, zval = zval;
-    } else if (ft1 && ft2) {
-      // XXX: Inter-Inter 
-      xval = toret1["x"], yval = toret1["y"];
-      thval = toret2["th"], zval = toret2["z"];
+      xval = toret1["x"];
+      yval = toret1["y"];
+    }
+    else if (ft1 && ft2){
+     // XXX: Inter-Inter 
+      xval = toret1["x"];
+      yval = toret1["y"];
+      thval = toret2["th"];
+      zval = toret2["z"];
     }
 
     // XXX: Set the next state
