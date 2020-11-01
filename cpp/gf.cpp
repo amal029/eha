@@ -139,7 +139,7 @@ int main() {
     dWts[y.get_name()] = std::vector<double>(R, 0);
     randn(dWts[y.get_name()]);
     dWts[th.get_name()] = std::vector<double>(R, 0);
-    randn(dWts[z.get_name()]);
+    randn(dWts[th.get_name()]);
     dWts[z.get_name()] = std::vector<double>(R, 0);
 
     // Calling the HIOAs
