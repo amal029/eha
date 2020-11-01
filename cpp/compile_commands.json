@@ -1,5 +1,5 @@
 [
     { "directory": "/tmp/tt",
-      "command": "g++ -std=c++2a -I/usr/local/Cellar/ginac/1.8.0/include -I/usr/local/Cellar/cln/1.3.6/include -L/usr/local/Cellar/ginac/1.8.0/lib/ -L/usr/local/Cellar/cln/1.3.6/lib -O3 gf.cpp -o gf -lcln -lginac",
-      "file": "gf.cpp" }
+      "command": "g++ -std=c++2a -I/usr/local/Cellar/ginac/1.8.0/include -I/usr/local/Cellar/cln/1.3.6/include -L/usr/local/Cellar/ginac/1.8.0/lib/ -L/usr/local/Cellar/cln/1.3.6/lib -O3 robotgshs_par.cpp -o robot -lcln -lginac",
+      "file": "robotgshs_par.cpp" }
 ]
