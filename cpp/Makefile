@@ -3,7 +3,7 @@ SHELL=/bin/bash
 # SRCS=gf.cpp
 OBJS = robotgshs_par.o
 CFLAG = -O3 -Wundefined-var-template
-ifeq ($(TARGET), LINUX)
+ifeq ($(TARGET), OSX)
 	CC = g++ -std=c++2a
 else
 	CC = clang++ -std=c++2a
