@@ -52,7 +52,7 @@ double HIOA2(const symbol &x, const symbol &y, const symbol &z,
   return step;
 }
 
-int main() {
+int main(void) {
   // Initialize the random seed
   srand(0);
 
@@ -93,10 +93,8 @@ int main() {
   double thval = atan(yval / xval);
 
   // The variable map
-  std::map<string, double> vars{{x.get_name(), xval},
-                                {y.get_name(), yval},
-                                {z.get_name(), zval},
-                                {th.get_name(), thval}};
+  std::map<string, double> vars;
+
   // Now call the HIOA with the initial values
   bool ft1 = true;
   bool ft2 = true;
@@ -140,10 +138,10 @@ int main() {
   std::map<string, double> toret2 = toret1;
 
   // XXX: Plotting vectors
-  std::vector<double> xs {xval};
-  std::vector<double> ys {yval};
-  std::vector<double> zs {zval};
-  std::vector<double> ths {thval};
+  std::list<double> xs{xval};
+  std::list<double> ys{yval};
+  std::list<double> zs{zval};
+  std::list<double> ths{thval};
 
   // Now run until completion
   while (time <= SIM_TIME) {
@@ -158,6 +156,12 @@ int main() {
     randn(dWts[th.get_name()]);
     dWts[z.get_name()] = std::vector<double>(R, 0);
 
+    // XXX: Set the variables
+    vars["x"] = xval;
+    vars["y"] = yval;
+    vars["z"] = zval;
+    vars["th"] = thval;
+
     // Calling the HIOAs
     double d1 = HIOA1(x, y, z, th, ders, vars, ft1, cs1, ns1, toret1);
     double d2 = HIOA2(x, y, z, th, ders, vars, ft2, cs2, ns2, toret2);
@@ -166,39 +170,23 @@ int main() {
     if (!ft1 && !ft2) {
       // XXX: Intra-Intra
       if (d2 <= d1) {
-	// XXX: Compute Euler-Maruyama
+        // XXX: Compute Euler-Maruyama
+      } else if (d1 <= d2) {
+        // XXX: Compute Euler-Maruyama
       }
-      else if(d1 <= d2){
-	// XXX: Compute Euler-Maruyama
-      }
-    }
-    else if(!ft1 && ft2){
+    } else if (!ft1 && ft2) {
       // XXX: Intra-Inter
-      xval = xval;
-      yval = yval;
-      thval = toret2["th"];
-      zval = toret2["z"];
-    }
-    else if (ft1 and !ft2){
+      xval = xval, yval = yval;
+      thval = toret2["th"], zval = toret2["z"];
+    } else if (ft1 and !ft2) {
       // XXX: Inter-Intra
-      xval = toret1["x"];
-      yval = toret1["y"];
-      thval = thval;
-      zval = zval;
+      xval = toret1["x"], yval = toret1["y"];
+      thval = thval, zval = zval;
+    } else if (ft1 && ft2) {
+      // XXX: Inter-Inter 
+      xval = toret1["x"], yval = toret1["y"];
+      thval = toret2["th"], zval = toret2["z"];
     }
-    else if (ft1 && ft2){
-     // XXX: Inter-Inter 
-      xval = toret1["x"];
-      yval = toret1["y"];
-      thval = toret2["th"];
-      zval = toret2["z"];
-    }
-
-    // XXX: Set the variables
-    vars["x"] = xval;
-    vars["y"] = yval;
-    vars["z"] = zval;
-    vars["th"] = thval;
 
     // XXX: Set the next state
     cs1 = ns1;
