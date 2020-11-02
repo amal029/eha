@@ -7,6 +7,15 @@
 using namespace std;
 using namespace GiNaC;
 
+// Initialize the random number generator
+std::random_device rd{};
+std::mt19937 gen{rd()};
+std::normal_distribution<> d{0, 1};
+
+// The standard uniform distribution for jump edges
+std::uniform_real_distribution<> dis(0.0, 1.0);
+
+
 // Give the prints operation for the cout for derivatives
 ostream& operator << (ostream &out, const std::map<string, lst> &var) {
   for (auto it = var.begin(); it != var.end(); ++it) {
@@ -20,26 +29,92 @@ int p = 2;
 int R = std::pow(2, p);
 
 // The enumeration for the states of the system
-enum STATES {MOVE=0, INNER=1, OUTTER=2, CT=3, NCT=4};
+enum STATES { MOVE = 0, INNER = 1, OUTTER = 2, CT = 3, NCT = 4 };
 
 // The constants
 int v = 4;
 double wv = 0.1;
 double e = 1e-1;
 
-// Now the HIOA itself.
+// This is the robot x, y movement
 double HIOA1(const symbol &x, const symbol &y, const symbol &z,
              const symbol &th,
              const std::map<STATES, std::map<string, lst>> &ders,
              std::map<string, double> &vars, bool &ft1, const STATES &cs,
-             STATES &ns, std::map<string, double> &toret) {
+	     STATES &ns, std::map<string, double> &toret) {
 
   double step = 0;
-  ft1 = false;
-
+  double xval = vars["x"];
+  double yval = vars["y"];
+  double thval = vars["th"];
+  double zval = vars["z"];
+  // XXX: The state machine
+  switch (cs) {
+  case MOVE: {
+    if (xval * xval + yval * yval - v * v <= -e) {
+      // XXX: Inter-transition
+      ns = INNER;
+      step = 0;
+      ft1 = true;
+      toret = vars;
+    } else if (xval * xval + yval * yval - v * v >= e) {
+      // XXX: Inter-transition
+      ns = OUTTER;
+      step = 0;
+      ft1 = true;
+      toret = vars;
+    } else {
+      // XXX: This is the Intra-transition
+      ns = cs;
+      ft1 = false;
+    }
+    break;
+  }
+  case INNER: {
+    if ((xval * xval + yval * yval - v * v >= -e) &&
+        (xval * xval + yval * yval - v * v <= e)) {
+      ns = MOVE;
+      ft1 = true;
+      step = 0;
+      toret = vars;
+    } else if (xval * xval + yval * yval - v * v >= e) {
+      ns = OUTTER;
+      ft1 = true;
+      step = 0;
+      toret = vars;
+    } else {
+      ns = INNER;
+      ft1 = false;
+      // XXX: Euler-Maruyama for step
+    }
+    break;
+  }
+  case OUTTER: {
+    if ((xval * xval + yval * yval - v * v <= e) &&
+        (xval * xval + yval * yval - v * v >= -e)) {
+      ns = MOVE;
+      ft1 = true;
+      step = 0;
+      toret = vars;
+    } else if (xval * xval + yval * yval - v * v <= -e) {
+      ns = INNER;
+      ft1 = true;
+      toret = vars;
+      step = 0;
+    } else {
+      // XXX: Euler-Maruyama step
+      ns = cs;
+      ft1 = false;
+    }
+    break;
+  }
+  default:
+    throw runtime_error("Unknown state entered for XY");
+  }
   return step;
 }
 
+// This is the angle movement
 double HIOA2(const symbol &x, const symbol &y, const symbol &z,
              const symbol &th,
              const std::map<STATES, std::map<string, lst>> &ders,
@@ -47,8 +122,54 @@ double HIOA2(const symbol &x, const symbol &y, const symbol &z,
              std::map<string, double> &toret) {
 
   double step = 0;
-  ft2 = false;
-
+  double xval = vars["x"];
+  double yval = vars["y"];
+  double thval = vars["th"];
+  double zval = vars["z"];
+  switch (cs) {
+  case CT: {
+    static double Uz = 0.0;
+    Uz = ft2 ? -log(dis(gen)) : Uz;
+    if ((xval * xval + yval * yval - v * v <= e) &&
+        (xval * xval + yval * yval - v * v >= -e)) {
+      ns = NCT;
+      ft2 = true;
+      step = 0;
+      toret = vars;
+      toret["z"] = 0;
+    } else if (abs(zval - Uz) <= e) {
+      ns = CT;
+      toret = vars;
+      toret["z"] = 0;
+      toret["th"] = thval - Uz;
+      ft2 = true;
+      step = 0;
+    } else {
+      ns = cs;
+      ft2 = false;
+      // XXX: Euler-Maruyama compute step
+    }
+    break;
+  }
+  case NCT: {
+    if ((xval * xval + yval * yval - v * v <= -e) ||
+        (xval * xval + yval * yval - v * v >= e)) {
+      step = 0;
+      ns = CT;
+      ft2 = true;
+      toret = vars;
+      toret["z"] = 0;
+      toret["th"] = atan(yval / xval);
+    } else {
+      ns = cs;
+      ft2 = false;
+      // XXX: Compute step using EM
+    }
+    break;
+  }
+  default:
+    throw runtime_error("Unknown state entered for θ");
+  }
   return step;
 }
 
@@ -106,13 +227,8 @@ int main(void) {
   // The current and the next state variables
   STATES cs1, cs2, ns1, ns2;
 
-  // Initialize the random number generator
-  std::random_device rd{};
-  std::mt19937 gen{rd()};
-  std::normal_distribution<> d{0, 1};
-
   // XXX: This is returning a copy of the vector tor
-  auto randn = [&gen, &d](std::vector<double> &tor) {
+  auto randn = [](std::vector<double> &tor) {
     for (auto it = tor.begin(); it != tor.end(); ++it)
       *it = d(gen);
   };
