@@ -10,8 +10,9 @@ else
 endif
 INCLUDES = -I/usr/local/Cellar/ginac/1.8.0/include -I/usr/local/Cellar/cln/1.3.6/include
 INCLUDES += -I/usr/local/Cellar/python@3.8/3.8.5/Frameworks/Python.framework/Versions/3.8/include/python3.8
+
 ifeq ($(TARGET), LINUX)
-	INCLUDES +=
+	INCLUDES += -I.
 else
 	INCLUDES += -I/Users/amal029_old/Library/Python/3.8/lib/python/site-packages/numpy/core/include
 endif

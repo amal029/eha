@@ -21,7 +21,8 @@ std::uniform_real_distribution<> dis(0.0, 1.0);
 
 
 // Give the prints operation for the cout for derivatives
-ostream& operator << (ostream &out, const std::map<string, lst> &var) {
+template <typename T>
+ostream &operator<<(ostream &out, const std::map<ex, T> &var) {
   for (auto it = var.begin(); it != var.end(); ++it) {
     out << it->first << ":" << it->second << "\n";
   }
@@ -58,16 +59,16 @@ struct Solver {
     return step;
   }
   double EM(double init, ex f, ex g, double Dt, double dt,
-	    const std::vector<double> &dWts,
-	    const std::map<string, double> &vars,
-	    const double T) const{
+            const std::vector<double> &dWts,
+            const std::map<ex, double, ex_is_less> &vars,
+            const double T) const {
     double res = 0;
     // Build the map for substitution
     exmap v;
     for (auto it = vars.begin(); it != vars.end(); ++it) {
-      v[symbol(it->first)] = it->second;
+      v[it->first] = ex{it->second};
     }
-    v[symbol("t")] = T;
+    v[symbol("t")] = ex{T};
     f = f.subs(v);
     g = g.subs(v);
     res = ex_to<numeric>(
@@ -91,15 +92,16 @@ private:
 double HIOA1(const symbol &x, const symbol &y, const symbol &z,
              const symbol &th,
              const std::map<STATES, std::map<string, lst>> &ders,
-             std::map<string, double> &vars, bool &ft1, const STATES &cs,
-             STATES &ns, std::map<string, double> &toret,
+             std::map<ex, double, ex_is_less> &vars, bool &ft1,
+             const STATES &cs, STATES &ns,
+             std::map<ex, double, ex_is_less> &toret,
              std::map<string, vector<double>> &dWts) {
 
   double step = 0;
-  double xval = vars["x"];
-  double yval = vars["y"];
-  double thval = vars["th"];
-  double zval = vars["z"];
+  double xval = vars[x];
+  double yval = vars[y];
+  double thval = vars[th];
+  double zval = vars[z];
   // XXX: The state machine
   switch (cs) {
   case MOVE: {
@@ -172,15 +174,15 @@ double HIOA1(const symbol &x, const symbol &y, const symbol &z,
 double HIOA2(const symbol &x, const symbol &y, const symbol &z,
              const symbol &th,
              const std::map<STATES, std::map<string, lst>> &ders,
-             std::map<string, double> &vars, bool &ft2, STATES &cs, STATES &ns,
-             std::map<string, double> &toret,
+             std::map<ex, double, ex_is_less> &vars, bool &ft2, STATES &cs,
+             STATES &ns, std::map<ex, double, ex_is_less> &toret,
              std::map<string, vector<double>> &dWts) {
 
   double step = 0;
-  double xval = vars["x"];
-  double yval = vars["y"];
-  double thval = vars["th"];
-  double zval = vars["z"];
+  double xval = vars[x];
+  double yval = vars[y];
+  double thval = vars[th];
+  double zval = vars[z];
   switch (cs) {
   case CT: {
     cout << "Inside CT"
@@ -193,12 +195,12 @@ double HIOA2(const symbol &x, const symbol &y, const symbol &z,
       ft2 = true;
       step = 0;
       toret = vars;
-      toret["z"] = 0;
+      toret[z] = 0;
     } else if (abs(zval - Uz) <= e) {
       ns = CT;
       toret = vars;
-      toret["z"] = 0;
-      toret["th"] = thval - Uz;
+      toret[z] = 0;
+      toret[th] = thval - Uz;
       ft2 = true;
       step = 0;
     } else {
@@ -215,8 +217,8 @@ double HIOA2(const symbol &x, const symbol &y, const symbol &z,
       ns = CT;
       ft2 = true;
       toret = vars;
-      toret["z"] = 0;
-      toret["th"] = atan(yval / xval);
+      toret[z] = 0;
+      toret[th] = atan(yval / xval);
     } else {
       ns = cs;
       ft2 = false;
@@ -271,7 +273,7 @@ int main(void) {
   double thval = atan(yval / xval);
 
   // The variable map
-  std::map<string, double> vars;
+  std::map<ex, double, ex_is_less> vars;
 
   // Now call the HIOA with the initial values
   bool ft1 = true;
@@ -307,8 +309,8 @@ int main(void) {
        << "\n";
 
   // XXX: These are the values returned by the HIOAs
-  std::map<string, double> toret1{{"x", 0.0}, {"y", 0}, {"z", 0}, {"th", 0}};
-  std::map<string, double> toret2 = toret1;
+  std::map<ex, double, ex_is_less> toret1{{x, 0.0}, {y, 0}, {z, 0}, {th, 0}};
+  std::map<ex, double, ex_is_less> toret2 = toret1;
 
   // XXX: Plotting vectors
   std::vector<double> xs{xval};
@@ -331,10 +333,10 @@ int main(void) {
     dWts[z.get_name()] = std::vector<double>(R, 0);
 
     // XXX: Set the variables
-    vars["x"] = xval;
-    vars["y"] = yval;
-    vars["z"] = zval;
-    vars["th"] = thval;
+    vars[x] = xval;
+    vars[y] = yval;
+    vars[z] = zval;
+    vars[th] = thval;
 
     // Calling the HIOAs
     double d1 = HIOA1(x, y, z, th, ders, vars, ft1, cs1, ns1, toret1, dWts);
@@ -350,18 +352,18 @@ int main(void) {
       }
     } else if (!ft1 && ft2) {
       // XXX: Intra-Inter
-      thval = toret2["th"];
-      zval = toret2["z"];
+      thval = toret2[th];
+      zval = toret2[z];
     } else if (ft1 and !ft2) {
       // XXX: Inter-Intra
-      xval = toret1["x"];
-      yval = toret1["y"];
+      xval = toret1[x];
+      yval = toret1[y];
     } else if (ft1 && ft2) {
       // XXX: Inter-Inter
-      xval = toret1["x"];
-      yval = toret1["y"];
-      thval = toret2["th"];
-      zval = toret2["z"];
+      xval = toret1[x];
+      yval = toret1[y];
+      thval = toret2[th];
+      zval = toret2[z];
     }
 
     // XXX: Set the next state
@@ -376,10 +378,10 @@ int main(void) {
     ts.push_back(time);
 
     // XXX: Append to plot later on
-    xs.push_back(vars["x"]);
-    ys.push_back(vars["y"]);
-    zs.push_back(vars["z"]);
-    ths.push_back(vars["th"]);
+    xs.push_back(vars[x]);
+    ys.push_back(vars[y]);
+    zs.push_back(vars[z]);
+    ths.push_back(vars[th]);
   }
 
   // XXX: Now we can plot the values
