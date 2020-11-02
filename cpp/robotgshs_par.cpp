@@ -3,9 +3,13 @@
 #include <cstdlib>
 #include <exception>
 #include <random>
+#include "matplotlibcpp.h"
+#include <numeric>
 
 using namespace std;
 using namespace GiNaC;
+
+namespace plt = matplotlibcpp;
 
 // Initialize the random number generator
 std::random_device rd{};
@@ -36,12 +40,60 @@ int v = 4;
 double wv = 0.1;
 double e = 1e-1;
 
+struct Solver {
+  double zstep() const {
+    /**
+     * Computes the step size using the jump edges
+     */
+    double step = 0;
+    // XXX: fill in the algorithm
+    return step;
+  }
+
+  double gstep() const {
+    /**
+     * Computes the step size using the guard
+     */
+    double step = 0;
+    return step;
+  }
+  double EM(double init, ex f, ex g, double Dt, double dt,
+	    const std::vector<double> &dWts,
+	    const std::map<string, double> &vars,
+	    const double T) const{
+    double res = 0;
+    // Build the map for substitution
+    exmap v;
+    for (auto it = vars.begin(); it != vars.end(); ++it) {
+      v[symbol(it->first)] = it->second;
+    }
+    v[symbol("t")] = T;
+    f = f.subs(v);
+    g = g.subs(v);
+    res = ex_to<numeric>(
+              (init + f * Dt +
+               g * std::accumulate(dWts.begin(), dWts.end(), 0) * std::sqrt(dt))
+                  .evalf())
+              .to_double();
+    return res;
+  }
+
+private:
+  // XXX: This will have the required provate data
+  double ε = 1e-3;
+  int iter_count = 50;
+  double DEFAULT_STEP = 1;
+  int p = 3;
+  int R = std::pow(2, p);
+};
+
 // This is the robot x, y movement
 double HIOA1(const symbol &x, const symbol &y, const symbol &z,
              const symbol &th,
              const std::map<STATES, std::map<string, lst>> &ders,
              std::map<string, double> &vars, bool &ft1, const STATES &cs,
-	     STATES &ns, std::map<string, double> &toret) {
+             STATES &ns, std::map<string, double> &toret,
+             std::map<string, vector<double>> &dWts) {
 
   double step = 0;
   double xval = vars["x"];
@@ -71,6 +123,8 @@ double HIOA1(const symbol &x, const symbol &y, const symbol &z,
     break;
   }
   case INNER: {
+    cout << "inside INNER"
+         << "\n";
     if ((xval * xval + yval * yval - v * v >= -e) &&
         (xval * xval + yval * yval - v * v <= e)) {
       ns = MOVE;
@@ -119,7 +173,8 @@ double HIOA2(const symbol &x, const symbol &y, const symbol &z,
              const symbol &th,
              const std::map<STATES, std::map<string, lst>> &ders,
              std::map<string, double> &vars, bool &ft2, STATES &cs, STATES &ns,
-             std::map<string, double> &toret) {
+             std::map<string, double> &toret,
+             std::map<string, vector<double>> &dWts) {
 
   double step = 0;
   double xval = vars["x"];
@@ -128,6 +183,8 @@ double HIOA2(const symbol &x, const symbol &y, const symbol &z,
   double zval = vars["z"];
   switch (cs) {
   case CT: {
+    cout << "Inside CT"
+         << "\n";
     static double Uz = 0.0;
     Uz = ft2 ? -log(dis(gen)) : Uz;
     if ((xval * xval + yval * yval - v * v <= e) &&
@@ -254,16 +311,17 @@ int main(void) {
   std::map<string, double> toret2 = toret1;
 
   // XXX: Plotting vectors
-  std::list<double> xs{xval};
-  std::list<double> ys{yval};
-  std::list<double> zs{zval};
-  std::list<double> ths{thval};
+  std::vector<double> xs{xval};
+  std::vector<double> ys{yval};
+  std::vector<double> zs{zval};
+  std::vector<double> ths{thval};
+  std::vector<double> ts{0};
 
   // Now run until completion
+  std::map<string, std::vector<double>> dWts;
   while (time <= SIM_TIME) {
 
     // Generate the sample path for the Euler-Maruyama step
-    std::map<string, std::vector<double>> dWts;
     dWts[x.get_name()] = std::vector<double>(R, 0);
     randn(dWts[x.get_name()]); // Updating the vector sample path
     dWts[y.get_name()] = std::vector<double>(R, 0);
@@ -279,8 +337,8 @@ int main(void) {
     vars["th"] = thval;
 
     // Calling the HIOAs
-    double d1 = HIOA1(x, y, z, th, ders, vars, ft1, cs1, ns1, toret1);
-    double d2 = HIOA2(x, y, z, th, ders, vars, ft2, cs2, ns2, toret2);
+    double d1 = HIOA1(x, y, z, th, ders, vars, ft1, cs1, ns1, toret1, dWts);
+    double d2 = HIOA2(x, y, z, th, ders, vars, ft2, cs2, ns2, toret2, dWts);
 
     // The lockstep execution step
     if (!ft1 && !ft2) {
@@ -294,14 +352,12 @@ int main(void) {
       // XXX: Intra-Inter
       thval = toret2["th"];
       zval = toret2["z"];
-    }
-    else if (ft1 and !ft2){
+    } else if (ft1 and !ft2) {
       // XXX: Inter-Intra
       xval = toret1["x"];
       yval = toret1["y"];
-    }
-    else if (ft1 && ft2){
-     // XXX: Inter-Inter 
+    } else if (ft1 && ft2) {
+      // XXX: Inter-Inter
       xval = toret1["x"];
       yval = toret1["y"];
       thval = toret2["th"];
@@ -315,7 +371,11 @@ int main(void) {
     // XXX: Increment the timer
     time += std::min(d1, d2);
 
-    //XXX: Append to plot later on
+    // FIXME: DEBUG
+    time += 0.5;
+    ts.push_back(time);
+
+    // XXX: Append to plot later on
     xs.push_back(vars["x"]);
     ys.push_back(vars["y"]);
     zs.push_back(vars["z"]);
@@ -323,6 +383,12 @@ int main(void) {
   }
 
   // XXX: Now we can plot the values
+  std::vector<double> xy2(xs.size(), 0);
+  for (int i = 0; i < xs.size(); ++i)
+    xy2[i] = xs[i]*xs[i] + ys[i]*ys[i];
+
+  plt::plot(ts, xy2);
+  plt::show();
 
   return 0;
 }
