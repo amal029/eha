@@ -2,7 +2,7 @@
 SHELL=/bin/bash
 # SRCS=gf.cpp
 OBJS = robotgshs_par.o
-CFLAGS = -O3 -Wundefined-var-template -DWITHOUT_NUMPY
+CFLAGS = -O3 -Wundefined-var-template
 ifeq ($(TARGET), LINUX)		#This is for the linux machine at work
 	CC = clang++ -std=c++2a
 else

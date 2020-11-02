@@ -3,8 +3,8 @@
 #include <cstdlib>
 #include <exception>
 #include <random>
-#include "matplotlibcpp.h"
 #include <numeric>
+#include "matplotlibcpp.h"
 
 using namespace std;
 using namespace GiNaC;
@@ -28,10 +28,6 @@ ostream &operator<<(ostream &out, const std::map<ex, T> &var) {
   }
   return out;
 }
-
-// Information about the Wiener process
-int p = 2;
-int R = std::pow(2, p);
 
 // The enumeration for the states of the system
 enum STATES { MOVE = 0, INNER = 1, OUTTER = 2, CT = 3, NCT = 4 };
@@ -58,50 +54,46 @@ struct Solver {
     double step = 0;
     return step;
   }
-  double EM(double init, ex f, ex g, double Dt, double dt,
-            const std::vector<double> &dWts,
-            const std::map<ex, double, ex_is_less> &vars,
-            const double T) const {
-    double res = 0;
+  ex EM(const double init, const ex f, const ex g, const double Dt,
+        const double dt, const std::vector<double> &dWts, const exmap &vars,
+        const double T) const {
+    ex res = 0;
     // Build the map for substitution
-    exmap v;
-    for (auto it = vars.begin(); it != vars.end(); ++it) {
-      v[it->first] = ex{it->second};
-    }
-    v[symbol("t")] = ex{T};
-    f = f.subs(v);
-    g = g.subs(v);
-    res = ex_to<numeric>(
-              (init + f * Dt +
-               g * std::accumulate(dWts.begin(), dWts.end(), 0) * std::sqrt(dt))
-                  .evalf())
-              .to_double();
+    ex f1 = f.subs(vars);
+    ex f2 = f.subs(symbol("t") == T);
+    ex g1 = g.subs(vars);
+    ex g2 = g.subs(symbol("t") == T);
+    res = (init + f2 * Dt +
+           g2 * std::accumulate(dWts.begin(), dWts.end(), 0) * std::sqrt(dt))
+              .evalf();
     return res;
   }
 
+  static int p;
+  static int R;
+
 private:
-  // XXX: This will have the required provate data
+  // XXX: This will have the required private data
   double ε = 1e-3;
   int iter_count = 50;
   double DEFAULT_STEP = 1;
-  int p = 3;
-  int R = std::pow(2, p);
 };
+
+int Solver::p = 2;
+int Solver::R = std::pow(2, p);
 
 // This is the robot x, y movement
 double HIOA1(const symbol &x, const symbol &y, const symbol &z,
              const symbol &th,
              const std::map<STATES, std::map<string, lst>> &ders,
-             std::map<ex, double, ex_is_less> &vars, bool &ft1,
-             const STATES &cs, STATES &ns,
-             std::map<ex, double, ex_is_less> &toret,
-             std::map<string, vector<double>> &dWts) {
+             const exmap &vars, bool &ft1, const STATES &cs, STATES &ns,
+             exmap &toret, std::map<string, vector<double>> &dWts) {
 
   double step = 0;
-  double xval = vars[x];
-  double yval = vars[y];
-  double thval = vars[th];
-  double zval = vars[z];
+  double xval = ex_to<numeric>(vars.at(x).evalf()).to_double();
+  double yval = ex_to<numeric>(vars.at(y).evalf()).to_double();
+  double thval = ex_to<numeric>(vars.at(th).evalf()).to_double();
+  double zval = ex_to<numeric>(vars.at(z).evalf()).to_double();
   // XXX: The state machine
   switch (cs) {
   case MOVE: {
@@ -126,9 +118,9 @@ double HIOA1(const symbol &x, const symbol &y, const symbol &z,
   }
   case INNER: {
     cout << "inside INNER"
-         << "\n";
+	 << "\n";
     if ((xval * xval + yval * yval - v * v >= -e) &&
-        (xval * xval + yval * yval - v * v <= e)) {
+	(xval * xval + yval * yval - v * v <= e)) {
       ns = MOVE;
       ft1 = true;
       step = 0;
@@ -147,7 +139,7 @@ double HIOA1(const symbol &x, const symbol &y, const symbol &z,
   }
   case OUTTER: {
     if ((xval * xval + yval * yval - v * v <= e) &&
-        (xval * xval + yval * yval - v * v >= -e)) {
+	(xval * xval + yval * yval - v * v >= -e)) {
       ns = MOVE;
       ft1 = true;
       step = 0;
@@ -174,15 +166,14 @@ double HIOA1(const symbol &x, const symbol &y, const symbol &z,
 double HIOA2(const symbol &x, const symbol &y, const symbol &z,
              const symbol &th,
              const std::map<STATES, std::map<string, lst>> &ders,
-             std::map<ex, double, ex_is_less> &vars, bool &ft2, STATES &cs,
-             STATES &ns, std::map<ex, double, ex_is_less> &toret,
+             const exmap &vars, bool &ft2, STATES &cs, STATES &ns, exmap &toret,
              std::map<string, vector<double>> &dWts) {
 
   double step = 0;
-  double xval = vars[x];
-  double yval = vars[y];
-  double thval = vars[th];
-  double zval = vars[z];
+  double xval = ex_to<numeric>(vars.at(x).evalf()).to_double();
+  double yval = ex_to<numeric>(vars.at(y).evalf()).to_double();
+  double thval = ex_to<numeric>(vars.at(th).evalf()).to_double();
+  double zval = ex_to<numeric>(vars.at(z).evalf()).to_double();
   switch (cs) {
   case CT: {
     cout << "Inside CT"
@@ -267,13 +258,17 @@ int main(void) {
   //   cout << i << "->" << ders[(STATES)i] << "\n";
 
   // The intial values
-  double xval = 1;
-  double yval = 1;
-  double zval = 0;
-  double thval = atan(yval / xval);
+  ex xval = 1;
+  ex yval = 1;
+  ex zval = 0;
+  ex thval = atan(yval / xval);
+
+  cout << xval << " " << yval << " " << zval << "\n";
+  cout << thval << "\n";
+
 
   // The variable map
-  std::map<ex, double, ex_is_less> vars;
+  exmap vars;
 
   // Now call the HIOA with the initial values
   bool ft1 = true;
@@ -304,39 +299,44 @@ int main(void) {
 
   cs2 = CT; // always startinng from CT
 
-  // print the state here
-  cout << "Entering the loop"
-       << "\n";
-
   // XXX: These are the values returned by the HIOAs
-  std::map<ex, double, ex_is_less> toret1{{x, 0.0}, {y, 0}, {z, 0}, {th, 0}};
-  std::map<ex, double, ex_is_less> toret2 = toret1;
+  exmap toret1{{x, 0.0}, {y, 0}, {z, 0}, {th, 0}};
+  exmap toret2 = toret1;
 
   // XXX: Plotting vectors
-  std::vector<double> xs{xval};
-  std::vector<double> ys{yval};
-  std::vector<double> zs{zval};
-  std::vector<double> ths{thval};
+  std::vector<double> xs{ex_to<numeric>(xval).to_double()};
+  std::vector<double> ys{ex_to<numeric>(yval).to_double()};
+  std::vector<double> zs{ex_to<numeric>(zval).to_double()};
+  std::vector<double> ths{ex_to<numeric>(thval.evalf()).to_double()};
   std::vector<double> ts{0};
+
+  cout << "H1"
+       << "\n";
 
   // Now run until completion
   std::map<string, std::vector<double>> dWts;
+
+  // print the state here
+  cout << "Entering the loop"
+       << "\n";
   while (time <= SIM_TIME) {
 
     // Generate the sample path for the Euler-Maruyama step
-    dWts[x.get_name()] = std::vector<double>(R, 0);
+    dWts[x.get_name()] = std::vector<double>(Solver::R, 0);
     randn(dWts[x.get_name()]); // Updating the vector sample path
-    dWts[y.get_name()] = std::vector<double>(R, 0);
+    dWts[y.get_name()] = std::vector<double>(Solver::R, 0);
     randn(dWts[y.get_name()]);
-    dWts[th.get_name()] = std::vector<double>(R, 0);
+    dWts[th.get_name()] = std::vector<double>(Solver::R, 0);
     randn(dWts[th.get_name()]);
-    dWts[z.get_name()] = std::vector<double>(R, 0);
+    dWts[z.get_name()] = std::vector<double>(Solver::R, 0);
 
     // XXX: Set the variables
     vars[x] = xval;
     vars[y] = yval;
     vars[z] = zval;
     vars[th] = thval;
+
+    cout << vars[x] << " " << vars[y] << " " << vars[z] << " " << vars[th] << "\n";
 
     // Calling the HIOAs
     double d1 = HIOA1(x, y, z, th, ders, vars, ft1, cs1, ns1, toret1, dWts);
@@ -378,10 +378,10 @@ int main(void) {
     ts.push_back(time);
 
     // XXX: Append to plot later on
-    xs.push_back(vars[x]);
-    ys.push_back(vars[y]);
-    zs.push_back(vars[z]);
-    ths.push_back(vars[th]);
+    xs.push_back(ex_to<numeric>(vars[x].evalf()).to_double());
+    ys.push_back(ex_to<numeric>(vars[y].evalf()).to_double());
+    zs.push_back(ex_to<numeric>(vars[z].evalf()).to_double());
+    ths.push_back(ex_to<numeric>(vars[th].evalf()).to_double());
   }
 
   // XXX: Now we can plot the values
