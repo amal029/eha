@@ -176,7 +176,7 @@ struct Solver {
     for (const auto &v : vars) {
       symbol s = symbol{"d_" + ex_to<symbol>(v.first).get_name()};
       symbol s1 = symbol{"dWt_" + ex_to<symbol>(v.first).get_name()};
-      ddeps[s] = deps.at(v.first).op(0) * dt + deps.at(v.first) * s1;
+      ddeps[s] = deps.at(v.first).op(0) * dt + deps.at(v.first).op(1) * s1;
       dWt[v.first] = s1;
       dvars(0, count) = s;
       ++count;
