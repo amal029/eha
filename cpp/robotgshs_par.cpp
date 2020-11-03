@@ -4,12 +4,19 @@
 #include <exception>
 #include <random>
 #include <numeric>
+#include <algorithm>
 #include "matplotlibcpp.h"
 
 using namespace std;
 using namespace GiNaC;
 
 namespace plt = matplotlibcpp;
+
+// The enumeration for the states of the system
+enum STATES { MOVE = 0, INNER = 1, OUTTER = 2, CT = 3, NCT = 4 };
+
+typedef std::map<ex, lst, ex_is_less> exT;
+typedef std::map<STATES, exT> derT;
 
 // Initialize the random number generator
 std::random_device rd{};
@@ -29,22 +36,109 @@ ostream &operator<<(ostream &out, const std::map<ex, T> &var) {
   return out;
 }
 
-// The enumeration for the states of the system
-enum STATES { MOVE = 0, INNER = 1, OUTTER = 2, CT = 3, NCT = 4 };
-
 // The constants
 int v = 4;
 double wv = 0.1;
 double e = 1e-1;
 
 struct Solver {
-  double zstep() const {
+  double zstep(const ex &left, const lst &right, const exT &deps,
+               const exmap &vars, double T,
+               const map<ex, vector<double>, ex_is_less> &dWts, exmap &toret,
+               double Uz = NAN) const {
     /**
      * Computes the step size using the jump edges
+     * left: symbol
+     * right is 2 list of derivatives for left
+     * deps is the list of derivatives
      */
     double step = 0;
     // XXX: fill in the algorithm
+    symbol t("t");
+    if (!(right.op(1) == 0))
+      throw runtime_error("Rate cannot be a stochastic DE");
+    if (isinf(Uz) || isnan(Uz)) {
+      step = INFINITY;
+      toret = vars;
+    }
+    ex zdt = right.op(0);
+    zdt = zdt.subs(vars);   // Substitution with current values
+    zdt = zdt.subs(t == T); // Subs time t
+    if (zdt == 0) {
+      toret = vars;
+      step = INFINITY;
+    }
+
+    // XXX: Now compute the step size
+    ex L = (Uz - vars.at(left));
+    int count = 0;
+    ex Dtv;
+    while (true) {
+      ex Dt1 = build_eq(zdt, L), Dt2 = build_eq(zdt, -L);
+      if (Dt1 > 0) {
+        Dtv = Dt1;
+      } else if (Dt2 > 0) {
+        Dtv = Dt2;
+      } else {
+        // XXX: This is the case where we have no solution at all!
+        toret = vars;
+        step = INFINITY;
+        goto RET; // Come out instantaneously.
+      }
+      // XXX: Now do the check and bound for the variables
+      ex dtv = Dtv / R;
+      bool err = var_compute(deps, dWts, vars, T, Dtv, dtv, toret);
+      if (err) {
+        step = ex_to<numeric>(Dtv.evalf()).to_double();
+        goto RET;
+      } else {
+        count += 1;
+        if (count == iter_count)
+          throw runtime_error("Too many iterations");
+        L /= 2;
+      }
+    }
+  RET:
     return step;
+  }
+
+  bool var_compute(const exT &deps,
+                   const map<ex, vector<double>, ex_is_less> &dWts,
+                   const exmap &vars, double T, ex Dtv, ex dtv,
+                   exmap &toret) const {
+    bool err = false;
+    exmap temp1, nvars;
+    for (auto it = vars.begin(); it != vars.end(); ++it) {
+      toret[it->first] =
+          EM(it->second, deps.at(it->first).op(0), deps.at(it->first).op(1),
+             Dtv, dtv, dWts.at(it->first), vars, T);
+    }
+    // XXX: Now compute the values in two half-steps.
+    for (auto it = vars.begin(); it != vars.end(); ++it) {
+      vector<double> v1(dWts.at(it->first).begin(),
+                        dWts.at(it->first).begin() + R / 2);
+      nvars[it->first] = EM(it->second, deps.at(it->first).op(0),
+                            deps.at(it->first).op(1), Dtv, dtv, v1, vars, T);
+    }
+    for (auto it = nvars.begin(); it != nvars.end(); ++it) {
+      vector<double> v1(dWts.at(it->first).begin() + R / 2,
+                        dWts.at(it->first).end());
+      nvars[it->first] = EM(it->second, deps.at(it->first).op(0),
+                            deps.at(it->first).op(1), Dtv, dtv, v1, vars, T);
+    }
+    // XXX: Now do the final check
+    vector<bool> errs;
+    for (auto it = nvars.begin(); it != nvars.end(); ++it) {
+      errs.push_back(abs(toret[it->first] -
+                         nvars[it->first] / (nvars[it->first] + ε)) <= ε);
+    }
+    err = all_of(errs.begin(), errs.end(), [](bool i){return i == true;});
+    return err;
+  }
+
+  inline ex build_eq(ex f, ex K) const {
+    ex eq = f / K;
+    return eq.evalf();
   }
 
   double gstep() const {
@@ -54,8 +148,8 @@ struct Solver {
     double step = 0;
     return step;
   }
-  ex EM(const double init, const ex f, const ex g, const double Dt,
-        const double dt, const std::vector<double> &dWts, const exmap &vars,
+  ex EM(const ex &init, const ex &f, const ex &g, const ex &Dt, const ex &dt,
+        const std::vector<double> &dWts, const exmap &vars,
         const double T) const {
     ex res = 0;
     // Build the map for substitution
@@ -64,7 +158,7 @@ struct Solver {
     ex g1 = g.subs(vars);
     ex g2 = g.subs(symbol("t") == T);
     res = (init + f2 * Dt +
-           g2 * std::accumulate(dWts.begin(), dWts.end(), 0) * std::sqrt(dt))
+           g2 * std::accumulate(dWts.begin(), dWts.end(), 0) * sqrt(dt))
               .evalf();
     return res;
   }
@@ -79,21 +173,18 @@ private:
   double DEFAULT_STEP = 1;
 };
 
-int Solver::p = 2;
+int Solver::p = 3;
 int Solver::R = std::pow(2, p);
 
 // This is the robot x, y movement
 double HIOA1(const symbol &x, const symbol &y, const symbol &z,
-             const symbol &th,
-             const std::map<STATES, std::map<string, lst>> &ders,
-             const exmap &vars, bool &ft1, const STATES &cs, STATES &ns,
-             exmap &toret, std::map<string, vector<double>> &dWts) {
+             const symbol &th, const derT &ders, const exmap &vars, bool &ft1,
+             const STATES &cs, STATES &ns, exmap &toret,
+             std::map<ex, vector<double>, ex_is_less> &dWts) {
 
   double step = 0;
-  double xval = ex_to<numeric>(vars.at(x).evalf()).to_double();
-  double yval = ex_to<numeric>(vars.at(y).evalf()).to_double();
-  double thval = ex_to<numeric>(vars.at(th).evalf()).to_double();
-  double zval = ex_to<numeric>(vars.at(z).evalf()).to_double();
+  ex xval = vars.at(x), yval = vars.at(y), zval = vars.at(z);
+  ex thval = vars.at(th);
   // XXX: The state machine
   switch (cs) {
   case MOVE: {
@@ -118,37 +209,24 @@ double HIOA1(const symbol &x, const symbol &y, const symbol &z,
   }
   case INNER: {
     cout << "inside INNER"
-	 << "\n";
+         << "\n";
     if ((xval * xval + yval * yval - v * v >= -e) &&
-	(xval * xval + yval * yval - v * v <= e)) {
-      ns = MOVE;
-      ft1 = true;
-      step = 0;
-      toret = vars;
+        (xval * xval + yval * yval - v * v <= e)) {
+      ns = MOVE, ft1 = true, step = 0, toret = vars;
     } else if (xval * xval + yval * yval - v * v >= e) {
-      ns = OUTTER;
-      ft1 = true;
-      step = 0;
-      toret = vars;
+      ns = OUTTER, ft1 = true, step = 0, toret = vars;
     } else {
-      ns = INNER;
-      ft1 = false;
+      ns = INNER, ft1 = false;
       // XXX: Euler-Maruyama for step
     }
     break;
   }
   case OUTTER: {
     if ((xval * xval + yval * yval - v * v <= e) &&
-	(xval * xval + yval * yval - v * v >= -e)) {
-      ns = MOVE;
-      ft1 = true;
-      step = 0;
-      toret = vars;
+        (xval * xval + yval * yval - v * v >= -e)) {
+      ns = MOVE, ft1 = true, step = 0, toret = vars;
     } else if (xval * xval + yval * yval - v * v <= -e) {
-      ns = INNER;
-      ft1 = true;
-      toret = vars;
-      step = 0;
+      ns = INNER, ft1 = true, toret = vars, step = 0;
     } else {
       // XXX: Euler-Maruyama step
       ns = cs;
@@ -164,16 +242,13 @@ double HIOA1(const symbol &x, const symbol &y, const symbol &z,
 
 // This is the angle movement
 double HIOA2(const symbol &x, const symbol &y, const symbol &z,
-             const symbol &th,
-             const std::map<STATES, std::map<string, lst>> &ders,
-             const exmap &vars, bool &ft2, STATES &cs, STATES &ns, exmap &toret,
-             std::map<string, vector<double>> &dWts) {
+             const symbol &th, const derT &ders, const exmap &vars, bool &ft2,
+             STATES &cs, STATES &ns, exmap &toret,
+             std::map<ex, vector<double>, ex_is_less> &dWts) {
 
   double step = 0;
-  double xval = ex_to<numeric>(vars.at(x).evalf()).to_double();
-  double yval = ex_to<numeric>(vars.at(y).evalf()).to_double();
-  double thval = ex_to<numeric>(vars.at(th).evalf()).to_double();
-  double zval = ex_to<numeric>(vars.at(z).evalf()).to_double();
+  ex xval = vars.at(x), yval = vars.at(y), zval = vars.at(z);
+  ex thval = vars.at(th);
   switch (cs) {
   case CT: {
     cout << "Inside CT"
@@ -231,27 +306,27 @@ int main(void) {
   symbol x("x"), y("y"), z("z"), th("th");
 
   // Initialise a map of the derivatives
-  std::map<STATES, std::map<string, lst>> ders;
-  ders[MOVE] = {{x.get_name(), {-1 * v * wv * sin(th), ex{0}}},
-                {y.get_name(), {v * wv * cos(th), ex{0}}},
-                {th.get_name(), {ex{0}, ex{0}}},
-                {z.get_name(), {ex{0}, ex{0}}}};
-  ders[INNER] = {{x.get_name(), {v * cos(th), ex{v}}},
-                 {y.get_name(), {v * sin(th), ex{v}}},
-                 {th.get_name(), {ex{0}, ex{0}}},
-                 {z.get_name(), {ex{0}, ex{0}}}};
-  ders[OUTTER] = {{x.get_name(), {v * cos(th), ex{v}}},
-                  {y.get_name(), {v * sin(th), ex{v}}},
-                  {th.get_name(), {ex{0}, ex{0}}},
-                  {z.get_name(), {ex{0}, ex{0}}}};
-  ders[CT] = {{x.get_name(), {ex{0}, ex{0}}},
-              {y.get_name(), {ex{0}, ex{0}}},
-              {th.get_name(), {ex{2 * v}, ex{0}}},
-              {z.get_name(), {x * x + y * y + th * th * th, ex{0}}}};
-  ders[NCT] = {{x.get_name(), {ex{0}, ex{0}}},
-               {y.get_name(), {ex{0}, ex{0}}},
-               {th.get_name(), {ex{wv}, ex{0}}},
-               {z.get_name(), {ex{0}, ex{0}}}};
+  std::map<STATES, std::map<ex, lst, ex_is_less>> ders;
+  ders[MOVE] = {{x, {-1 * v * wv * sin(th), ex{0}}},
+                {y, {v * wv * cos(th), ex{0}}},
+                {th, {ex{0}, ex{0}}},
+                {z, {ex{0}, ex{0}}}};
+  ders[INNER] = {{x, {v * cos(th), ex{v}}},
+                 {y, {v * sin(th), ex{v}}},
+                 {th, {ex{0}, ex{0}}},
+                 {z, {ex{0}, ex{0}}}};
+  ders[OUTTER] = {{x, {v * cos(th), ex{v}}},
+                  {y, {v * sin(th), ex{v}}},
+                  {th, {ex{0}, ex{0}}},
+                  {z, {ex{0}, ex{0}}}};
+  ders[CT] = {{x, {ex{0}, ex{0}}},
+              {y, {ex{0}, ex{0}}},
+              {th, {ex{2 * v}, ex{0}}},
+              {z, {x * x + y * y + th * th * th, ex{0}}}};
+  ders[NCT] = {{x, {ex{0}, ex{0}}},
+               {y, {ex{0}, ex{0}}},
+               {th, {ex{wv}, ex{0}}},
+               {z, {ex{0}, ex{0}}}};
 
   // Just printing the derivatives for each state in the system
   // for (int i = MOVE; i <= NCT; ++i)
@@ -314,7 +389,7 @@ int main(void) {
        << "\n";
 
   // Now run until completion
-  std::map<string, std::vector<double>> dWts;
+  std::map<ex, std::vector<double>, ex_is_less> dWts;
 
   // print the state here
   cout << "Entering the loop"
@@ -322,13 +397,13 @@ int main(void) {
   while (time <= SIM_TIME) {
 
     // Generate the sample path for the Euler-Maruyama step
-    dWts[x.get_name()] = std::vector<double>(Solver::R, 0);
-    randn(dWts[x.get_name()]); // Updating the vector sample path
-    dWts[y.get_name()] = std::vector<double>(Solver::R, 0);
-    randn(dWts[y.get_name()]);
-    dWts[th.get_name()] = std::vector<double>(Solver::R, 0);
-    randn(dWts[th.get_name()]);
-    dWts[z.get_name()] = std::vector<double>(Solver::R, 0);
+    dWts[x] = std::vector<double>(Solver::R, 0);
+    randn(dWts[x]); // Updating the vector sample path
+    dWts[y] = std::vector<double>(Solver::R, 0);
+    randn(dWts[y]);
+    dWts[th] = std::vector<double>(Solver::R, 0);
+    randn(dWts[th]);
+    dWts[z] = std::vector<double>(Solver::R, 0);
 
     // XXX: Set the variables
     vars[x] = xval;
