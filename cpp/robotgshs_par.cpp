@@ -1,11 +1,11 @@
-#include <iostream>
-#include <ginac/ginac.h>
+#include "matplotlibcpp.h"
+#include <algorithm>
 #include <cstdlib>
 #include <exception>
-#include <random>
+#include <ginac/ginac.h>
+#include <iostream>
 #include <numeric>
-#include <algorithm>
-#include "matplotlibcpp.h"
+#include <random>
 
 using namespace std;
 using namespace GiNaC;
@@ -26,7 +26,6 @@ std::normal_distribution<> d{0, 1};
 // The standard uniform distribution for jump edges
 std::uniform_real_distribution<> dis(0.0, 1.0);
 
-
 // Give the prints operation for the cout for derivatives
 template <typename T>
 ostream &operator<<(ostream &out, const std::map<ex, T> &var) {
@@ -42,6 +41,24 @@ double wv = 0.1;
 double e = 1e-1;
 
 struct Solver {
+  double default_compute(const exT &deps, const exmap &vars,
+                         const map<ex, vector<double>, ex_is_less> &dWts,
+                         double T = 0) const {
+    double step = 0;
+    ex Dtv = DEFAULT_STEP;
+    while (true) {
+      ex dtv = Dtv / R;
+      exmap toret;
+      bool err = var_compute(deps, dWts, vars, T, Dtv, dtv, toret);
+      if (err) {
+        break;
+      } else {
+        Dtv /= 2;
+      }
+    }
+    return step;
+  }
+
   double zstep(const ex &left, const lst &right, const exT &deps,
                const exmap &vars, double T,
                const map<ex, vector<double>, ex_is_less> &dWts, exmap &toret,
@@ -55,11 +72,12 @@ struct Solver {
     double step = 0;
     // XXX: fill in the algorithm
     symbol t("t");
-    if (!(right.op(1) == 0))
+    if (right.op(1) != 0)
       throw runtime_error("Rate cannot be a stochastic DE");
     if (isinf(Uz) || isnan(Uz)) {
       step = INFINITY;
       toret = vars;
+      return step;
     }
     ex zdt = right.op(0);
     zdt = zdt.subs(vars);   // Substitution with current values
@@ -67,12 +85,19 @@ struct Solver {
     if (zdt == 0) {
       toret = vars;
       step = INFINITY;
+      return step;
     }
 
     // XXX: Now compute the step size
     ex L = (Uz - vars.at(left));
     int count = 0;
     ex Dtv;
+
+    auto build_eq = [](ex f, ex K) {
+      ex eq = f / K;
+      return eq.evalf();
+    };
+
     while (true) {
       ex Dt1 = build_eq(zdt, L), Dt2 = build_eq(zdt, -L);
       if (Dt1 > 0) {
@@ -83,14 +108,14 @@ struct Solver {
         // XXX: This is the case where we have no solution at all!
         toret = vars;
         step = INFINITY;
-        goto RET; // Come out instantaneously.
+        break;
       }
       // XXX: Now do the check and bound for the variables
       ex dtv = Dtv / R;
       bool err = var_compute(deps, dWts, vars, T, Dtv, dtv, toret);
       if (err) {
         step = ex_to<numeric>(Dtv.evalf()).to_double();
-        goto RET;
+        break;
       } else {
         count += 1;
         if (count == iter_count)
@@ -98,7 +123,6 @@ struct Solver {
         L /= 2;
       }
     }
-  RET:
     return step;
   }
 
@@ -132,20 +156,66 @@ struct Solver {
       errs.push_back(abs(toret[it->first] -
                          nvars[it->first] / (nvars[it->first] + ε)) <= ε);
     }
-    err = all_of(errs.begin(), errs.end(), [](bool i){return i == true;});
+    err = all_of(errs.begin(), errs.end(), [](bool i) { return i == true; });
     return err;
   }
 
-  inline ex build_eq(ex f, ex K) const {
-    ex eq = f / K;
-    return eq.evalf();
-  }
-
-  double gstep() const {
+  double gstep(const ex &expr, const exT &deps, const exmap &vars,
+               const map<ex, vector<double>, ex_is_less> &dWts,
+               double T = 0) const {
     /**
      * Computes the step size using the guard
      */
     double step = 0;
+    symbol dt("dt");
+
+    // XXX: Now compute the ddeps
+    exmap ddeps, dWt;
+    matrix dvars(1, vars.size());
+    unsigned count = 0;
+    for (const auto &v : vars) {
+      symbol s = symbol{"d_" + ex_to<symbol>(v.first).get_name()};
+      symbol s1 = symbol{"dWt_" + ex_to<symbol>(v.first).get_name()};
+      ddeps[s] = deps.at(v.first).op(0) * dt + deps.at(v.first) * s1;
+      dWt[v.first] = s1;
+      dvars(0, count) = s;
+      ++count;
+    }
+
+    // XXX: The jacobian
+    matrix jacobian(vars.size(), 1);
+    count = 0;
+    for (auto it = vars.begin(); it != vars.end(); ++it, ++count)
+      jacobian(count, 0) = expr.diff(ex_to<symbol>(it->first));
+
+    ex fp = (dvars*jacobian).evalm();
+
+    // XXX: The hessian
+    matrix hessian(vars.size(), vars.size());
+    unsigned i = 0, j = 0;
+    for (auto it = vars.begin(); it != vars.end(); ++it, ++i) {
+      ex expr1 = expr.diff(ex_to<symbol>(it->first));
+      for (auto it = vars.begin(); it != vars.end(); ++it, ++j) {
+        hessian(i, j) = expr1.diff(ex_to<symbol>(it->first));
+      }
+    }
+    ex sp = 0.5*(dvars*hessian*dvars.transpose()).evalm();
+
+    fp = fp.subs(ddeps);
+    sp = sp.subs(ddeps);
+
+    fp = fp.subs(vars);
+    sp = sp.subs(vars);
+
+    fp = fp.subs(symbol("t") == T);
+    sp = sp.subs(symbol("t") == T);
+
+    // XXX: Now expand and apply Ito's lemma
+    fp = fp.expand();
+    sp = sp.expand();
+
+    // XXX: Now Ito's lemma
+
     return step;
   }
   ex EM(const ex &init, const ex &f, const ex &g, const ex &Dt, const ex &dt,
@@ -208,8 +278,6 @@ double HIOA1(const symbol &x, const symbol &y, const symbol &z,
     break;
   }
   case INNER: {
-    cout << "inside INNER"
-         << "\n";
     if ((xval * xval + yval * yval - v * v >= -e) &&
         (xval * xval + yval * yval - v * v <= e)) {
       ns = MOVE, ft1 = true, step = 0, toret = vars;
@@ -217,6 +285,8 @@ double HIOA1(const symbol &x, const symbol &y, const symbol &z,
       ns = OUTTER, ft1 = true, step = 0, toret = vars;
     } else {
       ns = INNER, ft1 = false;
+      cout << "inside INNER"
+           << "\n";
       // XXX: Euler-Maruyama for step
     }
     break;
@@ -262,7 +332,7 @@ double HIOA2(const symbol &x, const symbol &y, const symbol &z,
       step = 0;
       toret = vars;
       toret[z] = 0;
-    } else if (abs(zval - Uz) <= e) {
+    } else if (abs(Uz - zval) <= e) {
       ns = CT;
       toret = vars;
       toret[z] = 0;
