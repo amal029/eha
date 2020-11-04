@@ -188,7 +188,7 @@ struct Solver {
     for (auto it = vars.begin(); it != vars.end(); ++it, ++count)
       jacobian(count, 0) = expr.diff(ex_to<symbol>(it->first));
 
-    ex fp = (dvars*jacobian).evalm();
+    ex fp = (dvars*jacobian).evalm().op(0);
 
     // XXX: The hessian
     matrix hessian(vars.size(), vars.size());
@@ -199,7 +199,7 @@ struct Solver {
         hessian(i, j) = expr1.diff(ex_to<symbol>(it->first));
       }
     }
-    ex sp = 0.5*(dvars*hessian*dvars.transpose()).evalm();
+    ex sp = 0.5*(dvars*hessian*dvars.transpose()).evalm().op(0);
 
     fp = fp.subs(ddeps);
     sp = sp.subs(ddeps);
@@ -215,6 +215,26 @@ struct Solver {
     sp = sp.expand();
 
     // XXX: Now Ito's lemma
+
+    // XXX: dt^2 == 0
+    fp = fp.subs(pow(dt, 2) == 0);
+    sp = sp.subs(pow(dt, 2) == 0);
+
+    // XXX: Now the dwt*dt == 0
+    for (const auto &i : dWt){
+      fp = fp.subs(i.second*dt*wild() == 0);
+      fp = fp.subs(pow(i.second, 2) == dt);
+      sp = sp.subs(i.second*dt*wild() == 0);
+      sp = sp.subs(pow(i.second, 2) == dt);
+    }
+
+    // XXX: Now substitute the uncorrelated Wiener processes.
+    for (const auto &i : dWt)
+      for (const auto &j : dWt)
+        sp = i.first != j.first ? sp.subs(i.second * j.second * wild() == 0)
+                                : sp;
+
+    // XXX: Now substitute the dWts.
 
     return step;
   }
@@ -411,6 +431,22 @@ int main(void) {
   cout << xval << " " << yval << " " << zval << "\n";
   cout << thval << "\n";
 
+  symbol dt("dt");
+  ex test = 2*dt*dt;
+  test = test.expand();
+  cout << "test: " << test << "\n";
+  cout << test.subs(pow(dt, 2) == 1) << "\n";
+
+  // symbol x1("x1"), y1("y1");
+  // matrix aa = {{x1, y1}};
+  // matrix ab = aa.transpose();
+  // matrix hh = {{1, 2}, {3, 4}};
+  // ex res = (aa*hh*ab).evalm().op(0).expand();
+  // cout << "res: " << res << "\n";
+  // res = res.subs(pow(y1, 2) == 0);
+  // cout << "res 2: " << res << "\n";
+  // res = res.subs(x1*y1*wild() == 0);
+  // cout << "res 3:" << res << "\n";
 
   // The variable map
   exmap vars;
