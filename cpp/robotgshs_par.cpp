@@ -5,7 +5,10 @@
 #include <ginac/ginac.h>
 #include <iostream>
 #include <numeric>
+#include <float.h>
 #include <random>
+
+#define INF DBL_MAX
 
 using namespace std;
 using namespace GiNaC;
@@ -26,15 +29,6 @@ std::normal_distribution<> d{0, 1};
 // The standard uniform distribution for jump edges
 std::uniform_real_distribution<> dis(0.0, 1.0);
 
-// Give the prints operation for the cout for derivatives
-template <typename T>
-ostream &operator<<(ostream &out, const std::map<ex, T> &var) {
-  for (auto it = var.begin(); it != var.end(); ++it) {
-    out << it->first << ":" << it->second << "\n";
-  }
-  return out;
-}
-
 // The constants
 int v = 4;
 double wv = 0.1;
@@ -43,12 +37,12 @@ double e = 1e-1;
 struct Solver {
   double default_compute(const exT &deps, const exmap &vars,
                          const map<ex, vector<double>, ex_is_less> &dWts,
-                         double T = 0) const {
+                         exmap &toret, double T = 0) const {
     double step = 0;
     ex Dtv = DEFAULT_STEP;
+    ex dtv;
     while (true) {
-      ex dtv = Dtv / R;
-      exmap toret;
+      dtv = Dtv / R;
       bool err = var_compute(deps, dWts, vars, T, Dtv, dtv, toret);
       if (err) {
         break;
@@ -74,8 +68,8 @@ struct Solver {
     symbol t("t");
     if (right.op(1) != 0)
       throw runtime_error("Rate cannot be a stochastic DE");
-    if (isinf(Uz) || isnan(Uz)) {
-      step = INFINITY;
+    if ((Uz == INF) || isnan(Uz)) {
+      step = INF;
       toret = vars;
       return step;
     }
@@ -84,7 +78,7 @@ struct Solver {
     zdt = zdt.subs(t == T); // Subs time t
     if (zdt == 0) {
       toret = vars;
-      step = INFINITY;
+      step = INF;
       return step;
     }
 
@@ -107,7 +101,7 @@ struct Solver {
       } else {
         // XXX: This is the case where we have no solution at all!
         toret = vars;
-        step = INFINITY;
+        step = INF;
         break;
       }
       // XXX: Now do the check and bound for the variables
@@ -161,16 +155,19 @@ struct Solver {
   }
 
   double gstep(const ex &expr, const exT &deps, const exmap &vars,
-               const map<ex, vector<double>, ex_is_less> &dWts,
+               const map<ex, vector<double>, ex_is_less> &dWts, exmap &toret,
                double T = 0) const {
     /**
      * Computes the step size using the guard
      */
+#ifdef DEBUG
+    cout << "guard expr: " << expr << "\n";
+#endif
     double step = 0;
-    symbol dt("dt");
+    symbol dt("Dt");
 
     // XXX: Now compute the ddeps
-    exmap ddeps, dWt;
+    exmap ddeps, dWt, ddWts;
     matrix dvars(1, vars.size());
     unsigned count = 0;
     for (const auto &v : vars) {
@@ -178,28 +175,45 @@ struct Solver {
       symbol s1 = symbol{"dWt_" + ex_to<symbol>(v.first).get_name()};
       ddeps[s] = deps.at(v.first).op(0) * dt + deps.at(v.first).op(1) * s1;
       dWt[v.first] = s1;
+      ddWts[s1] =
+          accumulate(dWts.at(v.first).begin(), dWts.at(v.first).end(), 0.0) *
+          sqrt(dt / R);
       dvars(0, count) = s;
       ++count;
     }
-
     // XXX: The jacobian
     matrix jacobian(vars.size(), 1);
     count = 0;
     for (auto it = vars.begin(); it != vars.end(); ++it, ++count)
       jacobian(count, 0) = expr.diff(ex_to<symbol>(it->first));
 
-    ex fp = (dvars*jacobian).evalm().op(0);
+#ifdef DEBUG
+    cout << "the jacobian: " << jacobian << "\n";
+    cout << "dvars: " << dvars << "\n";
+#endif
+
+    ex fp = (dvars * jacobian).evalm().op(0);
+#ifdef DEBUG
+    cout << "fp: " << fp << "\n";
+#endif
 
     // XXX: The hessian
     matrix hessian(vars.size(), vars.size());
     unsigned i = 0, j = 0;
     for (auto it = vars.begin(); it != vars.end(); ++it, ++i) {
+      j = 0;
       ex expr1 = expr.diff(ex_to<symbol>(it->first));
       for (auto it = vars.begin(); it != vars.end(); ++it, ++j) {
         hessian(i, j) = expr1.diff(ex_to<symbol>(it->first));
       }
     }
-    ex sp = 0.5*(dvars*hessian*dvars.transpose()).evalm().op(0);
+#ifdef DEBUG
+    cout << "hessian:" << hessian << "\n";
+#endif
+    ex sp = 0.5 * (dvars * hessian * dvars.transpose()).evalm().op(0);
+#ifdef DEBUG
+    cout << "sp: " << sp << "\n";
+#endif
 
     fp = fp.subs(ddeps);
     sp = sp.subs(ddeps);
@@ -221,12 +235,16 @@ struct Solver {
     sp = sp.subs(pow(dt, 2) == 0);
 
     // XXX: Now the dwt*dt == 0
-    for (const auto &i : dWt){
-      fp = fp.subs(i.second*dt*wild() == 0);
+    for (const auto &i : dWt) {
+      fp = fp.subs(i.second * dt * wild() == 0);
       fp = fp.subs(pow(i.second, 2) == dt);
-      sp = sp.subs(i.second*dt*wild() == 0);
+      sp = sp.subs(i.second * dt * wild() == 0);
       sp = sp.subs(pow(i.second, 2) == dt);
     }
+
+#ifdef DEBUG
+    cout << "fp: " << fp << ", sp: " << sp << "\n";
+#endif
 
     // XXX: Now substitute the uncorrelated Wiener processes.
     for (const auto &i : dWt)
@@ -235,8 +253,97 @@ struct Solver {
                                 : sp;
 
     // XXX: Now substitute the dWts.
+    fp = fp.subs(ddWts).evalf();
+    sp = sp.subs(ddWts).evalf();
 
+#ifdef DEBUG
+    cout << "fp: " << fp << ", sp: " << sp << "\n";
+#endif
+    // XXX: This is g[T]
+    ex gv = expr.subs(vars);
+    gv = gv.subs(symbol("t") == T);
+
+    // Now compute the time step dt using the level crossing and the
+    // quadratic
+    if (fp + sp == 0) {
+      toret = vars;
+      return INF;
+    }
+
+    // XXX: Get the step-size within error constraints.
+    ex L = gv;
+    ex eq1, eq2, Dtv, root1, root2, dtv;
+    bool err;
+    count = 0;
+    while (true) {
+      root1 = build_eq_g(dt, fp, sp, L, T, eq1);
+      root2 = build_eq_g(dt, fp, sp, -L, T, eq2);
+#ifdef DEBUG
+      cout << "Guard roots: " << root1 << "," << root2 << "\n";
+#endif
+      Dtv = min(root1, root2);
+#ifdef DEBUG
+      cout << "Guard Dtv: " << Dtv << "\n";
+#endif
+      step = ex_to<numeric>(Dtv.evalf()).to_double();
+      if (step == INF) {
+        toret = vars;
+        break;
+      }
+      dtv = Dtv / R;
+      err = var_compute(deps, dWts, vars, T, Dtv, dtv, toret);
+      if (err) {
+        step = ex_to<numeric>(Dtv.evalf()).to_double();
+        break;
+      } else {
+        count += 1;
+        if (count == iter_count)
+          throw runtime_error("Too many iterations");
+        L /= 2;
+      }
+    }
+#ifdef DEBUG
+    cout << "guard step returned: " << step << "\n";
+    exit(1);
+#endif // DEBUG
     return step;
+  }
+  ex build_eq_g(const symbol &dt, const ex &fp, const ex &sp, const ex &L,
+                const double &T, ex &toret) const {
+    ex root{INF}; // The default value
+    cout << "Inside building roots" << "\n";
+    ex f(fp + sp);
+    f = f.expand().evalf();
+#ifdef DEBUG
+    cout << "build_eq_g, f: " << f << "\n";
+#endif // DEBUG
+    ex dtc = f.subs(sqrt(dt)*wild() == 0).collect(dt).coeff(dt, 1);
+#ifdef DEBUG
+    cout << "dtc: " << dtc << "\n";
+#endif // DEBUG
+    ex eq = pow((-dtc * dt - L), 2) - pow((f - dtc * dt), 2);
+    eq = eq.expand().collect(dt);
+    ex a = eq.coeff(dt, 2);
+    ex b = eq.coeff(dt, 1);
+    ex c = eq.coeff(dt, 0);
+    ex D = pow(b, 2) - (4 * a * c);
+    if ((D >= 0) && (a != 0)) {
+      ex root1 = (-b + sqrt(D)) / (2 * a);
+      ex root2 = (-b - sqrt(D)) / (2 * a);
+      if ((root1 > 0) && (root2 > 0))
+        root = min(root1, root2);
+      else if (root1 > 0)
+        root = root1;
+      else if (root2 > 0)
+        root = root2;
+      else
+        throw runtime_error("Could not find a real-positive root for guard");
+    }
+#ifdef DEBUG
+    cout << "guard root: " << root << "\n";
+#endif // DEBUG
+    toret = eq;
+    return root;
   }
   ex EM(const ex &init, const ex &f, const ex &g, const ex &Dt, const ex &dt,
         const std::vector<double> &dWts, const exmap &vars,
@@ -255,22 +362,57 @@ struct Solver {
 
   static int p;
   static int R;
+  static double DEFAULT_STEP;
 
 private:
   // XXX: This will have the required private data
-  double ε = 1e-3;
-  int iter_count = 50;
-  double DEFAULT_STEP = 1;
+  const double ε = 1e-3;
+  const int iter_count = 50;
 };
 
 int Solver::p = 3;
 int Solver::R = std::pow(2, p);
+double Solver::DEFAULT_STEP = 1.0;
+
+double __compute(const exmap &vars,
+                 const std::map<ex, vector<double>, ex_is_less> &dWts,
+                 const derT &ders, const STATES location, lst guards,
+                 const Solver &s, exmap &toret, double t = 0,
+                 const symbol *z = nullptr, double Uz = NAN) {
+  double T = 0.0;
+  // XXX: Now call the rate and the guard computation for from the
+  // solver.
+  exT DM(ders.at(location));
+  std::map<double, exmap *> Dts;
+  exmap toretz;
+  if (z != nullptr) {
+    double Dz = s.zstep(*z, DM[*z], DM, vars, t, dWts, toret, Uz);
+    Dts[Dz] = &toretz;
+  }
+  for (const auto &i : guards) {
+    exmap toretg; // This will be passed back
+    double Dt = s.gstep(i, DM, vars, dWts, toretg, t);
+    Dts[Dt] = &toretg;
+  }
+  // XXX: Now get the smallest step size
+  vector<double> k;
+  for (const auto &i : Dts) {
+    k.push_back(i.first);
+  }
+  T = (k.size() > 1) ? *min_element(k.begin(), k.end()) : k[0];
+  if (T == INF) {
+    T = s.default_compute(DM, vars, dWts, toret, t);
+  } else
+    toret = *Dts[T];
+  return T;
+}
 
 // This is the robot x, y movement
 double HIOA1(const symbol &x, const symbol &y, const symbol &z,
              const symbol &th, const derT &ders, const exmap &vars, bool &ft1,
              const STATES &cs, STATES &ns, exmap &toret,
-             std::map<ex, vector<double>, ex_is_less> &dWts) {
+             const std::map<ex, vector<double>, ex_is_less> &dWts,
+             const Solver &s, const double time) {
 
   double step = 0;
   ex xval = vars.at(x), yval = vars.at(y), zval = vars.at(z);
@@ -294,6 +436,7 @@ double HIOA1(const symbol &x, const symbol &y, const symbol &z,
       // XXX: This is the Intra-transition
       ns = cs;
       ft1 = false;
+      step = __compute(vars, dWts, ders, cs, {}, s, toret, time);
     }
     break;
   }
@@ -304,10 +447,12 @@ double HIOA1(const symbol &x, const symbol &y, const symbol &z,
     } else if (xval * xval + yval * yval - v * v >= e) {
       ns = OUTTER, ft1 = true, step = 0, toret = vars;
     } else {
-      ns = INNER, ft1 = false;
-      cout << "inside INNER"
+      cout << "Entering INNER else"
            << "\n";
+      ns = cs, ft1 = false;
+      ex g = pow(x, 2) + pow(y, 2) - std::pow(v, 2);
       // XXX: Euler-Maruyama for step
+      step = __compute(vars, dWts, ders, cs, {g}, s, toret, time);
     }
     break;
   }
@@ -321,6 +466,9 @@ double HIOA1(const symbol &x, const symbol &y, const symbol &z,
       // XXX: Euler-Maruyama step
       ns = cs;
       ft1 = false;
+      ex g = pow(x, 2) + pow(y, 2) - std::pow(v, 2);
+      // XXX: Euler-Maruyama for step
+      step = __compute(vars, dWts, ders, cs, {g}, s, toret, time);
     }
     break;
   }
@@ -334,7 +482,8 @@ double HIOA1(const symbol &x, const symbol &y, const symbol &z,
 double HIOA2(const symbol &x, const symbol &y, const symbol &z,
              const symbol &th, const derT &ders, const exmap &vars, bool &ft2,
              STATES &cs, STATES &ns, exmap &toret,
-             std::map<ex, vector<double>, ex_is_less> &dWts) {
+             std::map<ex, vector<double>, ex_is_less> &dWts, const Solver &s,
+             const double time) {
 
   double step = 0;
   ex xval = vars.at(x), yval = vars.at(y), zval = vars.at(z);
@@ -363,6 +512,9 @@ double HIOA2(const symbol &x, const symbol &y, const symbol &z,
       ns = cs;
       ft2 = false;
       // XXX: Euler-Maruyama compute step
+      ex g = pow(x, 2) + pow(y, 2) - std::pow(v, 2);
+      // XXX: Euler-Maruyama for step
+      step = __compute(vars, dWts, ders, cs, {g}, s, toret, time, &z, Uz);
     }
     break;
   }
@@ -379,6 +531,8 @@ double HIOA2(const symbol &x, const symbol &y, const symbol &z,
       ns = cs;
       ft2 = false;
       // XXX: Compute step using EM
+      // XXX: Euler-Maruyama for step
+      step = __compute(vars, dWts, ders, cs, {}, s, toret, time);
     }
     break;
   }
@@ -391,6 +545,9 @@ double HIOA2(const symbol &x, const symbol &y, const symbol &z,
 int main(void) {
   // Initialize the random seed
   srand(0);
+
+  // XXX: Initialise the solver
+  const Solver s{};
 
   // The variables in the system
   symbol x("x"), y("y"), z("z"), th("th");
@@ -418,35 +575,14 @@ int main(void) {
                {th, {ex{wv}, ex{0}}},
                {z, {ex{0}, ex{0}}}};
 
-  // Just printing the derivatives for each state in the system
-  // for (int i = MOVE; i <= NCT; ++i)
-  //   cout << i << "->" << ders[(STATES)i] << "\n";
-
   // The intial values
   ex xval = 1;
   ex yval = 1;
   ex zval = 0;
   ex thval = atan(yval / xval);
 
-  cout << xval << " " << yval << " " << zval << "\n";
-  cout << thval << "\n";
-
-  symbol dt("dt");
-  ex test = 2*dt*dt;
-  test = test.expand();
-  cout << "test: " << test << "\n";
-  cout << test.subs(pow(dt, 2) == 1) << "\n";
-
-  // symbol x1("x1"), y1("y1");
-  // matrix aa = {{x1, y1}};
-  // matrix ab = aa.transpose();
-  // matrix hh = {{1, 2}, {3, 4}};
-  // ex res = (aa*hh*ab).evalm().op(0).expand();
-  // cout << "res: " << res << "\n";
-  // res = res.subs(pow(y1, 2) == 0);
-  // cout << "res 2: " << res << "\n";
-  // res = res.subs(x1*y1*wild() == 0);
-  // cout << "res 3:" << res << "\n";
+  // cout << xval << " " << yval << " " << zval << "\n";
+  // cout << thval << "\n";
 
   // The variable map
   exmap vars;
@@ -457,12 +593,11 @@ int main(void) {
   double time = 0;
 
   // XXX: The simulation end time
-  double SIM_TIME = 1.2;
+  const double SIM_TIME = 1.2;
 
   // The current and the next state variables
   STATES cs1, cs2, ns1, ns2;
 
-  // XXX: This is returning a copy of the vector tor
   auto randn = [](std::vector<double> &tor) {
     for (auto it = tor.begin(); it != tor.end(); ++it)
       *it = d(gen);
@@ -491,15 +626,10 @@ int main(void) {
   std::vector<double> ths{ex_to<numeric>(thval.evalf()).to_double()};
   std::vector<double> ts{0};
 
-  cout << "H1"
-       << "\n";
-
   // Now run until completion
   std::map<ex, std::vector<double>, ex_is_less> dWts;
 
   // print the state here
-  cout << "Entering the loop"
-       << "\n";
   while (time <= SIM_TIME) {
 
     // Generate the sample path for the Euler-Maruyama step
@@ -517,19 +647,37 @@ int main(void) {
     vars[z] = zval;
     vars[th] = thval;
 
-    cout << vars[x] << " " << vars[y] << " " << vars[z] << " " << vars[th] << "\n";
+    // XXX: Print the values of variables at time
+    cout << time << ":";
+    std::for_each(std::begin(vars), std::end(vars), [](const auto &i) {
+      cout << i.first << "," << i.second << "  ";
+    });
 
     // Calling the HIOAs
-    double d1 = HIOA1(x, y, z, th, ders, vars, ft1, cs1, ns1, toret1, dWts);
-    double d2 = HIOA2(x, y, z, th, ders, vars, ft2, cs2, ns2, toret2, dWts);
+    double d1 =
+        HIOA1(x, y, z, th, ders, vars, ft1, cs1, ns1, toret1, dWts, s, time);
+    double d2 =
+        HIOA2(x, y, z, th, ders, vars, ft2, cs2, ns2, toret2, dWts, s, time);
 
     // The lockstep execution step
     if (!ft1 && !ft2) {
       // XXX: Intra-Intra
       if (d2 <= d1) {
+        double T = d2;
         // XXX: Compute Euler-Maruyama
+        xval = s.EM(vars[x], ders[cs1][x].op(0), ders[cs1][x].op(1), ex(T),
+                    ex(T) / s.R, dWts[x], vars, time);
+        yval = s.EM(vars[y], ders[cs1][y].op(0), ders[cs1][y].op(1), ex(T),
+                    ex(T) / s.R, dWts[y], vars, time);
+        thval = toret2[th], zval = toret2[z];
       } else if (d1 <= d2) {
+        double T = d1;
+        xval = toret1[x], yval = toret1[y];
         // XXX: Compute Euler-Maruyama
+        thval = s.EM(vars[th], ders[cs2][th].op(0), ders[cs2][th].op(1), ex(T),
+                     ex(T) / s.R, dWts[th], vars, time);
+        zval = s.EM(vars[z], ders[cs2][z].op(0), ders[cs2][z].op(1), ex(T),
+                    ex(T) / s.R, dWts[z], vars, time);
       }
     } else if (!ft1 && ft2) {
       // XXX: Intra-Inter
@@ -568,10 +716,9 @@ int main(void) {
   // XXX: Now we can plot the values
   std::vector<double> xy2(xs.size(), 0);
   for (int i = 0; i < xs.size(); ++i)
-    xy2[i] = xs[i]*xs[i] + ys[i]*ys[i];
+    xy2[i] = xs[i] * xs[i] + ys[i] * ys[i];
 
   plt::plot(ts, xy2);
   plt::show();
-
   return 0;
 }

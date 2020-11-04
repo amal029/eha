@@ -2,11 +2,11 @@
 SHELL=/bin/bash
 # SRCS=gf.cpp
 OBJS = robotgshs_par.o
-CFLAGS = -O3 -Wundefined-var-template
+CFLAGS = -O0 -g -Wundefined-var-template
 ifeq ($(TARGET), LINUX)		#This is for the linux machine at work
 	CC = clang++ -std=c++2a
 else
-	CC = g++ -std=c++2a
+	CC = g++ -std=c++2a -DDEBUG
 endif
 INCLUDES = -I/usr/local/Cellar/ginac/1.8.0/include -I/usr/local/Cellar/cln/1.3.6/include
 INCLUDES += -I/usr/local/Cellar/python@3.8/3.8.5/Frameworks/Python.framework/Versions/3.8/include/python3.8
@@ -22,7 +22,6 @@ LIBDIR += -L/usr/local/Cellar/python@3.8/3.8.5/Frameworks/Python.framework/Versi
 LIBS = -lcln -lginac -lpython3.8
 
 robotgshs_par:	${OBJS}
-	export LD_LIBRARY_PATH=/usr/local/Cellar/ginac/1.8.0/lib:/usr/local/Cellar/cln/1.3.6/lib
 	${CC} ${CFLAGS} ${INCLUDES} ${LIBDIR} ${OBJS} -o $@ ${LIBS}
 
 run:
@@ -32,4 +31,4 @@ clean:
 	-rm -f *.o core *.core robotgshs_par
 
 .cpp.o:
-	${CC} ${CFLAGS} ${INCLUDES} ${LIBDIR} $< -c
+	${CC} ${CFLAGS} ${INCLUDES} $< -c
