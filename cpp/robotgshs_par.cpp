@@ -22,7 +22,8 @@ typedef std::map<STATES, exT> derT;
 
 // Initialize the random number generator
 // std::random_device rd{};
-std::mt19937 gen{0}; // Usually use the random device rd()
+// std::mt19937 gen{rd()}; // Usually use the random device rd()
+std::mt19937 gen{7}; // Usually use the random device rd()
 std::normal_distribution<> d{0, 1};
 
 // The standard uniform distribution for jump edges
@@ -185,7 +186,12 @@ double HIOA2(const symbol &x, const symbol &y, const symbol &z,
   return step;
 }
 
-int main(void) {
+int main(int argc, char** argv) {
+  double SIM_TIME = 1.2;
+  Solver::DEFAULT_STEP = 1e-1;
+  if (argc > 1)
+    SIM_TIME = std::atof(argv[1]);
+
   // XXX: Initialise the solver
   const Solver s{};
 
@@ -224,9 +230,6 @@ int main(void) {
   // Now call the HIOA with the initial values
   bool ft1 = true, ft2 = true;
   double time = 0;
-
-  // XXX: The simulation end time
-  const double SIM_TIME = 1.2;
 
   // The current and the next state variables
   STATES cs1, cs2, ns1, ns2;

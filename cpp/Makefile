@@ -27,7 +27,7 @@ robotgshs_par:	${OBJS}
 	${CC} ${CFLAGS} ${INCLUDES} ${LIBDIR} ${OBJS} -o $@ ${LIBS}
 
 run:
-	DYLD_FALLBACK_LIBRARY_PATH=/Users/amal029_old/eha/cpp/lib ./robotgshs_par
+	DYLD_FALLBACK_LIBRARY_PATH=/Users/amal029_old/eha/cpp/lib ./robotgshs_par 1.2
 
 clean:
 	-rm -f *.o core *.core robotgshs_par

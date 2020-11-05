@@ -15,15 +15,19 @@ bool Solver::var_compute(const exT &deps,
            dtv, dWts.at(it->first), vars, T);
   }
   // XXX: Now compute the values in two half-steps.
+
   for (auto it = vars.begin(); it != vars.end(); ++it) {
     auto f = dWts.at(it->first).begin(), l = dWts.at(it->first).begin() + R / 2;
-    nvars[it->first] = EM(it->second, deps.at(it->first).op(0),
-                          deps.at(it->first).op(1), Dtv, dtv, f, l, vars, T);
+    nvars[it->first] =
+        EM(it->second, deps.at(it->first).op(0), deps.at(it->first).op(1),
+           Dtv / 2, dtv / 1, f, l, vars, T);
   }
   for (auto it = nvars.begin(); it != nvars.end(); ++it) {
     auto f = dWts.at(it->first).begin() + R / 2, l = dWts.at(it->first).end();
-    nvars[it->first] = EM(it->second, deps.at(it->first).op(0),
-                          deps.at(it->first).op(1), Dtv, dtv, f, l, vars, T);
+    nvars[it->first] =
+        EM(it->second, deps.at(it->first).op(0), deps.at(it->first).op(1),
+           Dtv / 2, dtv / 1, f, l, nvars,
+           T + ex_to<numeric>((Dtv / 2).evalf()).to_double());
   }
   // XXX: Now do the final check
 #ifdef DEBUG

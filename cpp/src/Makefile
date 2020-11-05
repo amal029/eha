@@ -13,7 +13,7 @@ LIBS = -lcln -lginac -lpython3.8
 all:	${OUTPUTFILE}
 
 .PHONY:	install
-install:
+install: all
 	mkdir -p ${INSTALLDIR}
 	cp -p ${OUTPUTFILE} ${INSTALLDIR}
 

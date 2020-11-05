@@ -52,7 +52,7 @@ struct Solver {
 
 private:
   // XXX: This will have the required private data
-  const double ε = 1e-2;
+  const double ε = 1e-3;
   const int iter_count = 50;
   bool
   var_compute(const exT &deps,
