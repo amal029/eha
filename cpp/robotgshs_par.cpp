@@ -145,11 +145,24 @@ struct Solver {
                             deps.at(it->first).op(1), Dtv, dtv, v1, vars, T);
     }
     // XXX: Now do the final check
+#ifdef DEBUG
+    cout << toret << "\n";
+    cout << nvars << "\n";
+#endif // DEBUG
     vector<bool> errs;
     for (auto it = nvars.begin(); it != nvars.end(); ++it) {
-      errs.push_back(abs(toret[it->first] -
-                         nvars[it->first] / (nvars[it->first] + ε)) <= ε);
+      errs.push_back(abs(toret[it->first] - nvars[it->first]) /
+                         (nvars[it->first] + ε) <=
+                     ε);
     }
+#ifdef DEBUG
+    cout << "Dtv: " << Dtv << ", dtv: " << dtv << "\n";
+    cout << vars << "\n";
+    std::for_each(std::begin(errs), std::end(errs), [](bool i) {
+      cout << i << " ";
+    });
+    cout << "\n";
+#endif // DEBUG
     err = all_of(errs.begin(), errs.end(), [](bool i) { return i == true; });
     return err;
   }
@@ -351,9 +364,9 @@ struct Solver {
     ex res = 0;
     // Build the map for substitution
     ex f1 = f.subs(vars);
-    ex f2 = f.subs(symbol("t") == T);
+    ex f2 = f1.subs(symbol("t") == T);
     ex g1 = g.subs(vars);
-    ex g2 = g.subs(symbol("t") == T);
+    ex g2 = g1.subs(symbol("t") == T);
     res = (init + f2 * Dt +
            g2 * std::accumulate(dWts.begin(), dWts.end(), 0) * sqrt(dt))
               .evalf();
