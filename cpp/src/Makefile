@@ -12,10 +12,6 @@ LIBS = -lcln -lginac -lpython3.8
 .PHONY:	all
 all:	${OUTPUTFILE}
 
-${OUTPUTFILE}:	${OBJS}
-	ar ru $@ $^
-	ranlib $@
-
 .PHONY:	install
 install:
 	mkdir -p ${INSTALLDIR}

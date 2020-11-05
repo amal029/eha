@@ -1,6 +1,7 @@
-#include "solver.hpp"
+#include "../include/solver.hpp"
 
 using namespace std;
+using namespace GiNaC;
 
 bool Solver::var_compute(const exT &deps,
                          const map<ex, vector<double>, ex_is_less> &dWts,
@@ -10,21 +11,19 @@ bool Solver::var_compute(const exT &deps,
   exmap temp1, nvars;
   for (auto it = vars.begin(); it != vars.end(); ++it) {
     toret[it->first] =
-	EM(it->second, deps.at(it->first).op(0), deps.at(it->first).op(1), Dtv,
-	   dtv, dWts.at(it->first), vars, T);
+        EM(it->second, deps.at(it->first).op(0), deps.at(it->first).op(1), Dtv,
+           dtv, dWts.at(it->first), vars, T);
   }
   // XXX: Now compute the values in two half-steps.
   for (auto it = vars.begin(); it != vars.end(); ++it) {
-    vector<double> v1(dWts.at(it->first).begin(),
-		      dWts.at(it->first).begin() + R / 2);
+    auto f = dWts.at(it->first).begin(), l = dWts.at(it->first).begin() + R / 2;
     nvars[it->first] = EM(it->second, deps.at(it->first).op(0),
-			  deps.at(it->first).op(1), Dtv, dtv, v1, vars, T);
+                          deps.at(it->first).op(1), Dtv, dtv, f, l, vars, T);
   }
   for (auto it = nvars.begin(); it != nvars.end(); ++it) {
-    vector<double> v1(dWts.at(it->first).begin() + R / 2,
-		      dWts.at(it->first).end());
+    auto f = dWts.at(it->first).begin() + R / 2, l = dWts.at(it->first).end();
     nvars[it->first] = EM(it->second, deps.at(it->first).op(0),
-			  deps.at(it->first).op(1), Dtv, dtv, v1, vars, T);
+                          deps.at(it->first).op(1), Dtv, dtv, f, l, vars, T);
   }
   // XXX: Now do the final check
 #ifdef DEBUG
@@ -34,13 +33,13 @@ bool Solver::var_compute(const exT &deps,
   vector<bool> errs;
   for (auto it = nvars.begin(); it != nvars.end(); ++it) {
     errs.push_back(
-	abs(toret[it->first] - nvars[it->first]) / (nvars[it->first] + ε) <= ε);
+        abs(toret[it->first] - nvars[it->first]) / (nvars[it->first] + ε) <= ε);
   }
 #ifdef DEBUG
   cout << "Dtv: " << Dtv << ", dtv: " << dtv << "\n";
   cout << vars << "\n";
   std::for_each(std::begin(errs), std::end(errs),
-		[](bool i) { cout << i << " "; });
+                [](bool i) { cout << i << " "; });
   cout << "\n";
 #endif // DEBUG
   err = all_of(errs.begin(), errs.end(), [](bool i) { return i == true; });
@@ -347,6 +346,21 @@ ex Solver::EM(const ex &init, const ex &f, const ex &g, const ex &Dt,
   ex g2 = g1.subs(symbol("t") == T);
   res = (init + f2 * Dt +
          g2 * std::accumulate(dWts.begin(), dWts.end(), 0) * sqrt(dt))
+            .evalf();
+  return res;
+}
+
+template <typename InputIt>
+ex Solver::EM(const ex &init, const ex &f, const ex &g, const ex &Dt,
+              const ex &dt, InputIt first, InputIt last, const exmap &vars,
+              const double T) const {
+  ex res = 0;
+  // Build the map for substitution
+  ex f1 = f.subs(vars);
+  ex f2 = f1.subs(symbol("t") == T);
+  ex g1 = g.subs(vars);
+  ex g2 = g1.subs(symbol("t") == T);
+  res = (init + f2 * Dt + g2 * std::accumulate(first, last, 0) * sqrt(dt))
             .evalf();
   return res;
 }

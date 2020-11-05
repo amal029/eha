@@ -13,30 +13,38 @@
 #include <iostream>
 #include <numeric>
 #include <random>
+#include <iterator>
 
 #define INF DBL_MAX
 
-using namespace GiNaC;
+// using namespace GiNaC;
+namespace G = GiNaC;
 
-typedef std::map<ex, lst, ex_is_less> exT;
+typedef std::map<G::ex, G::lst, G::ex_is_less> exT;
 
 struct Solver {
-  double default_compute(const exT &deps, const exmap &vars,
-                         const std::map<ex, std::vector<double>, ex_is_less> &dWts,
-                         exmap &toret, double T = 0) const;
+  double default_compute(
+      const exT &deps, const G::exmap &vars,
+      const std::map<G::ex, std::vector<double>, G::ex_is_less> &dWts,
+      G::exmap &toret, double T = 0) const;
 
-  double zstep(const ex &left, const lst &right, const exT &deps,
-               const exmap &vars, double T,
-               const std::map<ex, std::vector<double>, ex_is_less> &dWts, exmap &toret,
-               double Uz = NAN) const;
+  double zstep(const G::ex &left, const G::lst &right, const exT &deps,
+               const G::exmap &vars, double T,
+               const std::map<G::ex, std::vector<double>, G::ex_is_less> &dWts,
+               G::exmap &toret, double Uz = NAN) const;
 
-  double gstep(const ex &expr, const exT &deps, const exmap &vars,
-               const std::map<ex, std::vector<double>, ex_is_less> &dWts, exmap &toret,
-               double T = 0) const;
+  double gstep(const G::ex &expr, const exT &deps, const G::exmap &vars,
+               const std::map<G::ex, std::vector<double>, G::ex_is_less> &dWts,
+               G::exmap &toret, double T = 0) const;
 
-  ex EM(const ex &init, const ex &f, const ex &g, const ex &Dt, const ex &dt,
-        const std::vector<double> &dWts, const exmap &vars,
-        const double T) const;
+  G::ex EM(const G::ex &init, const G::ex &f, const G::ex &g, const G::ex &Dt,
+           const G::ex &dt, const std::vector<double> &dWts,
+           const G::exmap &vars, const double T) const;
+
+  template <typename InputIt>
+  G::ex EM(const G::ex &init, const G::ex &f, const G::ex &g, const G::ex &Dt,
+           const G::ex &dt, InputIt first, InputIt last, const G::exmap &vars,
+           const double T) const;
 
   static int p;
   static int R;
@@ -46,12 +54,14 @@ private:
   // XXX: This will have the required private data
   const double ε = 1e-2;
   const int iter_count = 50;
-  bool var_compute(const exT &deps,
-                   const std::map<ex, std::vector<double>, ex_is_less> &dWts,
-                   const exmap &vars, double T, ex Dtv, ex dtv,
-                   exmap &toret) const;
-  ex build_eq_g(const symbol &dt, const ex &fp, const ex &sp, const ex &L,
-                const double &T, ex &toret) const;
+  bool
+  var_compute(const exT &deps,
+              const std::map<G::ex, std::vector<double>, G::ex_is_less> &dWts,
+              const G::exmap &vars, double T, G::ex Dtv, G::ex dtv,
+              G::exmap &toret) const;
+
+  G::ex build_eq_g(const G::symbol &dt, const G::ex &fp, const G::ex &sp,
+                   const G::ex &L, const double &T, G::ex &toret) const;
 };
 
 int Solver::p = 3;

@@ -7,10 +7,7 @@
 #include <iostream>
 #include <numeric>
 #include <random>
-
-#include "include/solver.hpp"
-
-#define INF DBL_MAX
+#include "./include/solver.hpp"
 
 using namespace std;
 using namespace GiNaC;
@@ -62,7 +59,7 @@ double __compute(const exmap &vars,
   for (const auto &i : Dts) {
     k.push_back(i.first);
   }
-  T = (k.size() > 1) ? *min_element(k.begin(), k.end())
+  T = (k.size() > 1) ? *std::min_element(k.begin(), k.end())
                      : k.size() > 0 ? k[0] : INF;
   if (T == INF) {
     T = s.default_compute(DM, vars, dWts, toret, t);
@@ -86,20 +83,15 @@ double HIOA1(const symbol &x, const symbol &y, const symbol &z,
   case MOVE: {
     if (xval * xval + yval * yval - v * v <= -e) {
       // XXX: Inter-transition
-      ns = INNER;
-      step = 0;
-      ft1 = true;
-      toret = vars;
+      ns = INNER, step = 0;
+      ft1 = true, toret = vars;
     } else if (xval * xval + yval * yval - v * v >= e) {
       // XXX: Inter-transition
-      ns = OUTTER;
-      step = 0;
-      ft1 = true;
-      toret = vars;
+      ns = OUTTER, step = 0;
+      ft1 = true, toret = vars;
     } else {
       // XXX: This is the Intra-transition
-      ns = cs;
-      ft1 = false;
+      ns = cs, ft1 = false;
       step = __compute(vars, dWts, ders, cs, {}, s, toret, time);
     }
     break;
@@ -156,22 +148,15 @@ double HIOA2(const symbol &x, const symbol &y, const symbol &z,
     Uz = ft2 ? -log(dis(gen)) : Uz;
     if ((xval * xval + yval * yval - v * v <= e) &&
         (xval * xval + yval * yval - v * v >= -e)) {
-      ns = NCT;
-      ft2 = true;
-      step = 0;
-      toret = vars;
-      toret[z] = 0;
-      toret[th] = atan(yval/xval);
+      ns = NCT, ft2 = true;
+      step = 0, toret = vars;
+      toret[z] = 0, toret[th] = atan(yval / xval);
     } else if (abs(Uz - zval) <= e) {
-      ns = CT;
-      toret = vars;
-      toret[z] = 0;
-      toret[th] = thval - Uz;
-      ft2 = true;
-      step = 0;
+      ns = CT, toret = vars;
+      toret[z] = 0, toret[th] = thval - Uz;
+      ft2 = true, step = 0;
     } else {
-      ns = cs;
-      ft2 = false;
+      ns = cs, ft2 = false;
       // XXX: Euler-Maruyama compute step
       ex g = pow(x, 2) + pow(y, 2) - std::pow(v, 2);
       // XXX: Euler-Maruyama for step
@@ -183,15 +168,11 @@ double HIOA2(const symbol &x, const symbol &y, const symbol &z,
   case NCT: {
     if ((xval * xval + yval * yval - v * v <= -e) ||
         (xval * xval + yval * yval - v * v >= e)) {
-      step = 0;
-      ns = CT;
-      ft2 = true;
-      toret = vars;
-      toret[z] = 0;
-      toret[th] = atan(yval / xval);
+      step = 0, ns = CT;
+      ft2 = true, toret = vars;
+      toret[z] = 0, toret[th] = atan(yval / xval);
     } else {
-      ns = cs;
-      ft2 = false;
+      ns = cs, ft2 = false;
       // XXX: Compute step using EM
       // XXX: Euler-Maruyama for step
       step = __compute(vars, dWts, ders, cs, {}, s, toret, time);
@@ -235,20 +216,13 @@ int main(void) {
                {z, {ex{0}, ex{0}}}};
 
   // The intial values
-  ex xval = 1;
-  ex yval = 1;
-  ex zval = 0;
-  ex thval = atan(yval / xval);
-
-  // cout << xval << " " << yval << " " << zval << "\n";
-  // cout << thval << "\n";
+  ex xval = 1, yval = 1, zval = 0, thval = atan(yval / xval);
 
   // The variable map
   exmap vars;
 
   // Now call the HIOA with the initial values
-  bool ft1 = true;
-  bool ft2 = true;
+  bool ft1 = true, ft2 = true;
   double time = 0;
 
   // XXX: The simulation end time
@@ -275,8 +249,7 @@ int main(void) {
   cs2 = CT; // always startinng from CT
 
   // XXX: These are the values returned by the HIOAs
-  exmap toret1{{x, 0.0}, {y, 0}, {z, 0}, {th, 0}};
-  exmap toret2 = toret1;
+  exmap toret1{{x, 0.0}, {y, 0}, {z, 0}, {th, 0}}, toret2 = toret1;
 
   // XXX: Plotting vectors
   std::vector<double> xs{ex_to<numeric>(xval).to_double()};
@@ -293,19 +266,14 @@ int main(void) {
     switch (s) {
     case 0:
       return "MOVE";
-      break;
     case 1:
       return "INNER";
-      break;
     case 2:
       return "OUTTER";
-      break;
     case 3:
       return "CT";
-      break;
     case 4:
       return "NCT";
-      break;
     default:
       break;
     }
@@ -363,23 +331,18 @@ int main(void) {
       }
     } else if (!ft1 && ft2) {
       // XXX: Intra-Inter
-      thval = toret2[th];
-      zval = toret2[z];
+      thval = toret2[th], zval = toret2[z];
     } else if (ft1 and !ft2) {
       // XXX: Inter-Intra
-      xval = toret1[x];
-      yval = toret1[y];
+      xval = toret1[x], yval = toret1[y];
     } else if (ft1 && ft2) {
       // XXX: Inter-Inter
-      xval = toret1[x];
-      yval = toret1[y];
-      thval = toret2[th];
+      xval = toret1[x], yval = toret1[y], thval = toret2[th];
       zval = toret2[z];
     }
 
     // XXX: Set the next state
-    cs1 = ns1;
-    cs2 = ns2;
+    cs1 = ns1, cs2 = ns2;
 
     // XXX: Increment the timer
     time += std::min(d1, d2);
