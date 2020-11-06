@@ -1,13 +1,5 @@
-#include "matplotlibcpp.h"
-#include <algorithm>
-#include <cstdlib>
-#include <exception>
-#include <float.h>
-#include <ginac/ginac.h>
-#include <iostream>
-#include <numeric>
-#include <random>
 #include "./include/solver.hpp"
+#include "matplotlibcpp.h"
 
 using namespace std;
 using namespace GiNaC;
@@ -43,7 +35,6 @@ double __compute(const exmap &vars,
   // XXX: Now call the rate and the guard computation for from the
   // solver.
   exT DM(ders.at(location));
-  // FIXME: This holds an expensive copy to exmap
   std::map<double, exmap> Dts;
   if (z != nullptr) {
     exmap toretz;
@@ -186,7 +177,7 @@ double HIOA2(const symbol &x, const symbol &y, const symbol &z,
   return step;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
   double SIM_TIME = 1.2;
   Solver::DEFAULT_STEP = 1e-1;
   if (argc > 1)
@@ -322,7 +313,7 @@ int main(int argc, char** argv) {
         yval = s.EM(vars[y], ders[cs1][y].op(0), ders[cs1][y].op(1), ex(T),
                     ex(T) / s.R, dWts[y], vars, time);
         thval = toret2[th], zval = toret2[z];
-	// cout << "d2 <= d1 " << toret2 << "\n";
+        // cout << "d2 <= d1 " << toret2 << "\n";
       } else if (d1 <= d2) {
         double T = d1;
         xval = toret1[x], yval = toret1[y];

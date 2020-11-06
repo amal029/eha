@@ -1,6 +1,8 @@
 # Define required macros here
 SHELL=/bin/bash
-OBJS = robotgshs_par.o
+OBJ1 = robotgshs_par.o
+OBJ2 = driver.o
+OBJS = ${OBJ1} ${OBJ2}
 CFLAGS = -O3 -Wundefined-var-template -mavx2 -mavx -ffast-math
 ifeq ($(TARGET), LINUX)		#This is for the linux machine at work
 	CC = clang++ -std=c++2a
@@ -23,14 +25,23 @@ LIBDIR += -L/usr/local/Cellar/python@3.8/3.8.5/Frameworks/Python.framework/Versi
 LIBDIR += -L./lib
 LIBS = -lcln -lginac -lpython3.8 -lsolver
 
-robotgshs_par:	${OBJS}
-	${CC} ${CFLAGS} ${INCLUDES} ${LIBDIR} ${OBJS} -o $@ ${LIBS}
+all:	robotgshs_par driver
 
-run:
+# Example 1
+robotgshs_par: ${OBJ1}
+	${CC} ${CFLAGS} ${INCLUDES} ${LIBDIR} ${OBJ1} -o $@ ${LIBS}
+
+# Example 2
+driver: ${OBJ2}
+	${CC} ${CFLAGS} ${INCLUDES} ${LIBDIR} ${OBJ2} -o $@ ${LIBS}
+
+run1:
 	DYLD_FALLBACK_LIBRARY_PATH=/Users/amal029_old/eha/cpp/lib ./robotgshs_par 1.2
 
+run2:
+	DYLD_FALLBACK_LIBRARY_PATH=/Users/amal029_old/eha/cpp/lib ./driver
 clean:
-	-rm -f *.o core *.core robotgshs_par
+	-rm -f *.o *.core robotgshs_par driver all
 
 .cpp.o:
 	${CC} ${CFLAGS} ${INCLUDES} $< -c

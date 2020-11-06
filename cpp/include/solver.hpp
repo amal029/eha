@@ -49,10 +49,9 @@ struct Solver {
   static int p;
   static int R;
   static double DEFAULT_STEP;
-
+  static double ε; 
 private:
   // XXX: This will have the required private data
-  const double ε = 1e-3;
   const int iter_count = 50;
   bool
   var_compute(const exT &deps,
@@ -66,4 +65,5 @@ private:
 
 int Solver::p = 3;
 int Solver::R = std::pow(2, p);
+double Solver::ε = 1e-3;
 double Solver::DEFAULT_STEP = 1.0;
