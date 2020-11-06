@@ -69,7 +69,7 @@ double HIOA1(const symbol &x, const symbol &z, const derT &ders,
   Uz = ft1 ? -log(dis(gen)) : Uz;
   switch (cs) {
   case X0: {
-    if ((xval >= 1) && abs(zval - Uz) <= e) {
+    if ((xval >= 1) && abs(zval - Uz).evalf() <= e) {
       ft1 = true;
       ns = X1, toret = vars, toret[z] = 0, step = 0;
     } else {
@@ -79,7 +79,7 @@ double HIOA1(const symbol &x, const symbol &z, const derT &ders,
     break;
   }
   case X1: {
-    if (abs(zval - Uz) <= e) {
+    if (abs(zval - Uz).evalf() <= e) {
       ns = X0, step = 0, toret = vars, toret[z] = 0;
     } else {
       ns = cs, ft1 = false;

@@ -63,7 +63,7 @@ double HIOA1(const symbol &x1, const symbol &x2, const symbol &v1, const derT &d
   ex x2val = vars.at(x2);
   switch (cs) {
   case C: {
-    if (abs(x2val - x1val - d2) <= e) {
+    if (abs((x2val - x1val) - d2).evalf() <= e) {
       ns = K, toret = vars, step = 0;
     } else {
       ns = cs;
@@ -73,9 +73,9 @@ double HIOA1(const symbol &x1, const symbol &x2, const symbol &v1, const derT &d
     break;
   }
   case K: {
-    if (abs(x2 - x1 - d1) <= e) {
+    if (abs((x2val - x1val) - d1).evalf() <= e) {
       ns = C, step = 0, toret = vars;
-    } else if (abs(x2 - x1 - d3) <= e) {
+    } else if (abs((x2val - x1val) - d3).evalf() <= e) {
       ns = B, toret = vars, step = 0;
     }
     else {
@@ -86,7 +86,7 @@ double HIOA1(const symbol &x1, const symbol &x2, const symbol &v1, const derT &d
     break;
   }
   case B: {
-    if (abs(x2 - x1 - d0) <= e) {
+    if (abs(x2val - x1val - d0) <= e) {
       ns = C, step = 0, toret = vars;
     } else {
       ns = cs;

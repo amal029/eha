@@ -64,7 +64,7 @@ double HIOA(const symbol &x, const derT &ders, const exmap &vars,
   ex xval = vars.at(x);
   switch (cs) {
   case S1: {
-    if (abs(cos(xval)) <= e) {
+    if (abs(cos(xval)).evalf() <= e) {
       ns = S3, toret = vars, step = 0;
     } else if (cos(xval) >= e) {
       ns = S2, step = 0, toret = vars;
@@ -76,7 +76,7 @@ double HIOA(const symbol &x, const derT &ders, const exmap &vars,
     break;
   }
   case S2: {
-    if (abs(cos(xval)) <= e) {
+    if (abs(cos(xval)).evalf() <= e) {
       ns = S3, step = 0, toret = vars;
     } else if (cos(xval) <= -e) {
       ns = S1, step = 0, toret = vars;

@@ -143,7 +143,7 @@ double HIOA2(const symbol &x, const symbol &y, const symbol &z,
       ns = NCT, ft2 = true;
       step = 0, toret = vars;
       toret[z] = 0, toret[th] = atan(yval / xval);
-    } else if (abs(Uz - zval) <= e) {
+    } else if (abs(Uz - zval).evalf() <= e) {
       ns = CT, toret = vars;
       toret[z] = 0, toret[th] = thval - Uz;
       ft2 = true, step = 0;
@@ -231,7 +231,7 @@ int main(int argc, char **argv) {
   };
 
   // Set the current state
-  if (abs(xval * xval + yval * yval - v * v) <= e)
+  if (abs(xval * xval + yval * yval - v * v).evalf() <= e)
     cs1 = MOVE;
   else if (xval * xval + yval * yval - v * v <= -e)
     cs1 = INNER;
