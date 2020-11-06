@@ -83,7 +83,7 @@ class GSHS:
         global Uz
         Uz = -numpy.log(numpy.random.rand()) if FT else Uz
         if abs(z - Uz) <= e:
-            # Destination X1
+            # Destination X0
             state = 0
             z = 0
             return state, 0, (x, z), True
