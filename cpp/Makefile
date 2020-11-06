@@ -18,31 +18,34 @@ LIBDIR += -L/usr/local/Cellar/python@3.8/3.8.5/Frameworks/Python.framework/Versi
 LIBDIR += -L./lib
 LIBS = -lcln -lginac -lpython3.8 -lsolver
 
-all:	robotgshs_par driver gene twocars
+all:	lib robotgshs_par driver gene twocars
+
+lib:
+	cd src && make install
 
 # Example 1
-robotgshs_par: ${OBJ1}
+robotgshs_par: lib ${OBJ1}
 	${CC} ${CFLAGS} ${INCLUDES} ${LIBDIR} ${OBJ1} -o $@ ${LIBS}
 
 runrobot:
 	DYLD_FALLBACK_LIBRARY_PATH=/Users/amal029_old/eha/cpp/lib ./robotgshs_par 1.2
 
 # Example 2
-driver: ${OBJ2}
+driver: lib ${OBJ2}
 	${CC} ${CFLAGS} ${INCLUDES} ${LIBDIR} ${OBJ2} -o $@ ${LIBS}
 
 rundriver:
 	DYLD_FALLBACK_LIBRARY_PATH=/Users/amal029_old/eha/cpp/lib ./driver
 
 # Example 3
-gene: ${OBJ3}
+gene: lib ${OBJ3}
 	${CC} ${CFLAGS} ${INCLUDES} ${LIBDIR} ${OBJ3} -o $@ ${LIBS}
 
 rungene:
 	DYLD_FALLBACK_LIBRARY_PATH=/Users/amal029_old/eha/cpp/lib ./gene
 
 # Example 4
-twocars: ${OBJ4}
+twocars: lib ${OBJ4}
 	${CC} ${CFLAGS} ${INCLUDES} ${LIBDIR} ${OBJ4} -o $@ ${LIBS}
 
 runtwocars:
@@ -50,6 +53,7 @@ runtwocars:
 
 clean:
 	-rm -f *.o *.core robotgshs_par driver all gene twocars
+	cd src && make cleanall
 
 .cpp.o:
 	${CC} ${CFLAGS} ${INCLUDES} $< -c

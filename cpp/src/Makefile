@@ -21,6 +21,10 @@ install: all
 clean:
 	rm -rf *.o *.a *.dylib *.so
 
+.PHONY: cleanall
+cleanall: clean
+	rm -rf ../lib
+
 .cpp.o:
 	${CC} ${CFLAGS} ${INCLUDES} $< -c
 

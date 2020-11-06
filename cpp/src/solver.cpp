@@ -171,8 +171,8 @@ double Solver::gstep(const ex &expr, const exT &deps, const exmap &vars,
     ddeps[s] = deps.at(v.first).op(0) * dt + deps.at(v.first).op(1) * s1;
     dWt[v.first] = s1;
     ddWts[s1] =
-        accumulate(dWts.at(v.first).begin(), dWts.at(v.first).end(), 0.0) *
-        sqrt(dt / R);
+      accumulate(dWts.at(v.first).begin(), dWts.at(v.first).end(), 0.0) *
+      sqrt(dt / R);
     dvars(0, count) = s;
     ++count;
   }
@@ -321,6 +321,9 @@ ex Solver::build_eq_g(const symbol &dt, const ex &fp, const ex &sp, const ex &L,
   ex b = eq.coeff(dt, 1);
   ex c = eq.coeff(dt, 0);
   ex D = pow(b, 2) - (4 * a * c);
+#ifdef DEBUG
+    cout << "a:" << a << ", b:" << b << ", D:" << D << ", c: " << c << "\n";
+#endif // DEBUG
   if ((D >= 0) && (a != 0)) {
     ex root1 = (-b + sqrt(D)) / (2 * a);
     ex root2 = (-b - sqrt(D)) / (2 * a);
@@ -330,8 +333,9 @@ ex Solver::build_eq_g(const symbol &dt, const ex &fp, const ex &sp, const ex &L,
       root = root1;
     else if (root2 > 0)
       root = root2;
-    else
-      throw runtime_error("Could not find a real-positive root for guard");
+    // XXX: One of them will be negative as such.
+    // else
+      // throw runtime_error("Could not find a real-positive root for guard");
   }
 #ifdef DEBUG
   cout << "guard root: " << root << "\n";
