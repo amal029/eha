@@ -106,8 +106,8 @@ int main(int argc, char *argv[]) {
 
   // Solver
   const Solver s{};
-  s.DEFAULT_STEP = 1e-5;
-  s.ε = 1e-12;
+  s.DEFAULT_STEP = 1;
+  s.ε = 1e-3;
 
   std::cout << s.ε << "\n";
 
