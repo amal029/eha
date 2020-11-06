@@ -3,7 +3,8 @@ SHELL=/bin/bash
 OBJ1 = robotgshs_par.o
 OBJ2 = driver.o
 OBJ3 = gene.o
-OBJS = ${OBJ1} ${OBJ2} ${OBJ3}
+OBJ4 = twocars.o
+OBJS = ${OBJ1} ${OBJ2} ${OBJ3} ${OBJ4}
 CFLAGS = -O3 -Wundefined-var-template -mavx2 -mavx -ffast-math
 CC = g++ -std=c++2a
 INCLUDES = -I/usr/local/Cellar/ginac/1.8.0/include -I/usr/local/Cellar/cln/1.3.6/include
@@ -17,7 +18,7 @@ LIBDIR += -L/usr/local/Cellar/python@3.8/3.8.5/Frameworks/Python.framework/Versi
 LIBDIR += -L./lib
 LIBS = -lcln -lginac -lpython3.8 -lsolver
 
-all:	robotgshs_par driver gene
+all:	robotgshs_par driver gene twocars
 
 # Example 1
 robotgshs_par: ${OBJ1}
@@ -40,8 +41,15 @@ gene: ${OBJ3}
 rungene:
 	DYLD_FALLBACK_LIBRARY_PATH=/Users/amal029_old/eha/cpp/lib ./gene
 
+# Example 4
+twocars: ${OBJ4}
+	${CC} ${CFLAGS} ${INCLUDES} ${LIBDIR} ${OBJ4} -o $@ ${LIBS}
+
+runtwocars:
+	DYLD_FALLBACK_LIBRARY_PATH=/Users/amal029_old/eha/cpp/lib ./twocars
+
 clean:
-	-rm -f *.o *.core robotgshs_par driver all gene
+	-rm -f *.o *.core robotgshs_par driver all gene twocars
 
 .cpp.o:
 	${CC} ${CFLAGS} ${INCLUDES} $< -c

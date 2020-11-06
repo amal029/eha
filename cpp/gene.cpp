@@ -10,13 +10,13 @@ typedef std::map<STATES, exT> derT;
 
 // Initialize the random number generator
 std::random_device rd{};
-std::mt19937 gen{0}; // Usually use the random device rd()
+std::mt19937 gen{rd()}; // Usually use the random device rd()
 // std::mt19937 gen{rd()}; // Usually use the random device rd()
 
 std::normal_distribution<> d{0, 1};
 
 // The standard uniform distribution for jump edges
-std::uniform_real_distribution<> dis(0.0, 1.0);
+std::uniform_real_distribution<> dis(0, 1);
 
 // Error constant
 const double e = 1e-1;
