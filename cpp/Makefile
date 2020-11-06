@@ -35,7 +35,7 @@ rundriver:
 
 # Example 3
 gene: ${OBJ3}
-	${CC} ${CFLAGS} ${INCLUDES} ${LIBDIR} ${OBJ2} -o $@ ${LIBS}
+	${CC} ${CFLAGS} ${INCLUDES} ${LIBDIR} ${OBJ3} -o $@ ${LIBS}
 
 rungene:
 	DYLD_FALLBACK_LIBRARY_PATH=/Users/amal029_old/eha/cpp/lib ./gene

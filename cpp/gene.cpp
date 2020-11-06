@@ -36,12 +36,12 @@ double __compute(const exmap &vars,
   if (z != nullptr) {
     exmap toretz;
     double Dz = s.zstep(*z, DM[*z], DM, vars, t, dWts, toretz, Uz);
-    Dts[Dz] = toretz;
+    Dts[Dz] = std::move(toretz);
   }
   for (const auto &i : guards) {
     exmap toretg; // This will be passed back
     double Dt = s.gstep(i, DM, vars, dWts, toretg, t);
-    Dts[Dt] = toretg;
+    Dts[Dt] = std::move(toretg);
   }
   // XXX: Now get the smallest step size
   std::vector<double> k;
@@ -53,7 +53,7 @@ double __compute(const exmap &vars,
   if (T == INF) {
     T = s.default_compute(DM, vars, dWts, toret, t);
   } else {
-    toret = Dts[T];
+    toret = std::move(Dts[T]);
   }
   return T;
 }
@@ -182,7 +182,7 @@ int main(int argc, char *argv[]) {
 
     // Calling the HIOAs
     double d1 = HIOA1(x, z, ders, vars, cs1, ns1, toret1, dWts, s, time, ft1);
-    double d2 = HIOA2(x, z, ders, vars, cs1, ns1, toret2, dWts, s, time, ft2);
+    double d2 = HIOA2(x, z, ders, vars, cs2, ns2, toret2, dWts, s, time, ft2);
 
     // Update the next state
     cs1 = ns1, cs2 = ns2;
@@ -197,10 +197,13 @@ int main(int argc, char *argv[]) {
                   dWts[x], vars, time);
         zval = s.EM(vars[z], ders[cs1][z].op(0), ders[cs1][z].op(1), T,
                     (T / s.R), dWts[z], vars, time);
+	x2 = toret2[x];
       } else if (d1 <= d2) {
         T = d1;
         x2 = s.EM(vars[x], ders[cs2][x].op(0), ders[cs2][x].op(1), T, (T / s.R),
                   dWts[x], vars, time);
+	x1 = toret1[x];
+	zval = toret1[z];
       }
       // Combine
       xval = x1 + x2 - vars[x];

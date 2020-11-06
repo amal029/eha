@@ -34,12 +34,12 @@ double __compute(const exmap &vars,
   if (z != nullptr) {
     exmap toretz;
     double Dz = s.zstep(*z, DM[*z], DM, vars, t, dWts, toretz, Uz);
-    Dts[Dz] = toretz;
+    Dts[Dz] = std::move(toretz);
   }
   for (const auto &i : guards) {
     exmap toretg; // This will be passed back
     double Dt = s.gstep(i, DM, vars, dWts, toretg, t);
-    Dts[Dt] = toretg;
+    Dts[Dt] = std::move(toretg);
   }
   // XXX: Now get the smallest step size
   std::vector<double> k;
@@ -51,7 +51,7 @@ double __compute(const exmap &vars,
   if (T == INF) {
     T = s.default_compute(DM, vars, dWts, toret, t);
   } else {
-    toret = Dts[T];
+    toret = std::move(Dts[T]);
   }
   return T;
 }
