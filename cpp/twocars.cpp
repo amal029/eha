@@ -21,7 +21,7 @@ const double vx1 = 10, v2 = 5, a1 = 4;
 
 double __compute(const exmap &vars,
                  const std::map<ex, std::vector<double>, ex_is_less> &dWts,
-                 const derT &ders, const STATES location, lst guards,
+                 const derT &ders, const STATES location, const lst&& guards,
                  const Solver &s, exmap &toret, double t = 0,
                  const symbol *z = nullptr, double Uz = NAN) {
   double T = 0.0;
