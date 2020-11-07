@@ -177,7 +177,7 @@ double HIOA2(const symbol &x, const symbol &y, const symbol &z,
   return step;
 }
 
-int main(int argc, char **argv) {
+int F(int argc, char **argv) {
   double SIM_TIME = 1.2;
   Solver::DEFAULT_STEP = 1e-1;
   if (argc > 1)
@@ -289,12 +289,14 @@ int main(int argc, char **argv) {
     vars[z] = zval;
     vars[th] = thval;
 
+#ifndef TIME
     cout << time << ":"
          << " L1: " << tostate(cs1) << " L2: " << tostate(cs2) << " ";
     std::for_each(std::begin(vars), std::end(vars), [](const auto &i) {
       cout << i.first << ":" << i.second << "  ";
     });
     cout << "\n";
+#endif // TIME
 
     // Calling the HIOAs
     double d1 =
@@ -348,14 +350,37 @@ int main(int argc, char **argv) {
     zs.push_back(ex_to<numeric>(vars[z].evalf()).to_double());
     ths.push_back(ex_to<numeric>(vars[th].evalf()).to_double());
   }
+#ifndef TIME
   cout << "TOTAL SIM COUNT: " << ts.size() << "\n";
+#endif // TIME
 
   // XXX: Now we can plot the values
   std::vector<double> xy2(xs.size(), 0);
   for (int i = 0; i < xs.size(); ++i)
     xy2[i] = xs[i] * xs[i] + ys[i] * ys[i];
 
+#ifndef TIME
   plt::plot(ts, xy2);
   plt::show();
+#endif // TIME
+  return 0;
+}
+
+#ifdef TIME
+#include <chrono>
+#endif // TIME
+int main(int argc, char *argv[])
+{
+#ifdef TIME
+  auto t1 = std::chrono::high_resolution_clock::now();
+#endif // TIME
+  F(argc, argv);
+#ifdef TIME
+  auto t2 = std::chrono::high_resolution_clock::now();
+  std::cout
+      << "F() took "
+      << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count()
+      << " milliseconds\n";
+#endif // TIME
   return 0;
 }

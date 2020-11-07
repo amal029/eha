@@ -101,15 +101,13 @@ double HIOA1(const symbol &x1, const symbol &x2, const symbol &v1, const derT &d
   return step;
 }
 
-int main(int argc, char *argv[]) {
+int F(void) {
   double SIM_TIME = 20;
 
   // Solver
   const Solver s{};
   s.DEFAULT_STEP = 1;
   s.ε = 1e-3;
-
-  std::cout << s.ε << "\n";
 
   // Symbols
   symbol x1("x1"), x2("x2"), v1("v1");
@@ -198,6 +196,7 @@ int main(int argc, char *argv[]) {
     x2s.push_back(ex_to<numeric>(x2val.evalf()).to_double());
     v1s.push_back(ex_to<numeric>(v1val.evalf()).to_double());
 
+#ifndef TIME
     // Print things
     std::cout << time << ":"
               << " L1: " << tostate(cs1) << " ";
@@ -205,12 +204,35 @@ int main(int argc, char *argv[]) {
       std::cout << i.first << ":" << i.second << "  ";
     });
     std::cout << "\n";
+#endif // TIME
   }
-  std::cout << "TOTAL SIM COUNT: " << ts.size() << "\n";
 
+#ifndef TIME
+  std::cout << "TOTAL SIM COUNT: " << ts.size() << "\n";
   // Plot
   plt::plot(ts, x1s);
   plt::plot(ts, x2s);
   plt::show();
+#endif // TIME
   return 0;
 }
+
+#ifdef TIME
+#include <chrono>
+#endif
+int main(void)
+{
+#ifdef TIME
+  auto t1 = std::chrono::high_resolution_clock::now();
+#endif // TIME
+  F();
+#ifdef TIME
+  auto t2 = std::chrono::high_resolution_clock::now();
+  std::cout
+      << "F() took "
+      << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count()
+      << " milliseconds\n";
+#endif // TIME
+  return 0;
+}
+

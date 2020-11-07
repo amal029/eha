@@ -47,7 +47,7 @@ double __compute(const exmap &vars,
     k.push_back(i.first);
   }
   T = (k.size() > 1) ? *std::min_element(k.begin(), k.end())
-                     : k.size() > 0 ? k[0] : INF;
+    : k.size() > 0 ? k[0] : INF;
   if (T == INF) {
     T = s.default_compute(DM, vars, dWts, toret, t);
   } else {
@@ -98,7 +98,7 @@ double HIOA(const symbol &x, const derT &ders, const exmap &vars,
   return step;
 }
 
-int main(int argc, char *argv[]) {
+int F(void) {
   double SIM_TIME = 20;
   Solver::DEFAULT_STEP = 1;
   Solver::ε = 1e-5;
@@ -184,6 +184,7 @@ int main(int argc, char *argv[]) {
     // XXX: Append to plot later on
     xs.push_back(ex_to<numeric>(vars[x].evalf()).to_double());
 
+#ifndef TIME
     // Print things
     std::cout << time << ":"
               << " L: " << tostate(cs) << " ";
@@ -191,12 +192,33 @@ int main(int argc, char *argv[]) {
       std::cout << i.first << ":" << i.second << "  ";
     });
     std::cout << "\n";
+#endif // TIME
   }
+#ifndef TIME
   // std::cout << ts[ts.size()-1] << "," << xs[xs.size()-1] << "\n";
   std::cout << "TOTAL SIM COUNT: " << ts.size() << "\n";
-
   // Plot
   plt::plot(ts, xs);
   plt::show();
+#endif // TIME
+  return 0;
+}
+
+#ifdef TIME
+#include <chrono>
+#endif
+int main(int argc, char *argv[])
+{
+#ifdef TIME
+  auto t1 = std::chrono::high_resolution_clock::now();
+#endif // TIME
+  F();
+#ifdef TIME
+  auto t2 = std::chrono::high_resolution_clock::now();
+  std::cout
+    << "F() took "
+    << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count()
+    << " milliseconds\n";
+#endif // TIME
   return 0;
 }
