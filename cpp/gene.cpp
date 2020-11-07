@@ -1,5 +1,7 @@
 #include "./include/solver.hpp"
 #include "matplotlibcpp.h"
+#include <deque>
+#include <iterator>
 
 using namespace GiNaC;
 

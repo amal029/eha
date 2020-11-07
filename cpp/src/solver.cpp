@@ -1,4 +1,6 @@
 #include "../include/solver.hpp"
+#include <sstream>
+#include <string>
 
 using namespace std;
 using namespace GiNaC;
@@ -15,7 +17,6 @@ bool Solver::var_compute(const exT &deps,
 	 dtv, dWts.at(it->first), vars, T);
   }
   // XXX: Now compute the values in two half-steps.
-
   for (auto it = vars.begin(); it != vars.end(); ++it) {
     auto f = dWts.at(it->first).begin(), l = dWts.at(it->first).begin() + R / 2;
     nvars[it->first] =
