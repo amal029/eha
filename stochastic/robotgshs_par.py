@@ -314,7 +314,11 @@ if __name__ == '__main__':
     th = S.atan(y/x)
     z = 0
     t = 0
+    import time as T
+    s = T.perf_counter()
     xs, ys, xy2s, ts = main(x, y, th, z, t)
+    e = T.perf_counter()
+    print('Time take %s (ms)' % (1000*(e - s)))
     print('Count:', len(ts))
     plt.style.use('ggplot')
     # plt.subplot(211)
