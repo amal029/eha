@@ -27,17 +27,18 @@ const float ku = 0.001, kd = 0.01, kb = 0.01;
 
 double __compute(const exmap &vars,
                  const std::map<ex, std::vector<double>, ex_is_less> &dWts,
-                 const derT &ders, const STATES location, const lst&& guards,
+                 const derT &ders, const STATES location, const lst &&guards,
                  const Solver &s, exmap &toret, double t = 0,
-                 const symbol *z = nullptr, double Uz = NAN) {
+                 const lst &&zs = {}, double Uz = NAN) {
   double T = 0.0;
   // XXX: Now call the rate and the guard computation for from the
   // solver.
   exT DM(ders.at(location));
   std::map<double, exmap> Dts;
-  if (z != nullptr) {
+
+  for (const auto &z : zs) {
     exmap toretz;
-    double Dz = s.zstep(*z, DM[*z], DM, vars, t, dWts, toretz, Uz);
+    double Dz = s.zstep(z, DM[z], DM, vars, t, dWts, toretz, Uz);
     Dts[Dz] = std::move(toretz);
   }
   for (const auto &i : guards) {
@@ -76,7 +77,7 @@ double HIOA1(const symbol &x, const symbol &z, const derT &ders,
       ns = X1, toret = vars, toret[z] = 0, step = 0;
     } else {
       ns = cs, ft1 = false;
-      step = __compute(vars, dWts, ders, cs, {}, s, toret, time, &z, Uz);
+      step = __compute(vars, dWts, ders, cs, {}, s, toret, time, {z}, Uz);
     }
     break;
   }
@@ -85,7 +86,7 @@ double HIOA1(const symbol &x, const symbol &z, const derT &ders,
       ns = X0, step = 0, toret = vars, toret[z] = 0;
     } else {
       ns = cs, ft1 = false;
-      step = __compute(vars, dWts, ders, cs, {}, s, toret, time, &z, Uz);
+      step = __compute(vars, dWts, ders, cs, {}, s, toret, time, {z}, Uz);
     }
     break;
   }
@@ -121,7 +122,7 @@ int F(void) {
   const Solver s{};
 
   // Symbols
-  symbol x("x"), z("z");
+  symbol x{"x"}, z{"z"};
 
   std::map<STATES, std::map<ex, lst, ex_is_less>> ders;
   ders[X0] = {{x, {kp, 0}}, {z, {kb * x, 0}}};
@@ -199,13 +200,13 @@ int F(void) {
                   dWts[x], vars, time);
         zval = s.EM(vars[z], ders[cs1][z].op(0), ders[cs1][z].op(1), T,
                     (T / s.R), dWts[z], vars, time);
-	x2 = toret2[x];
+        x2 = toret2[x];
       } else if (d1 <= d2) {
         T = d1;
         x2 = s.EM(vars[x], ders[cs2][x].op(0), ders[cs2][x].op(1), T, (T / s.R),
                   dWts[x], vars, time);
-	x1 = toret1[x];
-	zval = toret1[z];
+        x1 = toret1[x];
+        zval = toret1[z];
       }
       // Combine
       xval = x1 + x2 - vars[x];
@@ -231,7 +232,6 @@ int F(void) {
     });
     std::cout << "\n";
 #endif // TIME
-
   }
 #ifndef TIME
   std::cout << "TOTAL SIM COUNT: " << ts.size() << "\n";
@@ -245,8 +245,7 @@ int F(void) {
 #ifdef TIME
 #include <chrono>
 #endif
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 #ifdef TIME
   auto t1 = std::chrono::high_resolution_clock::now();
 #endif // TIME

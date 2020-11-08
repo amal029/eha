@@ -23,15 +23,15 @@ double __compute(const exmap &vars,
                  const std::map<ex, std::vector<double>, ex_is_less> &dWts,
                  const derT &ders, const STATES location, const lst&& guards,
                  const Solver &s, exmap &toret, double t = 0,
-                 const symbol *z = nullptr, double Uz = NAN) {
+                 const lst &&zs = {}, double Uz = NAN) {
   double T = 0.0;
   // XXX: Now call the rate and the guard computation for from the
   // solver.
   exT DM(ders.at(location));
   std::map<double, exmap> Dts;
-  if (z != nullptr) {
+  for(auto const &z : zs){
     exmap toretz;
-    double Dz = s.zstep(*z, DM[*z], DM, vars, t, dWts, toretz, Uz);
+    double Dz = s.zstep(z, DM[z], DM, vars, t, dWts, toretz, Uz);
     Dts[Dz] = std::move(toretz);
   }
   for (const auto &i : guards) {
@@ -229,9 +229,9 @@ int main(void)
 #ifdef TIME
   auto t2 = std::chrono::high_resolution_clock::now();
   std::cout
-      << "F() took "
-      << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count()
-      << " milliseconds\n";
+    << "F() took "
+    << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count()
+    << " milliseconds\n";
 #endif // TIME
   return 0;
 }

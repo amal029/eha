@@ -30,15 +30,15 @@ double __compute(const exmap &vars,
                  const std::map<ex, vector<double>, ex_is_less> &dWts,
                  const derT &ders, const STATES location, const lst&& guards,
                  const Solver &s, exmap &toret, double t = 0,
-                 const symbol *z = nullptr, double Uz = NAN) {
+                 const lst &&zs = {}, double Uz = NAN) {
   double T = 0.0;
   // XXX: Now call the rate and the guard computation for from the
   // solver.
   exT DM(ders.at(location));
   std::map<double, exmap> Dts;
-  if (z != nullptr) {
+  for(auto const &z: zs){
     exmap toretz;
-    double Dz = s.zstep(*z, DM[*z], DM, vars, t, dWts, toretz, Uz);
+    double Dz = s.zstep(z, DM[z], DM, vars, t, dWts, toretz, Uz);
     Dts[Dz] = std::move(toretz);
   }
   for (const auto &i : guards) {
@@ -152,7 +152,7 @@ double HIOA2(const symbol &x, const symbol &y, const symbol &z,
       // XXX: Euler-Maruyama compute step
       ex g = pow(x, 2) + pow(y, 2) - std::pow(v, 2);
       // XXX: Euler-Maruyama for step
-      step = __compute(vars, dWts, ders, cs, {g}, s, toret, time, &z, Uz);
+      step = __compute(vars, dWts, ders, cs, {g}, s, toret, time, {z}, Uz);
       // cout << "step: " << step << " toret2:" << toret << "\n";
     }
     break;
