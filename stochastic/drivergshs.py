@@ -136,7 +136,11 @@ if __name__ == '__main__':
     np.random.seed(4907)
     x = 0.5
     t = 0
+    import time as T
+    s = T.perf_counter()
     xs, ts = main(x, t)
+    e = T.perf_counter()
+    print('time taken: %s (ms)' % ((e - s)*1000))
     print('count:', len(ts))
     set_plt_params()
     plt.style.use('ggplot')
