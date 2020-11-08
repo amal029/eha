@@ -61,6 +61,10 @@ private:
 
   G::ex build_eq_g(const G::symbol &dt, const G::ex &fp, const G::ex &sp,
                    const G::ex &L, const double &T, G::ex &toret) const;
+
+  G::ex EMP(const G::ex &init, const G::ex &f, const G::ex &g, const G::ex &Dt,
+            const G::ex &dt, double dWtss, const G::exmap &vars,
+            const double T) const;
 };
 
 int Solver::p = 3;
