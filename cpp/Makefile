@@ -6,6 +6,9 @@ OBJ3 = gene.o
 OBJ4 = twocars.o
 OBJS = ${OBJ1} ${OBJ2} ${OBJ3} ${OBJ4}
 CFLAGS = -O3 -mavx2 -mavx -ffast-math -std=c++2a
+ifeq ($(TIME), 1)
+	CFLAGS += -DTIME
+endif
 SYSROOT = `xcrun --show-sdk-path`
 CC = clang++ -isysroot ${SYSROOT}
 INCLUDES = -I/usr/local/Cellar/ginac/1.8.0/include -I/usr/local/Cellar/cln/1.3.6/include
