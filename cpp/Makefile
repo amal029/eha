@@ -12,13 +12,13 @@ endif
 SYSROOT = `xcrun --show-sdk-path`
 CC = clang++ -isysroot ${SYSROOT}
 INCLUDES = -I/usr/local/Cellar/ginac/1.8.0/include -I/usr/local/Cellar/cln/1.3.6/include
-INCLUDES += -I/usr/local/Cellar/python@3.8/3.8.5/Frameworks/Python.framework/Versions/3.8/include/python3.8
+INCLUDES += -I/usr/local/Frameworks/Python.framework/Versions/Current/include/python3.8
 
 INCLUDES += -I/Users/amal029_old/Library/Python/3.8/lib/python/site-packages/numpy/core/include
 INCLUDES += -I/Users/amal029_old/eha/cpp/include
 
 LIBDIR = -L/usr/local/Cellar/ginac/1.8.0/lib -L/usr/local/Cellar/cln/1.3.6/lib
-LIBDIR += -L/usr/local/Cellar/python@3.8/3.8.5/Frameworks/Python.framework/Versions/3.8/lib
+LIBDIR += -L/usr/local/Frameworks/Python.framework/Versions/Current/lib
 LIBDIR += -L./lib
 LIBDIR += -L/usr/local/opt/llvm/lib -L/usr/lib
 LIBS = -lcln -lginac -lpython3.8 -lsolver
