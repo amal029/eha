@@ -29,13 +29,13 @@ double __compute(const exmap &vars,
   // solver.
   exT DM(ders.at(location));
   std::map<double, exmap> Dts;
+  exmap toretz;
   for(auto const &z : zs){
-    exmap toretz;
     double Dz = s.zstep(z, DM[z], DM, vars, t, dWts, toretz, Uz);
     Dts[Dz] = std::move(toretz);
   }
+  exmap toretg; // This will be passed back
   for (const auto &i : guards) {
-    exmap toretg; // This will be passed back
     double Dt = s.gstep(i, DM, vars, dWts, toretg, t);
     Dts[Dt] = std::move(toretg);
   }
