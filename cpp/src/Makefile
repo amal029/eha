@@ -8,7 +8,7 @@ CC = clang++ -isysroot ${SYSROOT}
 CFLAGS = -O3 -mavx2 -mavx -ffast-math -std=c++2a
 LIBDIR = -L/usr/local/Cellar/ginac/1.8.0/lib -L/usr/local/Cellar/cln/1.3.6/lib
 LIBDIR += -L/usr/local/Cellar/python@3.8/3.8.5/Frameworks/Python.framework/Versions/3.8/lib
-LIBDIR += -L/usr/lib
+LIBDIR += -L/usr/local/opt/llvm/lib -L/usr/lib
 LIBS = -lcln -lginac -lpython3.8
 
 .PHONY:	all
