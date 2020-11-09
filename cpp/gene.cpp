@@ -37,13 +37,15 @@ double __compute(const exmap &vars,
   std::map<double, exmap> Dts;
 
   exmap toretz;
+  double Dz;
   for (const auto &z : zs) {
-    double Dz = s.zstep(z, DM[z], DM, vars, t, dWts, toretz, Uz);
+    Dz = s.zstep(z, DM[z], DM, vars, t, dWts, toretz, Uz);
     Dts[Dz] = std::move(toretz);
   }
   exmap toretg; // This will be passed back
+  double Dt;
   for (const auto &i : guards) {
-    double Dt = s.gstep(i, DM, vars, dWts, toretg, t);
+    Dt = s.gstep(i, DM, vars, dWts, toretg, t);
     Dts[Dt] = std::move(toretg);
   }
   // XXX: Now get the smallest step size

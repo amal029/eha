@@ -6,10 +6,10 @@ using namespace GiNaC;
 
 bool Solver::var_compute(const exT &deps,
                          const map<ex, vector<double>, ex_is_less> &dWts,
-                         const exmap &vars, double T, ex Dtv, ex dtv,
-                         exmap &toret) const {
+                         const exmap &vars, double T, const ex &Dtv,
+                         const ex &dtv, exmap &toret) const {
   bool err = false;
-  exmap temp1, nvars;
+  exmap nvars;
   for (auto it = vars.begin(); it != vars.end(); ++it) {
     toret[it->first] =
         move(EM(it->second, deps.at(it->first).op(0), deps.at(it->first).op(1),
@@ -36,8 +36,9 @@ bool Solver::var_compute(const exT &deps,
 #endif // DEBUG
   vector<bool> errs;
   for (auto it = nvars.begin(); it != nvars.end(); ++it) {
-    errs.push_back(
-        abs(toret[it->first] - nvars[it->first]) / (nvars[it->first] + ε) <= ε);
+    errs.push_back(std::move(abs(toret[it->first] - nvars[it->first]) /
+                                 (nvars[it->first] + ε) <=
+                             ε));
   }
 #ifdef DEBUG
   cout << "Dtv: " << Dtv << ", dtv: " << dtv << "\n";
@@ -54,7 +55,7 @@ double Solver::default_compute(const exT &deps, const exmap &vars,
                                const map<ex, vector<double>, ex_is_less> &dWts,
                                exmap &toret, double T) const {
   double step = 0;
-  ex Dtv = DEFAULT_STEP;
+  ex Dtv{DEFAULT_STEP};
   ex dtv;
   bool err;
   while (true) {
@@ -82,7 +83,7 @@ double Solver::zstep(const ex &left, const lst &right, const exT &deps,
    */
   double step = 0;
   // XXX: fill in the algorithm
-  symbol t("t");
+  symbol t{"t"};
   if (right.op(1) != 0)
     throw runtime_error("Rate cannot be a stochastic DE");
   if ((Uz == INF) || isnan(Uz)) {
@@ -95,8 +96,7 @@ double Solver::zstep(const ex &left, const lst &right, const exT &deps,
   cout << "zdt: " << zdt << "\n";
 #endif                    // ZDEBUG
   zdt = zdt.subs(vars);   // Substitution with current values
-  zdt = zdt.subs(t == T); // Subs time t
-  zdt = zdt.evalf();
+  zdt = zdt.subs(t == T).evalf(); // Subs time t
 #ifdef ZDEBUG
   cout << "zdt after subs: " << zdt << "\n";
   cout << "Uz: " << Uz << "\n";
@@ -121,7 +121,7 @@ double Solver::zstep(const ex &left, const lst &right, const exT &deps,
   };
 
   while (true) {
-    ex Dt1 = build_eq(zdt, L), Dt2 = build_eq(zdt, -L);
+    const ex &Dt1 = build_eq(zdt, L), &Dt2 = build_eq(zdt, -L);
 #ifdef ZDEBUG
     cout << "Dt1z: " << Dt1 << " Dt2z: " << Dt2 << "\n";
 #endif // ZDEBUG
@@ -134,7 +134,7 @@ double Solver::zstep(const ex &left, const lst &right, const exT &deps,
       throw runtime_error("No real-positive root for z");
 
     // XXX: Now do the check and bound for the variables
-    ex dtv = Dtv / R;
+    const ex &dtv = Dtv / R;
     bool err = var_compute(deps, dWts, vars, T, Dtv, dtv, toret);
     if (err) {
       step = ex_to<numeric>(Dtv.evalf()).to_double();
@@ -165,9 +165,10 @@ double Solver::gstep(const ex &expr, const exT &deps, const exmap &vars,
   exmap ddeps, dWt, ddWts;
   matrix dvars(1, vars.size());
   unsigned count = 0;
+  symbol s, s1;
   for (const auto &v : vars) {
-    symbol s = symbol{"d_" + ex_to<symbol>(v.first).get_name()};
-    symbol s1 = symbol{"dWt_" + ex_to<symbol>(v.first).get_name()};
+    s = symbol{"d_" + ex_to<symbol>(v.first).get_name()};
+    s1 = symbol{"dWt_" + ex_to<symbol>(v.first).get_name()};
     ddeps[s] = deps.at(v.first).op(0) * dt + deps.at(v.first).op(1) * s1;
     dWt[v.first] = s1;
     ddWts[s1] =
@@ -187,7 +188,7 @@ double Solver::gstep(const ex &expr, const exT &deps, const exmap &vars,
   cout << "dvars: " << dvars << "\n";
 #endif
 
-  ex fp = (dvars * jacobian).evalm().op(0);
+  ex &&fp = (dvars * jacobian).evalm().op(0);
 #ifdef DEBUG
   cout << "fp: " << fp << "\n";
 #endif
@@ -195,9 +196,10 @@ double Solver::gstep(const ex &expr, const exT &deps, const exmap &vars,
   // XXX: The hessian
   matrix hessian(vars.size(), vars.size());
   unsigned i = 0, j = 0;
+  ex expr1;
   for (auto it = vars.begin(); it != vars.end(); ++it, ++i) {
     j = 0;
-    ex expr1 = expr.diff(ex_to<symbol>(it->first));
+    expr1 = move(expr.diff(ex_to<symbol>(it->first)));
     for (auto it = vars.begin(); it != vars.end(); ++it, ++j) {
       hessian(i, j) = expr1.diff(ex_to<symbol>(it->first));
     }
@@ -205,7 +207,7 @@ double Solver::gstep(const ex &expr, const exT &deps, const exmap &vars,
 #ifdef DEBUG
   cout << "hessian:" << hessian << "\n";
 #endif
-  ex sp = 0.5 * (dvars * hessian * dvars.transpose()).evalm().op(0);
+  ex sp = std::move(0.5 * (dvars * hessian * dvars.transpose()).evalm().op(0));
 #ifdef DEBUG
   cout << "sp: " << sp << "\n";
 #endif
@@ -254,7 +256,7 @@ double Solver::gstep(const ex &expr, const exT &deps, const exmap &vars,
   cout << "fp: " << fp << ", sp: " << sp << "\n";
 #endif
   // XXX: This is g[T]
-  ex gv = expr.subs(vars);
+  ex &&gv = expr.subs(vars);
   gv = gv.subs(symbol("t") == T);
 
   // Now compute the time step dt using the level crossing and the
@@ -265,13 +267,13 @@ double Solver::gstep(const ex &expr, const exT &deps, const exmap &vars,
   }
 
   // XXX: Get the step-size within error constraints.
-  ex L = gv;
-  ex eq1, eq2, Dtv, root1, root2, dtv;
+  ex &&L = move(gv);
+  ex eq1, eq2, Dtv, dtv;
   bool err;
   count = 0;
   while (true) {
-    root1 = build_eq_g(dt, fp, sp, L, T, eq1);
-    root2 = build_eq_g(dt, fp, sp, -L, T, eq2);
+    const ex &root1 = build_eq_g(dt, fp, sp, L, T, eq1);
+    const ex &root2 = build_eq_g(dt, fp, sp, -L, T, eq2);
 #ifdef DEBUG
     cout << "Guard roots: " << root1 << "," << root2 << "\n";
 #endif
@@ -306,7 +308,7 @@ double Solver::gstep(const ex &expr, const exT &deps, const exmap &vars,
 ex Solver::build_eq_g(const symbol &dt, const ex &fp, const ex &sp, const ex &L,
                       const double &T, ex &toret) const {
   ex root{INF}; // The default value
-  ex f(fp + sp);
+  ex f{fp + sp};
   f = f.expand().evalf();
 #ifdef DEBUG
   cout << "build_eq_g, f: " << f << "\n";
@@ -317,16 +319,16 @@ ex Solver::build_eq_g(const symbol &dt, const ex &fp, const ex &sp, const ex &L,
 #endif // DEBUG
   ex eq = pow((-dtc * dt - L), 2) - pow((f - dtc * dt), 2);
   eq = eq.expand().collect(dt);
-  ex a = eq.coeff(dt, 2);
-  ex b = eq.coeff(dt, 1);
-  ex c = eq.coeff(dt, 0);
-  ex D = pow(b, 2) - (4 * a * c);
+  ex a{eq.coeff(dt, 2)};
+  ex b{eq.coeff(dt, 1)};
+  ex c{eq.coeff(dt, 0)};
+  ex D{pow(b, 2) - (4 * a * c)};
 #ifdef DEBUG
   cout << "a:" << a << ", b:" << b << ", D:" << D << ", c: " << c << "\n";
 #endif // DEBUG
   if ((D >= 0) && (a != 0)) {
-    ex root1 = (-b + sqrt(D)) / (2 * a);
-    ex root2 = (-b - sqrt(D)) / (2 * a);
+    const ex &root1 = (-b + sqrt(D)) / (2 * a);
+    const ex &root2 = (-b - sqrt(D)) / (2 * a);
     if ((root1 > 0) && (root2 > 0))
       root = min(root1, root2);
     else if (root1 > 0)
@@ -363,10 +365,10 @@ ex Solver::EMP(const ex &init, const ex &f, const ex &g, const ex &Dt,
                const double T) const {
   ex res = 0;
   // Build the map for substitution
-  ex f1 = f.subs(vars);
-  ex f2 = f1.subs(symbol("t") == T);
-  ex g1 = g.subs(vars);
-  ex g2 = g1.subs(symbol("t") == T);
+  ex f1{f.subs(vars)};
+  ex f2{f1.subs(symbol("t") == T)};
+  ex g1{g.subs(vars)};
+  ex g2{g1.subs(symbol("t") == T)};
   res = (init + f2 * Dt + g2 * dWts_sum * sqrt(dt)).evalf();
   return res;
 }

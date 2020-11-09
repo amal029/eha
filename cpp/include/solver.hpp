@@ -56,7 +56,7 @@ private:
   bool
   var_compute(const exT &deps,
               const std::map<G::ex, std::vector<double>, G::ex_is_less> &dWts,
-              const G::exmap &vars, double T, G::ex Dtv, G::ex dtv,
+              const G::exmap &vars, double T, const G::ex &Dtv, const G::ex &dtv,
               G::exmap &toret) const;
 
   G::ex build_eq_g(const G::symbol &dt, const G::ex &fp, const G::ex &sp,
