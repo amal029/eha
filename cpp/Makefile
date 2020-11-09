@@ -5,23 +5,28 @@ OBJ2 = driver.o
 OBJ3 = gene.o
 OBJ4 = twocars.o
 OBJS = ${OBJ1} ${OBJ2} ${OBJ3} ${OBJ4}
-CFLAGS = -O3 -Wundefined-var-template -mavx2 -mavx -ffast-math
-CC = g++ -std=c++2a
+CFLAGS = -O3 -mavx2 -mavx -ffast-math -std=c++2a
+SYSROOT = `xcrun --show-sdk-path`
+CC = clang++ -isysroot ${SYSROOT}
 INCLUDES = -I/usr/local/Cellar/ginac/1.8.0/include -I/usr/local/Cellar/cln/1.3.6/include
 INCLUDES += -I/usr/local/Cellar/python@3.8/3.8.5/Frameworks/Python.framework/Versions/3.8/include/python3.8
 
 INCLUDES += -I/Users/amal029_old/Library/Python/3.8/lib/python/site-packages/numpy/core/include
 INCLUDES += -I/Users/amal029_old/eha/cpp/include
 
-LIBDIR = -L/usr/local/Cellar/ginac/1.8.0/lib/ -L/usr/local/Cellar/cln/1.3.6/lib
+LIBDIR = -L/usr/local/Cellar/ginac/1.8.0/lib -L/usr/local/Cellar/cln/1.3.6/lib
 LIBDIR += -L/usr/local/Cellar/python@3.8/3.8.5/Frameworks/Python.framework/Versions/3.8/lib
 LIBDIR += -L./lib
+LIBDIR += -L/usr/lib
 LIBS = -lcln -lginac -lpython3.8 -lsolver
 
 all:	lib robotgshs_par driver gene twocars
 
 lib:
 	cd src && make install
+
+.PHONY:	test
+test:	runrobot rundriver runtwocars rungene
 
 # Example 1
 robotgshs_par: lib ${OBJ1}
