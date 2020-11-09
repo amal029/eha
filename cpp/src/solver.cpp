@@ -12,22 +12,22 @@ bool Solver::var_compute(const exT &deps,
   exmap nvars;
   for (auto it = vars.begin(); it != vars.end(); ++it) {
     toret[it->first] =
-        move(EM(it->second, deps.at(it->first).op(0), deps.at(it->first).op(1),
-                Dtv, dtv, dWts.at(it->first), vars, T));
+        EM(it->second, deps.at(it->first).op(0), deps.at(it->first).op(1), Dtv,
+           dtv, dWts.at(it->first), vars, T);
   }
   // XXX: Now compute the values in two half-steps.
   for (auto it = vars.begin(); it != vars.end(); ++it) {
     auto f = dWts.at(it->first).begin(), l = dWts.at(it->first).begin() + R / 2;
     nvars[it->first] =
-        move(EM(it->second, deps.at(it->first).op(0), deps.at(it->first).op(1),
-                Dtv / 2, dtv / 1, f, l, vars, T));
+        EM(it->second, deps.at(it->first).op(0), deps.at(it->first).op(1),
+           Dtv / 2, dtv / 1, f, l, vars, T);
   }
   for (auto it = nvars.begin(); it != nvars.end(); ++it) {
     auto f = dWts.at(it->first).begin() + R / 2, l = dWts.at(it->first).end();
     nvars[it->first] =
-        move(EM(it->second, deps.at(it->first).op(0), deps.at(it->first).op(1),
-                Dtv / 2, dtv / 1, f, l, nvars,
-                T + ex_to<numeric>((Dtv / 2).evalf()).to_double()));
+        EM(it->second, deps.at(it->first).op(0), deps.at(it->first).op(1),
+           Dtv / 2, dtv / 1, f, l, nvars,
+           T + ex_to<numeric>((Dtv / 2).evalf()).to_double());
   }
   // XXX: Now do the final check
 #ifdef DEBUG
@@ -36,9 +36,9 @@ bool Solver::var_compute(const exT &deps,
 #endif // DEBUG
   vector<bool> errs;
   for (auto it = nvars.begin(); it != nvars.end(); ++it) {
-    errs.push_back(std::move(abs(toret[it->first] - nvars[it->first]) /
-                                 (nvars[it->first] + ε) <=
-                             ε));
+    errs.push_back(move(abs(toret[it->first] - nvars[it->first]) /
+                            (nvars[it->first] + ε) <=
+                        ε));
   }
 #ifdef DEBUG
   cout << "Dtv: " << Dtv << ", dtv: " << dtv << "\n";
@@ -199,7 +199,7 @@ double Solver::gstep(const ex &expr, const exT &deps, const exmap &vars,
   ex expr1;
   for (auto it = vars.begin(); it != vars.end(); ++it, ++i) {
     j = 0;
-    expr1 = move(expr.diff(ex_to<symbol>(it->first)));
+    expr1 = expr.diff(ex_to<symbol>(it->first));
     for (auto it = vars.begin(); it != vars.end(); ++it, ++j) {
       hessian(i, j) = expr1.diff(ex_to<symbol>(it->first));
     }
@@ -366,9 +366,9 @@ ex Solver::EMP(const ex &init, const ex &f, const ex &g, const ex &Dt,
   ex res = 0;
   // Build the map for substitution
   ex f1{f.subs(vars)};
-  ex f2{f1.subs(symbol("t") == T)};
+  f1 = f1.subs(symbol("t") == T);
   ex g1{g.subs(vars)};
-  ex g2{g1.subs(symbol("t") == T)};
-  res = (init + f2 * Dt + g2 * dWts_sum * sqrt(dt)).evalf();
+  g1 = g1.subs(symbol("t") == T);
+  res = (init + f1 * Dt + g1 * dWts_sum * sqrt(dt)).evalf();
   return res;
 }
