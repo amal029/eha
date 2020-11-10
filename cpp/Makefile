@@ -11,7 +11,7 @@ ifeq ($(TIME), 1)
 	CFLAGS += -DTIME
 endif
 ifeq ($(CLANG), 1)
-	CC = clang++ -isysroot ${SYSROOT} -std=c++20
+	CC = clang++ -isysroot ${SYSROOT} -std=c++2a
 	LIBDIR = -L/usr/local/Cellar/ginac/1.8.0/lib -L/usr/local/Cellar/cln/1.3.6/lib
 else
 	CC = g++-10 -std=c++20
