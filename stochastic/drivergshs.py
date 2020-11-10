@@ -3,6 +3,7 @@
 import sympy as S
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.pyplot.style as style
 from src.sdesolver import Compute
 
 
@@ -143,7 +144,7 @@ if __name__ == '__main__':
     print('time taken: %s (ms)' % ((e - s)*1000))
     print('count:', len(ts))
     set_plt_params()
-    plt.style.use('ggplot')
+    style.use('ggplot')
     plt.plot(ts, xs)
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x$ (units)', fontweight='bold')

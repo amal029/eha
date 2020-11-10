@@ -361,6 +361,9 @@ int F(int argc, char **argv) {
 
 #ifndef TIME
   plt::plot(ts, xy2);
+  plt::xlabel("Time (sec)");
+  plt::ylabel("$x^2(t) + y^2(t)$ (units)");
+  plt::tight_layout();
   plt::show();
 #endif // TIME
   return 0;

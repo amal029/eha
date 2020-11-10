@@ -23,6 +23,7 @@
 #include <map>
 #include <numeric>
 #include <stdexcept>
+#include <string>
 #include <vector>
 #include <sstream>
 
@@ -46,6 +47,7 @@ static std::string s_backend;
 
 struct _interpreter {
   PyObject *s_python_function_show;
+  PyObject *s_python_function_style_use; // This is to use the style
   PyObject *s_python_function_close;
   PyObject *s_python_function_draw;
   PyObject *s_python_function_pause;
@@ -142,9 +144,10 @@ private:
 
     PyObject *matplotlibname = PyString_FromString("matplotlib");
     PyObject *pyplotname = PyString_FromString("matplotlib.pyplot");
+    PyObject *pyplotstyle = PyString_FromString("matplotlib.style");
     PyObject *cmname = PyString_FromString("matplotlib.cm");
     PyObject *pylabname = PyString_FromString("pylab");
-    if (!pyplotname || !pylabname || !matplotlibname || !cmname) {
+    if (!pyplotname || !pylabname || !matplotlibname || !cmname || !pyplotstyle) {
       throw std::runtime_error("couldnt create string");
     }
 
@@ -168,6 +171,12 @@ private:
       throw std::runtime_error("Error loading module matplotlib.pyplot!");
     }
 
+    PyObject *pystyle = PyImport_Import(pyplotstyle);
+    Py_DECREF(pyplotstyle);
+    if (!pystyle) {
+      throw std::runtime_error("Error loading module matplotlib.pyplot.style!");
+    }
+
     s_python_colormap = PyImport_Import(cmname);
     Py_DECREF(cmname);
     if (!s_python_colormap) {
@@ -181,6 +190,7 @@ private:
     }
 
     s_python_function_show = PyObject_GetAttrString(pymod, "show");
+    s_python_function_style_use = PyObject_GetAttrString(pystyle, "use");
     s_python_function_close = PyObject_GetAttrString(pymod, "close");
     s_python_function_draw = PyObject_GetAttrString(pymod, "draw");
     s_python_function_pause = PyObject_GetAttrString(pymod, "pause");
@@ -253,7 +263,8 @@ private:
         !s_python_function_stem || !s_python_function_xkcd ||
         !s_python_function_text || !s_python_function_suptitle ||
         !s_python_function_bar || !s_python_function_subplots_adjust ||
-        !s_python_function_spy || !s_python_function_imshow) {
+        !s_python_function_spy || !s_python_function_imshow ||
+	!s_python_function_style_use) {
       throw std::runtime_error("Couldn't find required function!");
     }
 
@@ -299,7 +310,8 @@ private:
         !PyFunction_Check(s_python_function_bar) ||
         !PyFunction_Check(s_python_function_subplots_adjust) ||
         !PyFunction_Check(s_python_function_imshow) ||
-        !PyFunction_Check(s_python_function_colorbar)
+        !PyFunction_Check(s_python_function_colorbar) ||
+        !PyFunction_Check(s_python_function_style_use)
       ) {
       throw std::runtime_error(
           "Python object is unexpectedly not a PyFunction.");
@@ -1759,6 +1771,20 @@ inline void ylabel(const std::string &str,
 
   Py_DECREF(args);
   Py_DECREF(kwargs);
+  Py_DECREF(res);
+}
+
+inline void style(const std::string &style) {
+  PyObject *pystr = PyString_FromString(style.c_str());
+  // XXX: The below one fails to allocate memory?
+  PyObject *args = PyTuple_New(1);
+  PyTuple_SetItem(args, 0, pystr);
+  PyObject *res = PyObject_CallObject(
+      detail::_interpreter::get().s_python_function_style_use, args);
+  if (!res)
+    throw std::runtime_error("Call to style() failed.");
+
+  Py_DECREF(args);
   Py_DECREF(res);
 }
 

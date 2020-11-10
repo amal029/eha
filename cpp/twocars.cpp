@@ -210,8 +210,12 @@ int F(void) {
 #ifndef TIME
   std::cout << "TOTAL SIM COUNT: " << ts.size() << "\n";
   // Plot
+  // plt::style("ggplot");
   plt::plot(ts, x1s);
   plt::plot(ts, x2s);
+  plt::xlabel("Time (sec)");
+  plt::ylabel("$x1(t), x2(t)$ (units)");
+  plt::tight_layout();
   plt::show();
 #endif // TIME
   return 0;

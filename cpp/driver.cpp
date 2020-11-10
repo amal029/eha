@@ -199,6 +199,9 @@ int F(void) {
   std::cout << "TOTAL SIM COUNT: " << ts.size() << "\n";
   // Plot
   plt::plot(ts, xs);
+  plt::ylabel("$x(t)$ (units)");
+  plt::xlabel("Time (sec)");
+  plt::tight_layout();
   plt::show();
 #endif // TIME
   return 0;
