@@ -108,7 +108,7 @@ double Solver::zstep(const ex &left, const lst &right, const exT &deps,
   }
 
   // XXX: Now compute the step size
-  ex L = abs(Uz - vars.at(left)).evalf();
+  ex L {move(abs(Uz - vars.at(left)).evalf())};
 #ifdef ZDEBUG
   cout << "Lz: " << L << "\n";
 #endif // ZDEBUG
@@ -121,17 +121,18 @@ double Solver::zstep(const ex &left, const lst &right, const exT &deps,
   };
 
   while (true) {
-    const ex &Dt1 = build_eq(zdt, L), &Dt2 = build_eq(zdt, -L);
+    // const ex &Dt1 = build_eq(zdt, L), &Dt2 = build_eq(zdt, -L);
+    Dtv = move(build_eq(zdt, L));
 #ifdef ZDEBUG
     cout << "Dt1z: " << Dt1 << " Dt2z: " << Dt2 << "\n";
 #endif // ZDEBUG
-    if (Dt1 > 0) {
-      Dtv = Dt1;
-    } else if (Dt2 > 0) {
-      Dtv = Dt2;
-    } else
+    if (!(Dtv > 0)) {
+      Dtv = move(build_eq(zdt, -L));
+    }
+    if (!(Dtv > 0)) {
       // XXX: This is the case where we have no solution at all!
       throw runtime_error("No real-positive root for z");
+    }
 
     // XXX: Now do the check and bound for the variables
     const ex &dtv = Dtv / R;
@@ -256,7 +257,7 @@ double Solver::gstep(const ex &expr, const exT &deps, const exmap &vars,
   cout << "fp: " << fp << ", sp: " << sp << "\n";
 #endif
   // XXX: This is g[T]
-  ex &&gv = expr.subs(vars);
+  ex gv{move(expr.subs(vars))};
   gv = gv.subs(symbol("t") == T);
 
   // Now compute the time step dt using the level crossing and the
@@ -267,17 +268,17 @@ double Solver::gstep(const ex &expr, const exT &deps, const exmap &vars,
   }
 
   // XXX: Get the step-size within error constraints.
-  ex &&L = move(gv);
-  ex eq1, eq2, Dtv, dtv;
+  ex L{move(gv)};
   bool err;
   count = 0;
   while (true) {
-    const ex &root1 = build_eq_g(dt, fp, sp, L, T, eq1);
-    const ex &root2 = build_eq_g(dt, fp, sp, -L, T, eq2);
+    // const ex &root1 = build_eq_g(dt, fp, sp, L, T);
+    // const ex &root2 = build_eq_g(dt, fp, sp, -L, T);
 #ifdef DEBUG
     cout << "Guard roots: " << root1 << "," << root2 << "\n";
 #endif
-    Dtv = min(root1, root2);
+    ex Dtv{move(min(build_eq_g(dt, fp, sp, L, T), build_eq_g(dt, fp, sp, -L, T))
+                    .evalf())};
 #ifdef DEBUG
     cout << "Guard Dtv: " << Dtv << "\n";
 #endif
@@ -286,7 +287,7 @@ double Solver::gstep(const ex &expr, const exT &deps, const exmap &vars,
       toret = vars;
       break;
     }
-    dtv = Dtv / R;
+    ex dtv{Dtv / R};
     err = var_compute(deps, dWts, vars, T, Dtv, dtv, toret);
     if (err) {
       step = ex_to<numeric>(Dtv.evalf()).to_double();
@@ -306,7 +307,7 @@ double Solver::gstep(const ex &expr, const exT &deps, const exmap &vars,
 }
 
 ex Solver::build_eq_g(const symbol &dt, const ex &fp, const ex &sp, const ex &L,
-                      const double &T, ex &toret) const {
+                      const double &T) const {
   ex root{INF}; // The default value
   ex f{fp + sp};
   f = f.expand().evalf();
@@ -342,7 +343,6 @@ ex Solver::build_eq_g(const symbol &dt, const ex &fp, const ex &sp, const ex &L,
 #ifdef DEBUG
   cout << "guard root: " << root << "\n";
 #endif // DEBUG
-  toret = eq;
   return root;
 }
 
