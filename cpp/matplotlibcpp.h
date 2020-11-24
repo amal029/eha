@@ -22,10 +22,10 @@
 #include <iostream>
 #include <map>
 #include <numeric>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <sstream>
 
 #include <Python.h>
 
@@ -147,7 +147,8 @@ private:
     PyObject *pyplotstyle = PyString_FromString("matplotlib.style");
     PyObject *cmname = PyString_FromString("matplotlib.cm");
     PyObject *pylabname = PyString_FromString("pylab");
-    if (!pyplotname || !pylabname || !matplotlibname || !cmname || !pyplotstyle) {
+    if (!pyplotname || !pylabname || !matplotlibname || !cmname ||
+        !pyplotstyle) {
       throw std::runtime_error("couldnt create string");
     }
 
@@ -174,7 +175,7 @@ private:
     PyObject *pystyle = PyImport_Import(pyplotstyle);
     Py_DECREF(pyplotstyle);
     if (!pystyle) {
-      throw std::runtime_error("Error loading module matplotlib.pyplot.style!");
+      throw std::runtime_error("Error loading module matplotlib.style!");
     }
 
     s_python_colormap = PyImport_Import(cmname);
@@ -264,7 +265,7 @@ private:
         !s_python_function_text || !s_python_function_suptitle ||
         !s_python_function_bar || !s_python_function_subplots_adjust ||
         !s_python_function_spy || !s_python_function_imshow ||
-	!s_python_function_style_use) {
+        !s_python_function_style_use) {
       throw std::runtime_error("Couldn't find required function!");
     }
 
@@ -311,8 +312,7 @@ private:
         !PyFunction_Check(s_python_function_subplots_adjust) ||
         !PyFunction_Check(s_python_function_imshow) ||
         !PyFunction_Check(s_python_function_colorbar) ||
-        !PyFunction_Check(s_python_function_style_use)
-      ) {
+        !PyFunction_Check(s_python_function_style_use)) {
       throw std::runtime_error(
           "Python object is unexpectedly not a PyFunction.");
     }
@@ -679,7 +679,8 @@ bool semilogy(const VectorY &y,
 }
 
 template <typename Matrix>
-void imshow(const Matrix& X, const std::map<std::string, std::string> &keywords = {}) {
+void imshow(const Matrix &X,
+            const std::map<std::string, std::string> &keywords = {}) {
   PyObject *Xarray = get_2darray(X);
 
   PyObject *kwargs = PyDict_New();
@@ -703,9 +704,9 @@ void imshow(const Matrix& X, const std::map<std::string, std::string> &keywords 
 
 // @brief Add the colorbar
 void colorbar() {
-  PyObject *res =
-      PyObject_CallObject(detail::_interpreter::get().s_python_function_colorbar,
-                          detail::_interpreter::get().s_python_empty_tuple);
+  PyObject *res = PyObject_CallObject(
+      detail::_interpreter::get().s_python_function_colorbar,
+      detail::_interpreter::get().s_python_empty_tuple);
   if (!res)
     throw std::runtime_error("Call to colorbar() failed.");
 }
@@ -1782,7 +1783,7 @@ inline void style(const std::string &style) {
   PyObject *res = PyObject_CallObject(
       detail::_interpreter::get().s_python_function_style_use, args);
   if (!res)
-    throw std::runtime_error("Call to style() failed.");
+    throw std::runtime_error("Call to style.use() failed.");
 
   Py_DECREF(args);
   Py_DECREF(res);
