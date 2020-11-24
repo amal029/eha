@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3.9
 
 import sympy as S
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.pyplot.style as style
+import matplotlib.style as style
 from src.sdesolver import Compute
 
 

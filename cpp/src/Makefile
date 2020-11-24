@@ -18,7 +18,7 @@ endif
 LIBDIR += -L/usr/local/Frameworks/Python.framework/Versions/Current/lib
 LIBDIR += -L/usr/local/opt/llvm/lib -L/usr/lib
 # LIBDIR += -L/opt/ginac/lib -L/opt/cln/lib
-LIBS = -lcln -lginac -lpython3.8
+LIBS = -lcln -lginac -lpython3.9
 
 .PHONY:	all
 all:	${OUTPUTFILE}

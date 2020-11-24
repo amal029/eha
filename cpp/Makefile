@@ -18,15 +18,15 @@ else
 	LIBDIR = -L/usr/local/Cellar/ginac/1.8.0/lib -L/usr/local/Cellar/cln/1.3.6/lib
 endif
 INCLUDES += -I/opt/cln/include -I/opt/ginac/include
-INCLUDES += -I/usr/local/Frameworks/Python.framework/Versions/Current/include/python3.8
+INCLUDES += -I/usr/local/Frameworks/Python.framework/Versions/Current/include/python3.9
 
-INCLUDES += -I/Users/amal029_old/Library/Python/3.8/lib/python/site-packages/numpy/core/include
+INCLUDES += -I/Users/amal029_old/Library/Python/3.9/lib/python/site-packages/numpy/core/include
 INCLUDES += -I/Users/amal029_old/eha/cpp/include
 
 LIBDIR += -L/usr/local/Frameworks/Python.framework/Versions/Current/lib
 LIBDIR += -L./lib
 LIBDIR += -L/usr/local/opt/llvm/lib -L/usr/lib
-LIBS = -lcln -lginac -lpython3.8 -lsolver
+LIBS = -lcln -lginac -lpython3.9 -lsolver
 
 all:	lib robotgshs_par driver gene twocars
 
