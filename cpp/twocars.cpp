@@ -327,16 +327,26 @@ int main(void) {
   }
   std::vector<double> time(msize, 0);
   std::iota(time.begin(), time.end(), 0);
-  plt::plot(time, meanx2);
-  plt::plot(time, mplusCIx2);
-  plt::plot(time, mminusCIx2);
+  plt::plot(time, meanx2, {{"label", "mean"}});
+  plt::plot(time, mplusCIx2, {{"label", "CI 95% upper bound"}});
+  plt::plot(time, mminusCIx2, {{"label", "CI 95% lower bound"}});
+  plt::xlabel("Time (sec)");
+  plt::ylabel("$x1(t)$ (units)");
+  plt::grid();
+  plt::legend();
   plt::tight_layout();
+  plt::savefig("twocarsx1.pdf", {{"bbox_inches", "tight"}});
   plt::show();
 
-  plt::plot(time, meanx1);
-  plt::plot(time, mplusCIx1);
-  plt::plot(time, mminusCIx1);
+  plt::plot(time, meanx1, {{"label", "mean"}});
+  plt::plot(time, mplusCIx1, {{"label", "CI 95% upper bound"}});
+  plt::plot(time, mminusCIx1, {{"label", "CI 95% lower bound"}});
+  plt::xlabel("Time (sec)");
+  plt::ylabel("$x2(t)$ (units)");
+  plt::grid();
+  plt::legend();
   plt::tight_layout();
+  plt::savefig("twocarsx2.pdf", {{"bbox_inches", "tight"}});
   plt::show();
 
   // XXX: Write to the file

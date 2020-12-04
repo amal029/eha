@@ -450,10 +450,15 @@ int main(int argc, char *argv[])
   // XXX: Making steps of 0.1 seconds.
   std::transform(time.begin(), time.end(), time.begin(),
                  [](double i) { return i * INTERVAL; });
-  plt::plot(time, meanx1);
-  plt::plot(time, mplusCIx1);
-  plt::plot(time, mminusCIx1);
+  plt::plot(time, meanx1, {{"label", "mean"}});
+  plt::plot(time, mplusCIx1, {{"label", "CI 95% upper bound"}});
+  plt::plot(time, mminusCIx1, {{"label", "CI 95% lower bound"}});
+  plt::xlabel("Time (sec)");
+  plt::ylabel("$x^2(t) + y^2(t)$ (units)");
+  plt::grid();
+  plt::legend();
   plt::tight_layout();
+  plt::savefig("robot.pdf", {{"bbox_inches", "tight"}});
   plt::show();
 
 #ifdef TIME
