@@ -1,5 +1,10 @@
 #include "./include/solver.hpp"
 #include "matplotlibcpp.h"
+#include <algorithm>
+#include <cstddef>
+#include <cstdlib>
+#include <vector>
+#include "libInterpolate/Interpolate.hpp"
 
 using namespace std;
 using namespace GiNaC;
@@ -13,9 +18,9 @@ typedef std::map<ex, lst, ex_is_less> exT;
 typedef std::map<STATES, exT> derT;
 
 // Initialize the random number generator
-// std::random_device rd{};
-// std::mt19937 gen{rd()}; // Usually use the random device rd()
-std::mt19937 gen{7}; // Usually use the random device rd()
+std::random_device rd{};
+std::mt19937 gen{rd()}; // Usually use the random device rd()
+// std::mt19937 gen{7}; // Usually use the random device rd()
 std::normal_distribution<> d{0, 1};
 
 // The standard uniform distribution for jump edges
@@ -177,7 +182,8 @@ double HIOA2(const symbol &x, const symbol &y, const symbol &z,
   return step;
 }
 
-int F(int argc, char **argv) {
+int F(int argc, char **argv, vector<vector<double>> &xss,
+      vector<vector<double>> &tss) {
   double SIM_TIME = 1.2;
   Solver::DEFAULT_STEP = 1e-1;
   if (argc > 1)
@@ -290,12 +296,14 @@ int F(int argc, char **argv) {
     vars[th] = thval;
 
 #ifndef TIME
+#ifdef PRINT
     cout << time << ":"
          << " L1: " << tostate(cs1) << " L2: " << tostate(cs2) << " ";
     std::for_each(std::begin(vars), std::end(vars), [](const auto &i) {
       cout << i.first << ":" << i.second << "  ";
     });
     cout << "\n";
+#endif // PRINT
 #endif // TIME
 
     // Calling the HIOAs
@@ -359,12 +367,18 @@ int F(int argc, char **argv) {
   for (int i = 0; i < xs.size(); ++i)
     xy2[i] = xs[i] * xs[i] + ys[i] * ys[i];
 
+  // XXX: Add to the output vector
+  tss.push_back(ts);
+  xss.push_back(xy2);
+
 #ifndef TIME
+#ifdef PRINT
   plt::plot(ts, xy2);
   plt::xlabel("Time (sec)");
   plt::ylabel("$x^2(t) + y^2(t)$ (units)");
   plt::tight_layout();
   plt::show();
+#endif // PRINT
 #endif // TIME
   return 0;
 }
@@ -377,7 +391,71 @@ int main(int argc, char *argv[])
 #ifdef TIME
   auto t1 = std::chrono::high_resolution_clock::now();
 #endif // TIME
-  F(argc, argv);
+  std::vector<std::vector<double>> x1ss{}, tss{};
+  constexpr size_t N = 31;
+  constexpr double tn = 1.96; // with 2 samples and df = 1
+  constexpr double INTERVAL = 0.01;
+  const size_t msize =
+      argc > 1 ? (std::atof(argv[1])) / INTERVAL : 1.2 / INTERVAL;
+  for (size_t i = 0; i < N; ++i)
+    F(argc, argv, x1ss, tss);
+
+  // XXX: Make the interpolators for only x2ss
+  std::vector<_1D::LinearInterpolator<double>> interps1;
+  for (size_t i = 0; i < N; ++i) {
+    // XXX: Initialise the first time
+    interps1.push_back(_1D::LinearInterpolator<double>());
+    // XXX: Use them
+    interps1[i].setData(tss[i], x1ss[i]);
+  }
+  // XXX: We will go in 0.01 second intervals
+  // XXX: The mean of the values
+  std::vector<double> meanx1(msize, 0);
+  for (size_t i = 0; i < msize; ++i) {
+    double ux1 = 0;
+    for (size_t j = 0; j < N; ++j)
+      ux1 += interps1[j](i * INTERVAL);
+    ux1 = ux1 / N;
+    // XXX: Means for each time point
+    meanx1[i] = ux1;
+  }
+  // XXX: Now the standard deviation
+  std::vector<double> sigmax1(msize, 0);
+  for (size_t i = 0; i < msize; ++i) {
+    double sdx1 = 0;
+    for (size_t j = 0; j < N; ++j) {
+      sdx1 += (meanx1[i] - interps1[j](i * INTERVAL)) *
+              (meanx1[i] - interps1[j](i * INTERVAL));
+    }
+    sdx1 /= N;
+    // XXX: The standard deviations
+    sdx1 = sqrt(sdx1);
+    sigmax1[i] = sdx1;
+  }
+  // XXX: Now we can do the confidence interval computation
+  std::vector<double> x1CI{};
+  // XXX: Now the confidence interval at 95%
+  for (size_t i = 0; i < msize; ++i) {
+    x1CI.push_back(tn * sigmax1[i] / sqrt(N));
+  }
+  // XXX: Finally mean ± CI
+  std::vector<double> mplusCIx1(msize, 0), mminusCIx1(msize, 0);
+  for (size_t i = 0; i < msize; ++i) {
+    mplusCIx1[i] = meanx1[i] + x1CI[i];
+    mminusCIx1[i] = meanx1[i] - x1CI[i];
+  }
+  // XXX: Now plot it
+  std::vector<double> time(msize, 0);
+  std::iota(time.begin(), time.end(), 0);
+  // XXX: Making steps of 0.1 seconds.
+  std::transform(time.begin(), time.end(), time.begin(),
+                 [](double i) { return i * INTERVAL; });
+  plt::plot(time, meanx1);
+  plt::plot(time, mplusCIx1);
+  plt::plot(time, mminusCIx1);
+  plt::tight_layout();
+  plt::show();
+
 #ifdef TIME
   auto t2 = std::chrono::high_resolution_clock::now();
   std::cout

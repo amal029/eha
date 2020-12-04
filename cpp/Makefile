@@ -10,6 +10,9 @@ SYSROOT = `xcrun --show-sdk-path`
 ifeq ($(TIME), 1)
 	CFLAGS += -DTIME
 endif
+ifeq ($(PRINT), 1)
+	CFLAGS += -DPRINT
+endif
 ifeq ($(GCC), 1)
 	CC = g++-10 -std=c++20
 	LIBDIR += -L/opt/ginac/lib -L/opt/cln/lib
@@ -18,6 +21,9 @@ else
 	LIBDIR = -L/usr/local/Cellar/ginac/1.8.0/lib -L/usr/local/Cellar/cln/1.3.6/lib
 endif
 INCLUDES += -I/opt/cln/include -I/opt/ginac/include
+INCLUDES += -I/opt
+INCLUDES += -I./libInterpolate/src
+INCLUDES += -I/usr/local/Cellar/boost/1.74.0/include
 INCLUDES += -I/usr/local/Frameworks/Python.framework/Versions/Current/include/python3.9
 
 INCLUDES += -I/Users/amal029_old/Library/Python/3.9/lib/python/site-packages/numpy/core/include

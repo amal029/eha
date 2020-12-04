@@ -1,5 +1,16 @@
 #include "./include/solver.hpp"
+#include "boost/iterator/detail/facade_iterator_category.hpp"
+#include "libInterpolate/Interpolate.hpp"
+#include "libInterpolate/Interpolators/_1D/InterpolatorBase.hpp"
+#include "libInterpolate/Interpolators/_1D/LinearInterpolator.hpp"
 #include "matplotlibcpp.h"
+#include <cmath>
+#include <cstddef>
+#include <fstream>
+#include <iostream>
+#include <numeric>
+#include <string>
+#include <vector>
 
 using namespace GiNaC;
 
@@ -11,6 +22,7 @@ typedef std::map<STATES, exT> derT;
 // Initialize the random number generator
 std::random_device rd{};
 std::mt19937 gen{rd()}; // Usually use the random device rd()
+// std::mt19937 gen{7};// Usually use the random device rd()
 
 std::normal_distribution<> d{0, 1};
 
@@ -21,7 +33,7 @@ const double vx1 = 10, v2 = 5, a1 = 4;
 
 double __compute(const exmap &vars,
                  const std::map<ex, std::vector<double>, ex_is_less> &dWts,
-                 const derT &ders, const STATES location, const lst&& guards,
+                 const derT &ders, const STATES location, const lst &&guards,
                  const Solver &s, exmap &toret, double t = 0,
                  const lst &&zs = {}, double Uz = NAN) {
   double T = 0.0;
@@ -30,7 +42,7 @@ double __compute(const exmap &vars,
   exT DM(ders.at(location));
   std::map<double, exmap> Dts;
   exmap toretz;
-  for(auto const &z : zs){
+  for (auto const &z : zs) {
     double Dz = s.zstep(z, DM[z], DM, vars, t, dWts, toretz, Uz);
     Dts[Dz] = std::move(toretz);
   }
@@ -45,7 +57,8 @@ double __compute(const exmap &vars,
     k.push_back(i.first);
   }
   T = (k.size() > 1) ? *std::min_element(k.begin(), k.end())
-    : k.size() > 0 ? k[0] : INF;
+      : k.size() > 0 ? k[0]
+                     : INF;
   if (T == INF) {
     T = s.default_compute(DM, vars, dWts, toret, t);
   } else {
@@ -54,8 +67,9 @@ double __compute(const exmap &vars,
   return T;
 }
 
-double HIOA1(const symbol &x1, const symbol &x2, const symbol &v1, const derT &ders,
-             const exmap &vars, const STATES &cs, STATES &ns, exmap &toret,
+double HIOA1(const symbol &x1, const symbol &x2, const symbol &v1,
+             const derT &ders, const exmap &vars, const STATES &cs, STATES &ns,
+             exmap &toret,
              const std::map<ex, std::vector<double>, ex_is_less> &dWts,
              const Solver &s, const double time) {
   double step = 0;
@@ -77,8 +91,7 @@ double HIOA1(const symbol &x1, const symbol &x2, const symbol &v1, const derT &d
       ns = C, step = 0, toret = vars;
     } else if (abs((x2val - x1val) - d3).evalf() <= e) {
       ns = B, toret = vars, step = 0;
-    }
-    else {
+    } else {
       ns = cs;
       ex g1 = x2 - x1 - d1, g2 = x2 - x1 - d3;
       step = __compute(vars, dWts, ders, cs, {g1, g2}, s, toret, time);
@@ -101,7 +114,9 @@ double HIOA1(const symbol &x1, const symbol &x2, const symbol &v1, const derT &d
   return step;
 }
 
-int F(void) {
+int F(std::vector<std::vector<double>> &x1ss,
+      std::vector<std::vector<double>> &x2ss,
+      std::vector<std::vector<double>> &tss) {
   double SIM_TIME = 20;
 
   // Solver
@@ -143,7 +158,7 @@ int F(void) {
     cs1 = B;
 
   // XXX: These are the values returned by the HIOAs
-  exmap toret1{{x1, x1val}, {x2, x2val}, {v1, v1val}}; 
+  exmap toret1{{x1, x1val}, {x2, x2val}, {v1, v1val}};
 
   // Plotting vectors
   std::vector<double> x1s{ex_to<numeric>(toret1[x1]).to_double()};
@@ -211,32 +226,137 @@ int F(void) {
   std::cout << "TOTAL SIM COUNT: " << ts.size() << "\n";
   // Plot
   // plt::style("ggplot");
+#ifdef PRINT
   plt::plot(ts, x1s);
   plt::plot(ts, x2s);
   plt::xlabel("Time (sec)");
   plt::ylabel("$x1(t), x2(t)$ (units)");
   plt::tight_layout();
   plt::show();
+#endif // PRINT
 #endif // TIME
+  // XXX: Append for computing the CI
+  x1ss.push_back(std::move(x1s));
+  x2ss.push_back(std::move(x2s));
+  tss.push_back(std::move(ts));
   return 0;
 }
 
 #ifdef TIME
 #include <chrono>
 #endif
-int main(void)
-{
+int main(void) {
 #ifdef TIME
   auto t1 = std::chrono::high_resolution_clock::now();
 #endif // TIME
-  F();
+  std::vector<std::vector<double>> x1ss{}, x2ss{}, tss{};
+  constexpr size_t N = 31;
+  constexpr double tn = 1.96; // with 2 samples and df = 1
+  for (auto i = 0; i < N; ++i)
+    F(x1ss, x2ss, tss);
+
+  // XXX: The simulation time
+  constexpr size_t msize = 20;
+
+  // XXX: Make the interpolators for only x2ss
+  std::vector<_1D::LinearInterpolator<double>> interps1;
+  std::vector<_1D::LinearInterpolator<double>> interps2;
+  for (size_t i = 0; i < N; ++i) {
+    // XXX: Initialise the first time
+    interps1.push_back(_1D::LinearInterpolator<double>());
+    interps2.push_back(_1D::LinearInterpolator<double>());
+    // XXX: Use them
+    interps1[i].setData(tss[i], x1ss[i]);
+    interps2[i].setData(tss[i], x2ss[i]);
+  }
+
+  // XXX: We will go in 1 second intervals
+  // XXX: The mean of the values
+  std::vector<double> meanx1(msize, 0), meanx2(msize, 0);
+  for (size_t i = 0; i < msize; ++i) {
+    double ux1 = 0, ux2 = 0;
+    for (size_t j = 0; j < N; ++j)
+      ux1 += interps1[j](i), ux2 += interps2[j](i);
+    ux1 = ux1 / N, ux2 = ux2 / N;
+    // XXX: Means for each time point
+    meanx1[i] = ux1, meanx2[i] = ux2;
+  }
+  // DEBUG
+  // std::for_each(std::begin(meanx2), std::end(meanx2),
+  //               [](double d) { std::cout << d << "\t"; });
+  // std::cout << "\n";
+
+  // XXX: Now the standard deviation
+  std::vector<double> sigmax1(msize, 0), sigmax2(msize, 0);
+  for (size_t i = 0; i < msize; ++i) {
+    double sdx1 = 0, sdx2 = 0;
+    for (size_t j = 0; j < N; ++j) {
+      sdx1 += (meanx1[i] - interps1[j](i)) * (meanx1[i] - interps1[j](i));
+      sdx2 += (meanx2[i] - interps2[j](i)) * (meanx2[i] - interps2[j](i));
+    }
+    sdx1 /= N, sdx2 /= N;
+    // XXX: The standard deviations
+    sdx1 = sqrt(sdx1), sdx2 = sqrt(sdx2);
+    sigmax1[i] = sdx1, sigmax2[i] = sdx2;
+  }
+  // DEBUG
+  // std::for_each(std::begin(sigmax2), std::end(sigmax2),
+  //               [](double d) { std::cout << d << "\t"; });
+  // std::cout << "\n";
+
+  // XXX: Now we can do the confidence interval computation
+  std::vector<double> x1CI{}, x2CI{};
+  // XXX: Now the confidence interval at 95%
+  for (size_t i = 0; i < msize; ++i) {
+    x1CI.push_back(tn * sigmax1[i] / sqrt(N));
+    x2CI.push_back(tn * sigmax2[i] / sqrt(N));
+  }
+  // DEBUG
+  // std::for_each(std::begin(x2CI), std::end(x2CI),
+  //               [](double d) { std::cout << d << "\t"; });
+  // std::cout << "\n";
+
+  // XXX: Finally mean ± CI
+  std::vector<double> mplusCIx1(msize, 0), mminusCIx1(msize, 0),
+      mplusCIx2(msize, 0), mminusCIx2(msize, 0);
+  for (size_t i = 0; i < msize; ++i) {
+    mplusCIx1[i] = meanx1[i] + x1CI[i];
+    mminusCIx1[i] = meanx1[i] - x1CI[i];
+    mplusCIx2[i] = meanx2[i] + x2CI[i];
+    mminusCIx2[i] = meanx2[i] - x2CI[i];
+  }
+  std::vector<double> time(msize, 0);
+  std::iota(time.begin(), time.end(), 0);
+  plt::plot(time, meanx2);
+  plt::plot(time, mplusCIx2);
+  plt::plot(time, mminusCIx2);
+  plt::tight_layout();
+  plt::show();
+
+  plt::plot(time, meanx1);
+  plt::plot(time, mplusCIx1);
+  plt::plot(time, mminusCIx1);
+  plt::tight_layout();
+  plt::show();
+
+  // XXX: Write to the file
+  const std::string fName = "twocars.csv";
+  std::ofstream ostrm(fName);
+  ostrm << "ts,meanx1,CIx1,meanx2,CIx2\n";
+  for (size_t i = 0; i < msize; ++i) {
+    // XXX: Plot everything
+    ostrm << time[i] << "," << meanx1[i] << "," << x1CI[i] << "," << meanx2[i]
+          << "," << x2CI[i] << "\n";
+  }
+  ostrm.flush();
+  ostrm.close();
+
 #ifdef TIME
   auto t2 = std::chrono::high_resolution_clock::now();
   std::cout
-    << "F() took "
-    << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count()
-    << " milliseconds\n";
+      << "F() took "
+      << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count()
+      << " milliseconds\n";
 #endif // TIME
   return 0;
 }
-

@@ -1,5 +1,8 @@
 #include "./include/solver.hpp"
+#include "libInterpolate/Interpolate.hpp"
 #include "matplotlibcpp.h"
+#include <cstddef>
+#include <vector>
 
 using namespace GiNaC;
 
@@ -23,7 +26,7 @@ const double e = 1e-1;
 
 double __compute(const exmap &vars,
                  const std::map<ex, std::vector<double>, ex_is_less> &dWts,
-                 const derT &ders, const STATES location, const lst&& guards,
+                 const derT &ders, const STATES location, const lst &&guards,
                  const Solver &s, exmap &toret, double t = 0,
                  const lst &&zs = {}, double Uz = NAN) {
   double T = 0.0;
@@ -32,7 +35,7 @@ double __compute(const exmap &vars,
   exT DM(ders.at(location));
   std::map<double, exmap> Dts;
   exmap toretz;
-  for (auto const& z: zs){
+  for (auto const &z : zs) {
     double Dz = s.zstep(z, DM[z], DM, vars, t, dWts, toretz, Uz);
     Dts[Dz] = std::move(toretz);
   }
@@ -47,7 +50,8 @@ double __compute(const exmap &vars,
     k.push_back(i.first);
   }
   T = (k.size() > 1) ? *std::min_element(k.begin(), k.end())
-    : k.size() > 0 ? k[0] : INF;
+      : k.size() > 0 ? k[0]
+                     : INF;
   if (T == INF) {
     T = s.default_compute(DM, vars, dWts, toret, t);
   } else {
@@ -98,7 +102,8 @@ double HIOA(const symbol &x, const derT &ders, const exmap &vars,
   return step;
 }
 
-int F(void) {
+int F(std::vector<std::vector<double>> &xss,
+      std::vector<std::vector<double>> &tss) {
   double SIM_TIME = 20;
   Solver::DEFAULT_STEP = 1;
   Solver::ε = 1e-5;
@@ -118,7 +123,7 @@ int F(void) {
   ex xval = 0.5;
 
   // vars
-  exmap vars {{x, xval}};
+  exmap vars{{x, xval}};
 
   // time
   double time = 0;
@@ -197,12 +202,16 @@ int F(void) {
 #ifndef TIME
   // std::cout << ts[ts.size()-1] << "," << xs[xs.size()-1] << "\n";
   std::cout << "TOTAL SIM COUNT: " << ts.size() << "\n";
+  xss.push_back(xs);
+  tss.push_back(ts);
+#ifdef PRINT
   // Plot
   plt::plot(ts, xs);
   plt::ylabel("$x(t)$ (units)");
   plt::xlabel("Time (sec)");
   plt::tight_layout();
   plt::show();
+#endif // PRINT
 #endif // TIME
   return 0;
 }
@@ -210,18 +219,74 @@ int F(void) {
 #ifdef TIME
 #include <chrono>
 #endif
-int main(int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 #ifdef TIME
   auto t1 = std::chrono::high_resolution_clock::now();
 #endif // TIME
-  F();
+  std::vector<std::vector<double>> x1ss{}, tss{};
+  constexpr size_t N = 31;
+  constexpr double tn = 1.96; // with 2 samples and df = 1
+  constexpr double msize = 20;
+  for (size_t i = 0; i < N; ++i)
+    F(x1ss, tss);
+  // XXX: Make the interpolators for only x2ss
+  std::vector<_1D::LinearInterpolator<double>> interps1;
+  for (size_t i = 0; i < N; ++i) {
+    // XXX: Initialise the first time
+    interps1.push_back(_1D::LinearInterpolator<double>());
+    // XXX: Use them
+    interps1[i].setData(tss[i], x1ss[i]);
+  }
+  // XXX: We will go in 1 second intervals
+  // XXX: The mean of the values
+  std::vector<double> meanx1(msize, 0);
+  for (size_t i = 0; i < msize; ++i) {
+    double ux1 = 0;
+    for (size_t j = 0; j < N; ++j)
+      ux1 += interps1[j](i);
+    ux1 = ux1 / N;
+    // XXX: Means for each time point
+    meanx1[i] = ux1;
+  }
+  // XXX: Now the standard deviation
+  std::vector<double> sigmax1(msize, 0);
+  for (size_t i = 0; i < msize; ++i) {
+    double sdx1 = 0;
+    for (size_t j = 0; j < N; ++j) {
+      sdx1 += (meanx1[i] - interps1[j](i)) * (meanx1[i] - interps1[j](i));
+    }
+    sdx1 /= N;
+    // XXX: The standard deviations
+    sdx1 = sqrt(sdx1);
+    sigmax1[i] = sdx1;
+  }
+  // XXX: Now we can do the confidence interval computation
+  std::vector<double> x1CI{};
+  // XXX: Now the confidence interval at 95%
+  for (size_t i = 0; i < msize; ++i) {
+    x1CI.push_back(tn * sigmax1[i] / sqrt(N));
+  }
+  // XXX: Finally mean ± CI
+  std::vector<double> mplusCIx1(msize, 0), mminusCIx1(msize, 0);
+  for (size_t i = 0; i < msize; ++i) {
+    mplusCIx1[i] = meanx1[i] + x1CI[i];
+    mminusCIx1[i] = meanx1[i] - x1CI[i];
+  }
+  // XXX: Now plot it
+  std::vector<double> time(msize, 0);
+  std::iota(time.begin(), time.end(), 0);
+  plt::plot(time, meanx1);
+  plt::plot(time, mplusCIx1);
+  plt::plot(time, mminusCIx1);
+  plt::tight_layout();
+  plt::show();
+
 #ifdef TIME
   auto t2 = std::chrono::high_resolution_clock::now();
   std::cout
-    << "F() took "
-    << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count()
-    << " milliseconds\n";
+      << "F() took "
+      << std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count()
+      << " milliseconds\n";
 #endif // TIME
   return 0;
 }
