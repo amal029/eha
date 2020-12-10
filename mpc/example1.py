@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
-from src.mpc import MPC
+import src.mpc as SMPC
 from math import ceil
 import numpy
 import matplotlib.pyplot as plt
+import importlib
 
 
 def set_plt_params():
@@ -53,7 +54,7 @@ def example():
     count = 0
 
     # Get the solver
-    s = MPC(N, 1, 1, [p], rx, ru, xw, uw, xl, xu, ul, uu)
+    s = SMPC.MPC(N, 1, 1, [p], rx, ru, xw, uw, xl, xu, ul, uu)
     # XXX: Start simulating the movement of the robot
     while(count < h-d):
         print('------------l∞ norm cost function-------------')
@@ -76,6 +77,7 @@ def example():
 
 
 if __name__ == '__main__':
+    importlib.reload(SMPC)
     set_plt_params()
     ts, rx, xs = example()
     plt.style.use('ggplot')
