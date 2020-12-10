@@ -6,7 +6,7 @@ from z3 import Real, Solver, sat, If
 class MPC:
 
     def __init__(self, N, M, Q, fs, refx, refu, w, la, consxl, consxr,
-                 consul, consur, norm=1, DEBUG=False):
+                 consul, consur, norm=None, DEBUG=False):
         self.N = N
         self.M = M
         self.Q = Q
