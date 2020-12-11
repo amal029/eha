@@ -26,6 +26,7 @@ def example():
     # XXX: Model a simple linear moving robot at constant velocity with
     # disturbance. Control it using MPC
     # The step-size
+    # XXX: Use 0.04 seconds for planning the trajectory
     d = 0.08
     # The time horizon (second)
     h = 2
