@@ -22,7 +22,7 @@ class MPC:
 
         # Make the control variables
         self.us = [Real('u_%s_%s' % (j+1, i))
-                   for i in range(N+1)
+                   for i in range(N)
                    for j in range(Q)]
 
         # Add the evolution of the state variables
@@ -35,20 +35,20 @@ class MPC:
             k += Q
 
         # Add the linear constraints for system states
-        consxl = consxl*N
+        consxl = consxl*N if len(consxl) == 1 else consxl
         [self.s.add(self.xs[i+M] >= consxl[i])
-         for i in range(len(consxl))]
-        consxr = consxr*N
+         for i in range(len(consxl)) if i is not None]
+        consxr = consxr*N if len(consxr) == 1 else consxr
         [self.s.add(self.xs[i+M] <= consxr[i])
-         for i in range(len(consxr))]
+         for i in range(len(consxr)) if i is not None]
 
         # Add the linear constraints for control inputs
-        consul = consul*N
+        consul = consul*N if len(consul) == 1 else consul
         [self.s.add(self.us[i] >= consul[i])
-         for i in range(len(consul))]
-        consur = consur*N
+         for i in range(len(consul)) if i is not None]
+        consur = consur*N if len(consur) == 1 else consur
         [self.s.add(self.us[i] <= consur[i])
-         for i in range(len(consur))]
+         for i in range(len(consur)) if i is not None]
 
         # Now add the cost function
         refx = [j for i in refx for j in i]
@@ -82,7 +82,11 @@ class MPC:
             Dus = [la[i]*mabs(self.us[i]-refu[i])
                    for i in range(len(refu))]
 
-            self.s.add(self.obj == MPC.mreduce(0, Dxs + Dus))
+            Dxxs = [MPC.mreduce(0, Dxs[i:i+M]) for i in range(0, len(Dxs), M)]
+            Duus = [MPC.mreduce(0, Dxs[i:i+Q]) for i in range(0, len(Dus), Q)]
+            self.s.add(self.obj == sum(Dxxs + Duus))
+            # self.s.add(self.obj ==
+            # (MPC.mreduce(0, Dxs) + MPC.mreduce(0, Dus)))
 
     @staticmethod
     def minimize(s, obj, objv, epsilon=1e-6):
@@ -127,7 +131,7 @@ class MPC:
         else:
             return max(Ej[0], MPC.mreduce(sV, Ej[1:]))
 
-    def solve(self, IS):
+    def solve(self, IS, plan=False):
 
         self.s.push()           # put a point to push
         # Add the constraint for the initial_control and inital_state
@@ -146,7 +150,7 @@ class MPC:
             # XXX: Get the control vector without the zeroth time
             toret = [(float(model[ret].numerator_as_long())
                       / float(model[ret].denominator_as_long()))
-                     for ret in self.us[:self.Q]]
+                     for ret in self.us]
             if self.DEBUG:
                 import sys
                 osout = sys.stdout
@@ -157,6 +161,6 @@ class MPC:
                     print('---------------answer----------------------')
                     print(res, '\n', model)
             self.s.pop()
-            return toret
+            return toret if plan else toret[:self.Q]
         else:
             print('Model cannot be satisfied')
