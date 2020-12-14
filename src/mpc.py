@@ -44,10 +44,10 @@ class MPC:
          for i in range(len(consxr)) if i is not None]
 
         # Add the linear constraints for control inputs
-        consul = consul*N if len(consul) == M else consul
+        consul = consul*N if len(consul) == Q else consul
         [self.s.add(self.us[i] >= consul[i])
          for i in range(len(consul)) if i is not None]
-        consur = consur*N if len(consur) == M else consur
+        consur = consur*N if len(consur) == Q else consur
         [self.s.add(self.us[i] <= consur[i])
          for i in range(len(consur)) if i is not None]
 
@@ -102,8 +102,8 @@ class MPC:
         s.add(obj <= objv/2)
         ret = s.check()
         if ret == sat:
-            ro = (float(s.model()[obj].numerator_as_long())
-                  / float(s.model()[obj].denominator_as_long()))
+            ro = ((s.model()[obj].numerator_as_long())
+                  / (s.model()[obj].denominator_as_long()))
         s.pop()
         if ret == sat and ro <= epsilon:
             return objv/2, objv
@@ -151,14 +151,14 @@ class MPC:
         if res == sat:
             # XXX: Now minimize the objective function
             # This is current objective value upper bound
-            objv = (float(self.s.model()[self.obj].numerator_as_long())
-                    / float(self.s.model()[self.obj].denominator_as_long()))
+            objv = ((self.s.model()[self.obj].numerator_as_long())
+                    / (self.s.model()[self.obj].denominator_as_long()))
             l, u = MPC.minimize(self.s, self.obj, objv)
             # XXX: Do the binary search
             res, model = MPC.binary_search(l, u, self.s, self.obj)
             # XXX: Get the control vector without the zeroth time
-            toret = [(float(model[ret].numerator_as_long())
-                      / float(model[ret].denominator_as_long()))
+            toret = [((model[ret].numerator_as_long())
+                      / (model[ret].denominator_as_long()))
                      for ret in self.us]
             if self.DEBUG:
                 import sys
