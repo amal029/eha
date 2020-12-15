@@ -115,7 +115,7 @@ def robot():
         actions.append(u0)
         ts.append(count*d)
         count += 1
-        if (count == h/d-N+1):
+        if (count > h/d-N+1):
             break
         rxs = [[m['xout'][i][0], m['yout'][i][0],
                 m['thout'][i][0], m['phout'][i][0]]

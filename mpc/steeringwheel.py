@@ -58,13 +58,13 @@ def example():
     uu = [2]*N
 
     # XXX: Optimisation weights, equal optimisation
-    xw = [0.1]
+    xw = [1]
     uw = [0]
 
     # XXX: Initial values for state and control inputs
     # Get the solver
     s = SMPC.MPC(N, 1, 1, [p], xl, xu, ul, uu)
-    uref, traj = s.solve([pi], rx, ru, xw, uw, plan=True)
+    uref, traj = s.solve([pi+0.1], rx, ru, xw, uw, plan=True)
 
     # XXX: Now start following the trajectory with noise
     x0 = [traj[0]]
@@ -83,7 +83,7 @@ def example():
     xu = [2*pi]*N
     ul = [-2]*N
     uu = [2]*N
-    s = SMPC.MPC(N, 1, 1, [p], xl, xu, ul, uu, norm=None)
+    s = SMPC.MPC(N, 1, 1, [p], xl, xu, ul, uu, norm=1)
     count = 1
     # XXX: Start simulating the movement of the robot
     while(True):
@@ -118,7 +118,7 @@ if __name__ == '__main__':
     plt.ylabel(r'$x(t)$ (units)', fontweight='bold')
     plt.show()
     plt.scatter(ts[1:], us)
-    plt.scatter(ts[1:], uref)
+    plt.scatter(ts[1:], uref[:len(us)])
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$u(t)$ (units)', fontweight='bold')
     plt.show()
