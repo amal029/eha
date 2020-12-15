@@ -35,17 +35,17 @@ def example():
     # XXX: The wanted temp
     Temp = 18.5
     # XXX: The diff
-    K = 125
+    # K = 125
 
     # XXX: Start temperature
-    STemp = 20.3
+    STemp = 16
 
     # XXX: Hybrid plant model, just forward Euler for now
-    p = (lambda x: x[0] + (If(x[0] >= Temp, -x[1], K-x[1]))*d)
+    p = (lambda x: x[0] + (If(x[0] >= Temp, -x[1], x[1]))*d)
 
     # XXX: The noisy plant model, which we don't know about
     pn = (lambda x: x[0] + numpy.random.rand()*0.01 +
-          (-x[1] if(x[0] >= Temp) else K-x[1])*d)
+          (-x[1] if(x[0] >= Temp) else x[1])*d)
     # FIXME: If the std-deviation is huge then SMT seems to crap out
 
     # XXX: The below things usually come from the planning phase,
@@ -66,7 +66,7 @@ def example():
 
     # XXX: The control bounds
     ul = [0]*N
-    uu = [1]*N
+    uu = [1.3]*N
 
     # XXX: Optimisation weights, equal optimisation
     xw = [0.1]
