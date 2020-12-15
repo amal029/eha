@@ -170,6 +170,10 @@ class MPC:
                     print('---------------answer----------------------')
                     print(res, '\n', model)
             self.s.pop()
-            return toret if plan else toret[:self.Q]
+            if plan:
+                traj = [(model[i].numerator_as_long() /
+                         model[i].denominator_as_long())
+                        for i in self.xs]
+            return (toret, traj) if plan else toret[:self.Q]
         else:
-            print('Model cannot be satisfied')
+            raise Exception('Model cannot be satisfied')

@@ -4,7 +4,7 @@ import src.mpc as SMPC
 import numpy
 import matplotlib.pyplot as plt
 import importlib
-from math import pi, ceil
+from math import ceil
 from z3 import If, And
 
 
@@ -27,35 +27,46 @@ def example():
     # disturbance. Control it using MPC
     # The step-size
     # XXX: Use 0.04 seconds for planning the trajectory
-    d = 0.08
+    d = 0.02
     # The time horizon (second)
     h = 2
     N = ceil(h/d)   # The number of prediction steps in MPC
+
+    # XXX: The wanted temp
+    Temp = 18.5
+    # XXX: The diff
+    K = 125
+
+    # XXX: Start temperature
+    STemp = 20.3
+
     # XXX: Hybrid plant model, just forward Euler for now
-    p = (lambda x: x[0] +
-         (If(And(x[0] > pi/2, x[0] <= 3*pi/2), -x[1], x[1]))*d)
+    p = (lambda x: x[0] + (If(x[0] >= Temp, -x[1], K-x[1]))*d)
 
     # XXX: The noisy plant model, which we don't know about
     pn = (lambda x: x[0] + numpy.random.rand()*0.01 +
-          (-x[1] if(x[0] > pi/2 and x[0] <= 3*pi/2) else x[1])*d)
+          (-x[1] if(x[0] >= Temp) else K-x[1])*d)
     # FIXME: If the std-deviation is huge then SMT seems to crap out
 
     # XXX: The below things usually come from the planning phase,
     # Planning can be done, say, using the complete horizon with the
     # plant model and a quadratic offline solver for non-linear mpc.
 
-    rx = [[pi/2]]*N    # The ref point for system state
+    rx = [[Temp]]*N    # The ref point for system state
     ru = [[0]]*N    # The ref point for control input
     # XXX: The bounds for state and control inputs
-    xl = [0]*N
-    xu = [2*pi]*N
+    xl = [-30]*N
+    xu = [30]*N
+
     # XXX: Adding special constraint stating that the last point has to
-    # be very close to pi/2
+    # be very close to the final Temp
     e = 1e-6                    # error bound
-    xl[-1] = pi/2 - e
-    xu[-1] = pi/2 + e
-    ul = [-2]*N
-    uu = [2]*N
+    xl[-1] = Temp - e
+    xu[-1] = Temp + e
+
+    # XXX: The control bounds
+    ul = [0]*N
+    uu = [1]*N
 
     # XXX: Optimisation weights, equal optimisation
     xw = [0.1]
@@ -64,7 +75,7 @@ def example():
     # XXX: Initial values for state and control inputs
     # Get the solver
     s = SMPC.MPC(N, 1, 1, [p], xl, xu, ul, uu)
-    uref, traj = s.solve([pi], rx, ru, xw, uw, plan=True)
+    uref, traj = s.solve([STemp], rx, ru, xw, uw, plan=True)
 
     # XXX: Now start following the trajectory with noise
     x0 = [traj[0]]
@@ -73,16 +84,16 @@ def example():
     xs = [x0]
 
     # XXX: Equal weights
-    xw = [1]
+    xw = [1.5]
     # XXX: This needs to be zero, because we have a lot of noise
-    uw = [0]
+    uw = [0.0]
 
     # XXX: Predict only N ahead
-    N = 1
-    xl = [0]*N
-    xu = [2*pi]*N
-    ul = [-2]*N
-    uu = [2]*N
+    N = 2
+    xl = [-30]*N
+    xu = [30]*N
+    ul = [0]*N
+    uu = [1.3]*N
     s = SMPC.MPC(N, 1, 1, [p], xl, xu, ul, uu, norm=None)
     count = 1
     # XXX: Start simulating the movement of the robot
@@ -118,7 +129,7 @@ if __name__ == '__main__':
     plt.ylabel(r'$x(t)$ (units)', fontweight='bold')
     plt.show()
     plt.scatter(ts[1:], us)
-    plt.scatter(ts[1:], uref)
+    plt.scatter(ts[1:], uref[:len(us)])
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$u(t)$ (units)', fontweight='bold')
     plt.show()
