@@ -5,7 +5,7 @@ import numpy
 import matplotlib.pyplot as plt
 import importlib
 from math import ceil
-from z3 import If, And
+from z3 import If
 
 
 def set_plt_params():
@@ -45,9 +45,9 @@ def example():
     px2 = (lambda x: x[1] + (If(x[3] == 1, x[2], -3))*d)
 
     # XXX: The noisy plant model, which we don't know about
-    pnx1 = (lambda x: x[0] + numpy.random.rand()*0.002 +
+    pnx1 = (lambda x: x[0] + numpy.random.rand()*0.01 +
             (x[2] if(x[3] == 0) else -2)*d)
-    pnx2 = (lambda x: x[1] + numpy.random.rand()*0.002 +
+    pnx2 = (lambda x: x[1] + numpy.random.rand()*0.01 +
             (x[2] if(x[3] == 1) else -3)*d)
     pnxs = [pnx1, pnx2]
 
