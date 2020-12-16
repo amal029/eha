@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from z3 import Real, Solver, sat, If, Int, Or
+from z3 import Real, Solver, sat, If, Or, Int
 
 
 class MPC:
@@ -64,7 +64,7 @@ class MPC:
         Pset = Pset*N if len(Pset) == P else Pset
         gors = [self.gs[i] == j
                 for i in range(len(Pset))
-                for j in i if isinstance(i, set)]
+                for j in Pset[i] if isinstance(Pset[i], set)]
         # TODO: Check if this should be converted into Xor
         if len(gors) != 0:
             self.s.add(Or(gors))
@@ -186,8 +186,6 @@ class MPC:
                 sys.stdout = f
                 print(self.s.to_smt2())
                 sys.stdout = osout
-                print('---------------answer----------------------')
-                # print(res, '\n', model)
         # XXX: The state of the solver
         res = self.s.check()
         if res == sat:
@@ -206,13 +204,13 @@ class MPC:
             toret = [(model[ret].numerator_as_long()
                       / model[ret].denominator_as_long())
                      for ret in self.us]
-            toretg = [model[ret] for ret in self.gs]
+            toretg = [int(str(model[ret])) for ret in self.gs]
             self.s.pop()
             if plan:
                 traj = [(model[i].numerator_as_long() /
                          model[i].denominator_as_long())
                         for i in self.xs]
-            return (toret+toretg, traj) if plan else (toret[:self.Q] +
-                                                      toretg[:self.P])
+            return (toret, toretg, traj) if plan else (toret[:self.Q],
+                                                       toretg[:self.P])
         else:
             raise Exception('Model cannot be satisfied')

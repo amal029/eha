@@ -64,7 +64,7 @@ def example():
     # XXX: Initial values for state and control inputs
     # Get the solver
     s = SMPC.MPC(N, 1, 1, [p], xl, xu, ul, uu)
-    uref, traj = s.solve([pi+0.1], rx, ru, xw, uw, plan=True)
+    uref, gref, traj = s.solve([pi+0.1], rx, ru, xw, uw, plan=True)
 
     # XXX: Now start following the trajectory with noise
     x0 = [traj[0]]
@@ -88,8 +88,8 @@ def example():
     # XXX: Start simulating the movement of the robot
     while(True):
         print('------------l∞ norm cost function-------------')
-        u0 = s.solve(x0, [traj[count:count+N]], [uref[count:count+N]],
-                     xw, uw)
+        u0, _ = s.solve(x0, [traj[count:count+N]], [uref[count:count+N]],
+                        xw, uw)
 
         # XXX: Apply the action to the plant, with noise
         x0 = [pn(x0 + u0)]

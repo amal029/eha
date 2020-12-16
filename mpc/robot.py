@@ -106,7 +106,7 @@ def robot():
     print(x0)
     while(True):
         print('------------l∞ norm cost function-------------')
-        u0 = s.solve(x0, rxs, rus, wx, wu)
+        u0, _ = s.solve(x0, rxs, rus, wx, wu)
         x0 = [p(x0+u0) for p in pns]
         print('time:', count*d)
         print('us: ', u0)
