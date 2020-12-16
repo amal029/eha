@@ -27,7 +27,7 @@ def example():
     # disturbance. Control it using MPC
     # The step-size
     # XXX: Use 0.04 seconds for planning the trajectory
-    d = 0.02
+    d = 0.2
     # The time horizon (second)
     h = 2
     N = ceil(h/d)   # The number of prediction steps in MPC
@@ -38,14 +38,14 @@ def example():
     # K = 125
 
     # XXX: Start temperature
-    STemp = 16
+    STemp = 20
 
     # XXX: Hybrid plant model, just forward Euler for now
-    p = (lambda x: x[0] + (If(x[0] >= Temp, -x[1], x[1]))*d)
+    p = (lambda x: x[0] + (If(x[0] >= Temp, -x[1], x[1]))*x[0]*d)
 
     # XXX: The noisy plant model, which we don't know about
     pn = (lambda x: x[0] + numpy.random.rand()*0.01 +
-          (-x[1] if(x[0] >= Temp) else x[1])*d)
+          (-x[1] if(x[0] >= Temp) else x[1])*x[0]*d)
     # FIXME: If the std-deviation is huge then SMT seems to crap out
 
     # XXX: The below things usually come from the planning phase,
@@ -69,12 +69,12 @@ def example():
     uu = [1.3]*N
 
     # XXX: Optimisation weights, equal optimisation
-    xw = [0.1]
+    xw = [1]
     uw = [0]
 
     # XXX: Initial values for state and control inputs
     # Get the solver
-    s = SMPC.MPC(N, 1, 1, [p], xl, xu, ul, uu)
+    s = SMPC.MPC(N, 1, 1, [p], xl, xu, ul, uu, norm=1)
     uref, _, traj = s.solve([STemp], rx, ru, xw, uw, plan=True)
 
     # XXX: Now start following the trajectory with noise
@@ -86,7 +86,7 @@ def example():
     # XXX: Equal weights
     xw = [1.5]
     # XXX: This needs to be zero, because we have a lot of noise
-    uw = [0.0]
+    uw = [0]
 
     # XXX: Predict only N ahead
     N = 2
@@ -128,8 +128,8 @@ if __name__ == '__main__':
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x(t)$ (units)', fontweight='bold')
     plt.show()
-    plt.scatter(ts[1:], us)
-    plt.scatter(ts[1:], uref[:len(us)])
+    plt.plot(ts[1:], us)
+    plt.plot(ts[1:], uref[:len(us)])
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$u(t)$ (units)', fontweight='bold')
     plt.show()

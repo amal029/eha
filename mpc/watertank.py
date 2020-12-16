@@ -111,7 +111,7 @@ def example():
     xc = M
     xu = 0
     xg = 0
-    # XXX: Start simulating the movement of the robot
+    # XXX: Start simulating the movement of the watertank
     while(True):
         u0, g0 = s.solve(x0, [traj[xc:xc+M*N]], [uref[xu:xu+Q*N]],
                          xw, uw, refg=[gref[xg:xg+P*N]], wg=gw)
