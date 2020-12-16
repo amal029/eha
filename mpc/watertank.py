@@ -97,7 +97,7 @@ def example():
     # XXX: Equal weights
     xw = [0, 0]
     # XXX: This needs to be zero, because we have a lot of noise
-    uw = [2]
+    uw = [3]
     gw = [1]
 
     # XXX: Predict only N ahead
@@ -113,10 +113,8 @@ def example():
     xg = 0
     # XXX: Start simulating the movement of the robot
     while(True):
-        print('------------l∞ norm cost function-------------')
-        assert(N == 1)           # for now, fix it later
-        u0, g0 = s.solve(x0, [traj[xc:xc+M]], [uref[xu:xu+Q]],
-                         xw, uw, refg=[gref[xg:xg+P]], wg=gw)
+        u0, g0 = s.solve(x0, [traj[xc:xc+M*N]], [uref[xu:xu+Q*N]],
+                         xw, uw, refg=[gref[xg:xg+P*N]], wg=gw)
 
         # XXX: Apply the action to the plant, with noise
         x0 = [p(x0 + u0 + g0) for p in pnxs]
