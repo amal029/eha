@@ -26,7 +26,7 @@ def example():
     # disturbance. Control it using MPC
     # The step-size
     # XXX: Use 0.04 seconds for planning the trajectory
-    d = 0.1
+    d = 0.08
     # The time horizon (second)
     h = 1
     N = ceil(h/d)   # The number of prediction steps in MPC
