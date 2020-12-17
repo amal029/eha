@@ -105,3 +105,7 @@ if __name__ == '__main__':
     plt.style.use('ggplot')
     plt.plot(xxs, yys)
     plt.show()
+    plt.scatter(ts[1:], [uref[i] for i in range(0, len(uref), 2)])
+    plt.show()
+    plt.scatter(ts[1:], [uref[i] for i in range(1, len(uref), 2)])
+    plt.show()
