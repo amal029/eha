@@ -39,7 +39,7 @@ def example():
     # K = 125
 
     # XXX: Start temperature
-    STemp = 30
+    STemp = 15
 
     # XXX: Hybrid plant model, just forward Euler for now
     p = (lambda x: x[0] + (If(x[0] >= Temp, -x[1], x[1]))*x[0]*d)
@@ -67,11 +67,11 @@ def example():
 
     # XXX: The control bounds
     ul = [0]*N
-    uu = [1.3]*N
+    uu = [0.6]*N
 
     # XXX: Optimisation weights, equal optimisation
-    xw = [0.1]
-    uw = [0]
+    xw = [4.0]
+    uw = [0.0]
 
     # XXX: Initial values for state and control inputs
     # Get the solver
@@ -134,7 +134,7 @@ if __name__ == '__main__':
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x(t)$ (units)', fontweight='bold')
     plt.show()
-    plt.scatter(ts[1:], us)
+    plt.plot(ts[1:], us)
     # plt.plot(ts[1:], uref[:len(us)])
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$u(t)$ (units)', fontweight='bold')

@@ -52,18 +52,18 @@ def example():
 
     # XXX: Adding special constraint stating that the last point has to
     # be very close to pi/2
-    e = 1e-6                    # error bound
+
     # XXX: Very important constraint to guarantee convergence with SAT.
     BACK = 3
     for i in range(N-1, N-BACK, -1):
-        xl[i] = pi/2 - e
-        xu[i] = pi/2 + e
+        xl[i] = pi/2
+        xu[i] = pi/2
     ul = [-2]*N
     uu = [2]*N
 
     # XXX: Optimisation weights, equal optimisation
-    xw = [1]
-    uw = [0]
+    xw = [4]
+    uw = [1]
 
     # XXX: Initial values for state and control inputs
     # Get the solver
@@ -89,7 +89,7 @@ if __name__ == '__main__':
     plt.ylabel(r'$x(t)$ (units)', fontweight='bold')
     plt.show()
     # plt.scatter(ts[1:], us)
-    plt.scatter(ts[1:], uref)
+    plt.plot(ts[1:], uref)
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$u(t)$ (units)', fontweight='bold')
     plt.show()

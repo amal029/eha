@@ -44,13 +44,6 @@ def example():
     px1 = (lambda x: x[0] + (If(x[3] == 0, x[2]*x[0], -2))*d)
     px2 = (lambda x: x[1] + (If(x[3] == 1, x[2]*x[1], -3))*d)
 
-    # XXX: The noisy plant model, which we don't know about
-    # pnx1 = (lambda x: x[0] + numpy.random.rand()*0.01 +
-    #         (x[2] if(x[3] == 0) else -2)*d)
-    # pnx2 = (lambda x: x[1] + numpy.random.rand()*0.01 +
-    #         (x[2] if(x[3] == 1) else -3)*d)
-    # pnxs = [pnx1, pnx2]
-
     rx = [[X1, X2]]*N    # The ref point for system state
     ru = [[0]]*N    # The ref point for control input
     rg = [[0]]*N       # The ref point for the discrete control input
@@ -88,55 +81,7 @@ def example():
 
     ts = [i*d for i in range(N)]
     ts.insert(0, 0)
-    print(uref, gref, traj)
-    # assert(True is False)
-    # # XXX: Now start following the trajectory with noise
-    # N = 1
-    # M, Q, P = 2, 1, 1
-    # x0 = traj[:M]
-    # actions = []
-    # dactions = []
-    # ts = [0]
-    # xs = [x0]
-
-    # # XXX: Equal weights
-    # xw = [0, 0]
-    # # XXX: This needs to be zero, because we have a lot of noise
-    # uw = [3]
-    # gw = [1]
-
-    # # XXX: Predict only N ahead
-    # xl = [0]*N
-    # xu = [10]*N
-    # ul = [0]*N
-    # uu = [10]*N
-    # gb = [{0, 1}]*N             # Pset
-    # s = SMPC.MPC(N, M, Q, [px1, px2], xl, xu, ul, uu, norm=1, P=P, Pset=gb)
-    # count = 1
-    # xc = M
-    # xu = 0
-    # xg = 0
-    # # XXX: Start simulating the movement of the watertank
-    # while(True):
-    #     u0, g0 = s.solve(x0, [traj[xc:xc+M*N]], [uref[xu:xu+Q*N]],
-    #                      xw, uw, refg=[gref[xg:xg+P*N]], wg=gw)
-
-    #     # XXX: Apply the action to the plant, with noise
-    #     x0 = [p(x0 + u0 + g0) for p in pnxs]
-    #     print(x0, u0, g0)
-    #     # Append to list for plotting
-    #     actions += [u0]
-    #     dactions += [g0]
-    #     xs += [x0]
-    #     ts += [count*d]
-    #     # Increment time
-    #     count += 1
-    #     xc += M
-    #     xu += Q
-    #     xg += P
-    #     if(count > h/d-N+1):
-    #         break
-
+    # print(uref, gref, traj)
     return ts, traj, uref, gref
 
 
