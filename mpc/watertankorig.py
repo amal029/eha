@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import src.mpc as SMPC
-import numpy
 import matplotlib.pyplot as plt
 import importlib
 from math import ceil
@@ -89,6 +88,13 @@ if __name__ == '__main__':
     importlib.reload(SMPC)
     set_plt_params()
     ts, traj, uref, gref = example()
+    import sys
+    osout = sys.stdout
+    with open('/tmp/watertank.txt', 'w') as f:
+        sys.stdout = f
+        print('ts:', ts, '\n', 'traj:', traj, '\n uref:', uref, '\ngref:',
+              gref)
+    sys.stdout = osout
     # x1s = [n[0] for n in xs]
     tr1s = [n for i, n in enumerate(traj)
             if i % 2 == 0]
@@ -100,20 +106,23 @@ if __name__ == '__main__':
     plt.plot(ts, tr1s[:len(ts)])
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x1(t)$ (units)', fontweight='bold')
-    plt.show()
+    plt.savefig('/tmp/watertankx1.pdf', bbox_inches='tight')
+    plt.close()
     # plt.plot(ts, x2s)
     plt.plot(ts, tr2s[:len(ts)])
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x2(t)$ (units)', fontweight='bold')
-    plt.show()
+    plt.savefig('/tmp/watertankx2.pdf', bbox_inches='tight')
+    plt.close()
     # plt.scatter(ts[1:], us)
-    plt.scatter(ts[1:], uref)
+    plt.plot(ts[1:], uref)
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$u(t)$ (units)', fontweight='bold')
-    plt.show()
+    plt.savefig('/tmp/watertankuref.pdf', bbox_inches='tight')
+    plt.close()
     # gs = [j for i in gs for j in i]   # requires flattening
-    # plt.scatter(ts[1:], gs)
-    plt.scatter(ts[1:], gref)
+    # plt.plot(ts[1:], gs)
+    plt.plot(ts[1:], gref)
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$g(t)$ (units)', fontweight='bold')
-    plt.show()
+    plt.savefig('/tmp/watertankgref.pdf', bbox_inches='tight')

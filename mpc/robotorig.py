@@ -100,12 +100,20 @@ if __name__ == '__main__':
     importlib.reload(SMPC)
     set_plt_params()
     ts, traj, uref = robot()
+    import sys
+    osout = sys.stdout
+    with open('/tmp/robot.txt', 'w') as f:
+        sys.stdout = f
+        print('ts:', ts, '\n', 'traj:', traj, '\n uref:', uref)
+    sys.stdout = osout
     xxs = [traj[i] for i in range(0, len(traj), 4)]
     yys = [traj[i] for i in range(1, len(traj), 4)]
     plt.style.use('ggplot')
     plt.plot(xxs, yys)
-    plt.show()
-    plt.scatter(ts[1:], [uref[i] for i in range(0, len(uref), 2)])
-    plt.show()
-    plt.scatter(ts[1:], [uref[i] for i in range(1, len(uref), 2)])
-    plt.show()
+    plt.savefig('/tmp/robottraj.pdf', bbox_inches='tight')
+    plt.close()
+    plt.plot(ts[1:], [uref[i] for i in range(0, len(uref), 2)])
+    plt.savefig('/tmp/roboturef1.pdf', bbox_inches='tight')
+    plt.close()
+    plt.plot(ts[1:], [uref[i] for i in range(1, len(uref), 2)])
+    plt.savefig('/tmp/roboturef2.pdf', bbox_inches='tight')

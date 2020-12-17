@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import src.mpc as SMPC
-import numpy
 import matplotlib.pyplot as plt
 import importlib
 from math import ceil
@@ -127,15 +126,23 @@ if __name__ == '__main__':
     importlib.reload(SMPC)
     set_plt_params()
     xs, us, ts = example()
+    import sys
+    osout = sys.stdout
+    with open('/tmp/gears.txt', 'w') as f:
+        sys.stdout = f
+        print('ts:', ts, '\n', 'traj:', xs, '\n uref:', us)
+    sys.stdout = osout
     # print(ts, rx, xs)
     plt.style.use('ggplot')
     plt.plot(ts, xs)
     # plt.plot(ts, traj[:len(ts)])
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x(t)$ (units)', fontweight='bold')
-    plt.show()
+    plt.savefig('/tmp/gearsx.pdf', bbox_inches='tight')
+    plt.close()
     plt.plot(ts[1:], us)
     # plt.plot(ts[1:], uref[:len(us)])
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$u(t)$ (units)', fontweight='bold')
-    plt.show()
+    plt.savefig('/tmp/gearsuref.pdf', bbox_inches='tight')
+    plt.close()

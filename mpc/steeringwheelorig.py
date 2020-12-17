@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import src.mpc as SMPC
-import numpy
 import matplotlib.pyplot as plt
 import importlib
 from math import pi, ceil
@@ -72,7 +71,7 @@ def example():
 
     ts = [i*d for i in range(N)]
     ts.insert(0, 0)
-    print(traj, uref)
+    # print(traj, uref)
 
     return ts, traj, uref
 
@@ -81,15 +80,23 @@ if __name__ == '__main__':
     importlib.reload(SMPC)
     set_plt_params()
     ts, traj, uref = example()
-    # print(ts, rx, xs)
+    import sys
+    osout = sys.stdout
+    with open('/tmp/steeringwheel.txt', 'w') as f:
+        sys.stdout = f
+        print('ts:', ts, '\n', 'traj:', traj, '\n uref:', uref)
+    sys.stdout = osout
     plt.style.use('ggplot')
     # plt.plot(ts, xs)
     plt.plot(ts, traj[:len(ts)])
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x(t)$ (units)', fontweight='bold')
-    plt.show()
+    plt.savefig('/tmp/steeringwheelx.pdf', bbox_inches='tight')
+    plt.close()
+    # plt.show()
     # plt.scatter(ts[1:], us)
     plt.plot(ts[1:], uref)
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$u(t)$ (units)', fontweight='bold')
-    plt.show()
+    plt.savefig('/tmp/steeringwheeluref.pdf', bbox_inches='tight')
+    # plt.show()
