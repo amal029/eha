@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
 import src.mpc as SMPC
-# import numpy
-from scipy import io
 import matplotlib.pyplot as plt
 import importlib
 from math import ceil
@@ -26,10 +24,9 @@ def set_plt_params():
 def robot():
     # XXX: Follow the trajectory of the robot from the QSS paper. The
     # trajectory is generated from simulink.
-    d = 0.1                    # The step-size
-    h = 0.5                      # Time horizon
+    d = 0.2                    # The step-size
+    h = 1.0                      # Time horizon
     N = ceil(h/d)  # The number of steps to predict + control
-    # N = 5
 
     # The plant model with uncertainty. Argument x is a vector of state
     # + control vectors
@@ -92,11 +89,10 @@ def robot():
     wu = [0, 0]*N
 
     # XXX: The solver
-    s = SMPC.MPC(N, 4, 2, ps, xl, xu, ul, uu, norm=1)
+    s = SMPC.MPC(N, 4, 2, ps, xl, xu, ul, uu, norm=None)
     uref, _, traj = s.solve(x0, rxs, rus, wx, wu, plan=True, opt=False)
     ts = [i*d for i in range(N)]
     ts.insert(0, 0)
-    print(uref, traj)
     return ts, traj, uref
 
 
@@ -104,7 +100,6 @@ if __name__ == '__main__':
     importlib.reload(SMPC)
     set_plt_params()
     ts, traj, uref = robot()
-    print(len(traj))
     xxs = [traj[i] for i in range(0, len(traj), 4)]
     yys = [traj[i] for i in range(1, len(traj), 4)]
     plt.style.use('ggplot')
