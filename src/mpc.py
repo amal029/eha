@@ -47,27 +47,30 @@ class MPC:
         # Add the linear constraints for system states
         consxl = consxl*N if len(consxl) == M else consxl
         [self.s.add(self.xs[i+M] >= consxl[i])
-         for i in range(len(consxl)) if i is not None]
+         for i in range(len(consxl)) if consxl[i] is not None]
         consxr = consxr*N if len(consxr) == M else consxr
         [self.s.add(self.xs[i+M] <= consxr[i])
-         for i in range(len(consxr)) if i is not None]
+         for i in range(len(consxr)) if consxr[i] is not None]
 
         # Add the linear constraints for control inputs
         consul = consul*N if len(consul) == Q else consul
         [self.s.add(self.us[i] >= consul[i])
-         for i in range(len(consul)) if i is not None]
+         for i in range(len(consul)) if consul[i] is not None]
         consur = consur*N if len(consur) == Q else consur
         [self.s.add(self.us[i] <= consur[i])
-         for i in range(len(consur)) if i is not None]
+         for i in range(len(consur)) if consur[i] is not None]
 
         # Add the constraints for the discrete control inputs
         Pset = Pset*N if len(Pset) == P else Pset
-        gors = [self.gs[i] == j
-                for i in range(len(Pset))
-                for j in Pset[i] if isinstance(Pset[i], set)]
-        # TODO: Check if this should be converted into Xor
-        if len(gors) != 0:
-            self.s.add(Or(gors))
+        for i in range(len(Pset)):
+            if isinstance(Pset[i], set):
+                gors = [self.gs[i] == j
+                        for j in Pset[i]]
+                if len(gors) != 0:
+                    self.s.add(Or(gors))
+            else:
+                raise Exception('Discrete variables need to be bounded  \
+                using sets')
 
         # XXX: Make the minimisation objective
         self.obj = Real('objective')
@@ -170,7 +173,8 @@ class MPC:
         else:
             return max(Ej[0], MPC.mreduce(sV, Ej[1:]))
 
-    def solve(self, IS, refx, refu, wx, wu, plan=False, refg=[], wg=[]):
+    def solve(self, IS, refx, refu, wx, wu, plan=False, opt=True,
+              refg=[], wg=[]):
 
         self.s.push()           # put a point to push
         # XXX: Add the objective constraint
@@ -193,9 +197,12 @@ class MPC:
             # This is current objective value upper bound
             objv = (self.s.model()[self.obj].numerator_as_long()
                     / self.s.model()[self.obj].denominator_as_long())
-            l, u = MPC.minimize(self.s, self.obj, objv)
-            # XXX: Do the binary search
-            res, model = MPC.binary_search(l, u, self.s, self.obj)
+            if opt:
+                l, u = MPC.minimize(self.s, self.obj, objv)
+                # XXX: Do the binary search
+                res, model = MPC.binary_search(l, u, self.s, self.obj)
+            else:
+                res, model = objv, self.s.model()
             if self.DEBUG:
                 print('---------------answer----------------------')
                 print(res, '\n', model)

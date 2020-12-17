@@ -75,6 +75,7 @@ def robot():
     # XXX: The inital state variables
     x0 = [m['xout'][0][0], m['yout'][0][0], m['thout'][0][0],
           m['phout'][0][0]]
+    print(x0)
 
     # XXX: Reference for control inputs
     rus = [[4, 1]]*N
@@ -127,7 +128,8 @@ if __name__ == '__main__':
     importlib.reload(SMPC)
     set_plt_params()
     xs, actions, ts, m = robot()
-    print(ts)
+    print(xs)
+    print(actions)
     xxs = [i[0] for i in xs]
     yys = [i[1] for i in xs]
     plt.style.use('ggplot')
