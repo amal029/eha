@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from z3 import Real, Solver, sat, If, Or, Int
+from z3 import Real, Solver, sat, If, Or, Int, AlgebraicNumRef
 
 
 class MPC:
@@ -173,6 +173,15 @@ class MPC:
         else:
             return max(Ej[0], MPC.mreduce(sV, Ej[1:]))
 
+    @staticmethod
+    def getnum(val):
+        if isinstance(val, AlgebraicNumRef):
+            objv = val.approx(10)
+        else:
+            objv = val
+        objv = (objv.numerator_as_long() / objv.denominator_as_long())
+        return objv
+
     def solve(self, IS, refx, refu, wx, wu, plan=False, opt=True,
               refg=[], wg=[]):
 
@@ -195,8 +204,7 @@ class MPC:
         if res == sat:
             # XXX: Now minimize the objective function
             # This is current objective value upper bound
-            objv = (self.s.model()[self.obj].numerator_as_long()
-                    / self.s.model()[self.obj].denominator_as_long())
+            objv = MPC.getnum(self.s.model()[self.obj])
             if opt:
                 l, u = MPC.minimize(self.s, self.obj, objv)
                 # XXX: Do the binary search
@@ -208,14 +216,17 @@ class MPC:
                 print(res, '\n', model)
 
             # XXX: Get the control vector without the zeroth time
-            toret = [(model[ret].numerator_as_long()
-                      / model[ret].denominator_as_long())
+            toret = [MPC.getnum(model[ret])
+                     # (model[ret].numerator_as_long()
+                     #       / model[ret].denominator_as_long())
                      for ret in self.us]
             toretg = [int(str(model[ret])) for ret in self.gs]
             self.s.pop()
             if plan:
-                traj = [(model[i].numerator_as_long() /
-                         model[i].denominator_as_long())
+                traj = [MPC.getnum(model[i])
+
+                        # (model[i].numerator_as_long() /
+                        #      model[i].denominator_as_long())
                         for i in self.xs]
             return (toret, toretg, traj) if plan else (toret[:self.Q],
                                                        toretg[:self.P])

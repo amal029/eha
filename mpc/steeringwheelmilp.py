@@ -23,7 +23,7 @@ def main():
     # XXX: Use 0.04 seconds for planning the trajectory
     d = 0.04
     # The time horizon (second)
-    h = 2
+    h = 1
     N = ceil(h/d)   # The number of prediction steps in MPC
     # XXX: Number of state vars
     M = 1
@@ -39,7 +39,7 @@ def main():
     # XXX: Add the final state
     m.addRange(xs[N-1, M-1], pi/2, pi/2)
     # XXX: Add the initial state cosntraints
-    m.addConstr(xs[0, 0] == pi)
+    m.addConstr(xs[0, 0] == pi+0.1)
 
     # XXX: The control variables
     us = m.addVars(N, Q, lb=-2, ub=2, name='u')

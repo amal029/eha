@@ -26,7 +26,7 @@ def example():
     # disturbance. Control it using MPC
     # The step-size
     # XXX: Use 0.04 seconds for planning the trajectory
-    d = 0.04
+    d = 0.1
     # The time horizon (second)
     h = 1
     N = ceil(h/d)   # The number of prediction steps in MPC
@@ -40,8 +40,8 @@ def example():
     x0 = [0.5, 2]
 
     # XXX: Hybrid plant model, just forward Euler for now
-    px1 = (lambda x: x[0] + (If(x[3] == 0, x[2]*x[0], -2))*d)
-    px2 = (lambda x: x[1] + (If(x[3] == 1, x[2]*x[1], -3))*d)
+    px1 = (lambda x: x[0] + (If(x[3] == 0, x[2], -x[0]**2))*d)
+    px2 = (lambda x: x[1] + (If(x[3] == 1, x[2], -x[1]**2))*d)
 
     rx = [[X1, X2]]*N    # The ref point for system state
     ru = [[0]]*N    # The ref point for control input
@@ -63,7 +63,7 @@ def example():
 
     # XXX: The continuous control bounds
     ul = [0]*N
-    uu = [6]*N
+    uu = [16]*N
 
     # XXX: The discrete control bounds
     gb = [{0, 1}]*N             # Pset
@@ -107,22 +107,23 @@ if __name__ == '__main__':
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x1(t)$ (units)', fontweight='bold')
     plt.savefig('/tmp/watertankx1.pdf', bbox_inches='tight')
-    plt.close()
+    plt.show()
     # plt.plot(ts, x2s)
     plt.plot(ts, tr2s[:len(ts)])
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x2(t)$ (units)', fontweight='bold')
     plt.savefig('/tmp/watertankx2.pdf', bbox_inches='tight')
-    plt.close()
+    plt.show()
     # plt.scatter(ts[1:], us)
     plt.plot(ts[1:], uref)
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$u(t)$ (units)', fontweight='bold')
     plt.savefig('/tmp/watertankuref.pdf', bbox_inches='tight')
-    plt.close()
+    plt.show()
     # gs = [j for i in gs for j in i]   # requires flattening
     # plt.plot(ts[1:], gs)
-    plt.plot(ts[1:], gref)
+    plt.scatter(ts[1:], gref)
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$g(t)$ (units)', fontweight='bold')
     plt.savefig('/tmp/watertankgref.pdf', bbox_inches='tight')
+    plt.show()
