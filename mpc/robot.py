@@ -128,8 +128,8 @@ if __name__ == '__main__':
     importlib.reload(SMPC)
     set_plt_params()
     xs, actions, ts, m = robot()
-    print(xs)
-    print(actions)
+    # print(xs)
+    # print(actions)
     xxs = [i[0] for i in xs]
     yys = [i[1] for i in xs]
     plt.style.use('ggplot')

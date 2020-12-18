@@ -53,7 +53,7 @@ def example():
     # be very close to pi/2
 
     # XXX: Very important constraint to guarantee convergence with SAT.
-    BACK = 3
+    BACK = 5
     for i in range(N-1, N-BACK, -1):
         xl[i] = pi/2
         xu[i] = pi/2
@@ -67,7 +67,8 @@ def example():
     # XXX: Initial values for state and control inputs
     # Get the solver
     s = SMPC.MPC(N, 1, 1, [p], xl, xu, ul, uu)
-    uref, _, traj = s.solve([pi+0.1], rx, ru, xw, uw, plan=True, opt=False)
+    uref, _, traj = s.solve([{pi, 3*pi/2-0.1}], rx, ru, xw, uw, plan=True,
+                            opt=False)
 
     ts = [i*d for i in range(N)]
     ts.insert(0, 0)
@@ -92,11 +93,11 @@ if __name__ == '__main__':
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x(t)$ (units)', fontweight='bold')
     plt.savefig('/tmp/steeringwheelx.pdf', bbox_inches='tight')
-    plt.close()
-    # plt.show()
+    # plt.close()
+    plt.show()
     # plt.scatter(ts[1:], us)
     plt.plot(ts[1:], uref)
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$u(t)$ (units)', fontweight='bold')
     plt.savefig('/tmp/steeringwheeluref.pdf', bbox_inches='tight')
-    # plt.show()
+    plt.show()

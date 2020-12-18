@@ -37,7 +37,7 @@ def example():
     X2 = 2
 
     # XXX: Start levels
-    x0 = [0.5, 2]
+    x0 = [{0.5, 1.0}, 2]
 
     # XXX: Hybrid plant model, just forward Euler for now
     px1 = (lambda x: x[0] + (If(x[3] == 0, x[2], -x[0]**2))*d)

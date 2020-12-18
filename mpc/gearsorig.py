@@ -33,12 +33,12 @@ def example():
     N = ceil(h/d)   # The number of prediction steps in MPC
 
     # XXX: The wanted temp
-    Temp = 18
+    Temp = 18.5
     # XXX: The diff
     # K = 125
 
     # XXX: Start temperature
-    STemp = 15
+    STemp = 20
 
     # XXX: Hybrid plant model, just forward Euler for now
     p = (lambda x: x[0] + (If(x[0] >= Temp, -x[1], x[1]))*x[0]*d)
@@ -139,10 +139,10 @@ if __name__ == '__main__':
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x(t)$ (units)', fontweight='bold')
     plt.savefig('/tmp/gearsx.pdf', bbox_inches='tight')
-    plt.close()
+    plt.show()
     plt.plot(ts[1:], us)
     # plt.plot(ts[1:], uref[:len(us)])
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$u(t)$ (units)', fontweight='bold')
     plt.savefig('/tmp/gearsuref.pdf', bbox_inches='tight')
-    plt.close()
+    plt.show()

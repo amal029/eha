@@ -190,7 +190,15 @@ class MPC:
         self.add_objective(refx, refu, wx, wu, refg, wg)
 
         # Add the constraint for the inital_state
-        [self.s.add(self.xs[i] == j) for i, j in enumerate(IS)]
+        for i, j in enumerate(IS):
+            if isinstance(j, set):
+                if len(j) >= 2:
+                    self.s.add(self.xs[i] >= j.pop())
+                    self.s.add(self.xs[i] <= j.pop())
+                else:
+                    raise Exception('Cannot initialise using IS: ', IS)
+            else:
+                self.s.add(self.xs[i] == j)
 
         if self.DEBUG:
             import sys
@@ -216,18 +224,11 @@ class MPC:
                 print(res, '\n', model)
 
             # XXX: Get the control vector without the zeroth time
-            toret = [MPC.getnum(model[ret])
-                     # (model[ret].numerator_as_long()
-                     #       / model[ret].denominator_as_long())
-                     for ret in self.us]
+            toret = [MPC.getnum(model[ret]) for ret in self.us]
             toretg = [int(str(model[ret])) for ret in self.gs]
             self.s.pop()
             if plan:
-                traj = [MPC.getnum(model[i])
-
-                        # (model[i].numerator_as_long() /
-                        #      model[i].denominator_as_long())
-                        for i in self.xs]
+                traj = [MPC.getnum(model[i]) for i in self.xs]
             return (toret, toretg, traj) if plan else (toret[:self.Q],
                                                        toretg[:self.P])
         else:
