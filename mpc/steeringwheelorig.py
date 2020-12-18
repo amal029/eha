@@ -67,7 +67,7 @@ def example():
     # XXX: Initial values for state and control inputs
     # Get the solver
     s = SMPC.MPC(N, 1, 1, [p], xl, xu, ul, uu)
-    uref, _, traj = s.solve([{pi, 3*pi/2-0.1}], rx, ru, xw, uw, plan=True,
+    uref, _, traj = s.solve([pi], rx, ru, xw, uw, plan=True,
                             opt=False)
 
     ts = [i*d for i in range(N)]
