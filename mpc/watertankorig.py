@@ -28,7 +28,7 @@ def example():
     # XXX: Use 0.04 seconds for planning the trajectory
     d = 0.08
     # The time horizon (second)
-    h = 1.04
+    h = 1.0
     N = ceil(h/d)   # The number of prediction steps in MPC
 
     # XXX: The wanted water level in Tank 1
@@ -38,7 +38,7 @@ def example():
 
     # XXX: Start levels
     # XXX: Having a set here is not very useful
-    x0 = [0.5, 1]
+    x0 = [0.5, 3]
 
     # XXX: Hybrid plant model, just forward Euler for now
     px1 = (lambda x: x[0] + (If(x[3] == 0, x[2], -x[0]**2))*d)
@@ -70,7 +70,7 @@ def example():
     gb = [{0, 1}]*N             # Pset
 
     # XXX: Optimisation weights, equal optimisation
-    xw = [0.1, 0.1]*N
+    xw = [1, 1]*N
     uw = [1]*N
     gw = [1]*N                  # discrete input
 

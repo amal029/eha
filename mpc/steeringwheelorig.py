@@ -68,7 +68,7 @@ def example():
     # Get the solver
     s = SMPC.MPC(N, 1, 1, [p], xl, xu, ul, uu)
     uref, _, traj = s.solve([pi], rx, ru, xw, uw, plan=True,
-                            opt=False)
+                            opt=True)
 
     ts = [i*d for i in range(N)]
     ts.insert(0, 0)

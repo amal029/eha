@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 
-from z3 import Real, Solver, sat, If, Or, Int, AlgebraicNumRef
+from z3 import Real, sat, If, Or, Int, AlgebraicNumRef, Optimize
+import z3
 
 
 class MPC:
 
     def __init__(self, N, M, Q, fs, consxl, consxr,
                  consul, consur, norm=None, DEBUG=False, P=0, Pset=[]):
+        z3.set_param('parallel.enable', True)
         self.N = N
         self.M = M
         self.Q = Q
@@ -15,7 +17,8 @@ class MPC:
         self.P = P             # \# of discrete control inputs
 
         # XXX: Initialse the solver
-        self.s = Solver()
+        self.s = Optimize()
+        # self.s.set(timeout=6000)
 
         # Initialise the variables for each step N
         self.xs = [Real('x_%s_%s' % (j+1, i))
@@ -131,39 +134,6 @@ class MPC:
         return If(x >= 0, x, -x)
 
     @staticmethod
-    def minimize(s, obj, objv, epsilon=1e-6):
-        # XXX: Get a lower bound
-        s.push()
-        s.add(obj <= objv/2)
-        ret = s.check()
-        if ret == sat:
-            ro = ((s.model()[obj].numerator_as_long())
-                  / (s.model()[obj].denominator_as_long()))
-        s.pop()
-        if ret == sat and ro <= epsilon:
-            return objv/2, objv
-        elif ret == sat:
-            return MPC.minimize(s, obj, objv/2)
-        else:
-            return objv/2, objv
-
-    @staticmethod
-    def binary_search(lb, ub, s, obj, epsilon=1e-6):
-        if (ub - lb <= epsilon):
-            s.check()
-            return ub, s.model()
-        else:
-            half = lb + ((ub - lb)/2.0)
-            s.push()
-            s.add(obj >= lb, obj <= half)
-            ret = s.check()
-            s.pop()
-        if ret == sat:
-            return MPC.binary_search(lb, half, s, obj, epsilon)
-        else:
-            return MPC.binary_search(half, ub, s, obj, epsilon)
-
-    @staticmethod
     def mreduce(sV, Ej):
         def max(x, y):
             return If(x > y, x, y)
@@ -208,17 +178,14 @@ class MPC:
                 print(self.s.to_smt2())
                 sys.stdout = osout
         # XXX: The state of the solver
+        if opt:
+            self.s.minimize(self.obj)
         res = self.s.check()
         if res == sat:
             # XXX: Now minimize the objective function
             # This is current objective value upper bound
             objv = MPC.getnum(self.s.model()[self.obj])
-            if opt:
-                l, u = MPC.minimize(self.s, self.obj, objv)
-                # XXX: Do the binary search
-                res, model = MPC.binary_search(l, u, self.s, self.obj)
-            else:
-                res, model = objv, self.s.model()
+            res, model = objv, self.s.model()
             if self.DEBUG:
                 print('---------------answer----------------------')
                 print(res, '\n', model)

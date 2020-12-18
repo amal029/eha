@@ -57,7 +57,7 @@ def example():
 
     # XXX: Adding special constraint stating that the last point has to
     # be very close to the final reference
-    BACK = 3
+    BACK = 5
     for i in range(N-1, N-BACK, -1):
         xl[i] = Temp
         xu[i] = Temp
@@ -78,7 +78,7 @@ def example():
     uref, _, traj = s.solve([STemp], rx, ru, xw, uw, plan=True, opt=False)
     ts = [i*d for i in range(N)]
     ts.insert(0, 0)
-    print(traj, uref)
+    # print(traj, uref)
     # assert(True is False)
 
     # XXX: Now start following the trajectory with noise

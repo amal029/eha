@@ -103,7 +103,7 @@ def robot():
     xs = [x0]
     count = 1
     # XXX: The solver
-    s = SMPC.MPC(N, 4, 2, ps, xl, xu, ul, uu, norm=1)
+    s = SMPC.MPC(N, 4, 2, ps, xl, xu, ul, uu, norm=None)
     print(x0)
     while(True):
         print('------------l∞ norm cost function-------------')
