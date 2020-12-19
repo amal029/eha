@@ -89,8 +89,8 @@ def robot():
     wu = [0, 0]*N
 
     # XXX: The solver
-    s = SMPC.MPC(N, 4, 2, ps, xl, xu, ul, uu, norm=None)
-    uref, _, traj = s.solve(x0, rxs, rus, wx, wu, plan=True, opt=False)
+    s = SMPC.MPC(N, 4, 2, ps, xl, xu, ul, uu, norm=None, opt=False)
+    uref, _, traj, _ = s.solve(x0, rxs, rus, wx, wu, plan=True, opt=False)
     ts = [i*d for i in range(N)]
     ts.insert(0, 0)
     return ts, traj, uref

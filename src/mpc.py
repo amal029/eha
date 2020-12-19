@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from z3 import Real, sat, If, Or, Int, AlgebraicNumRef, Optimize
-# from z3 import Solver
+from z3 import Solver
 import z3
 
 
@@ -9,7 +9,7 @@ class MPC:
 
     def __init__(self, N, M, Q, fs, consxl, consxr,
                  consul, consur, norm=None, DEBUG=False, P=0, Pset=[],
-                 TIMEOUT=-1):
+                 TIMEOUT=-1, opt=True):
         z3.set_param('parallel.enable', True)
         self.N = N
         self.M = M
@@ -19,7 +19,7 @@ class MPC:
         self.P = P             # \# of discrete control inputs
 
         # XXX: Initialse the solver
-        self.s = Optimize()
+        self.s = Optimize() if opt else Solver()
         # self.s.set(dump_benchmarks=True)
         # print(self.s.help())
         self.s.set(timeout=TIMEOUT)
