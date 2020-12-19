@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import importlib
 from math import ceil
 from z3 import If
+from scipy.optimize import dual_annealing
 
 
 def set_plt_params():
@@ -21,7 +22,18 @@ def set_plt_params():
     plt.rcParams['figure.titlesize'] = 12
 
 
+gref = None
+uref = None
+traj = None
+objv = None
+mcount = 0
+
+
 def example():
+    global objv
+    global uref
+    global traj
+    global gref
     # XXX: Model a simple linear moving robot at constant velocity with
     # disturbance. Control it using MPC
     # The step-size
@@ -50,7 +62,7 @@ def example():
 
     # XXX: The bounds for state and control inputs
     xl = [0, 0]*N
-    xu = [10, 10]*N
+    xu = [4, 4]*N
 
     # XXX: Adding special constraint stating that the last point has to
     # be very close to the final Temp
@@ -70,14 +82,44 @@ def example():
     gb = [{0, 1}]*N             # Pset
 
     # XXX: Optimisation weights, equal optimisation
-    xw = [1, 1]*N
+    xw = [0, 0]*N
     uw = [1]*N
     gw = [1]*N                  # discrete input
 
     # Get the solver
     s = SMPC.MPC(N, 2, 1, [px1, px2], xl, xu, ul, uu, P=1, Pset=gb, norm=None)
-    uref, gref, traj = s.solve(x0, rx, ru, xw, uw, plan=True, refg=rg, wg=gw,
-                               opt=False)
+    uref, gref, traj, objv = s.solve(x0, rx, ru, xw, uw, plan=True, refg=rg,
+                                     wg=gw, opt=False)
+    Q = 1
+
+    # XXX: Now start differential_evolution to get the minimum
+    def mopt(x):
+        global objv
+        global uref
+        global traj
+        global gref
+        global mcount
+        mcount += 1
+        if (mcount % 100 == 0):
+            print('iter: ', mcount)
+        assert(len(x) == N*Q)
+        s = SMPC.MPC(N, 2, 1, [px1, px2], xl, xu, x, x,
+                     P=1, Pset=gb, norm=None, TIMEOUT=1000)
+        nuref, ngref, ntraj, nobjv = s.solve(x0, rx, ru, xw, uw,
+                                             plan=True, refg=rg,
+                                             wg=gw, opt=False, mopt=True)
+        if nobjv is not None:
+            print('found a better solution!')
+            objv = nobjv
+            uref = nuref
+            traj = ntraj
+            gref = ngref
+        return objv
+
+    bounds = list(zip(ul, uu))
+    # _ = differential_evolution(mopt, bounds, strategy='rand1bin')
+    _ = dual_annealing(mopt, bounds, x0=uref, maxfun=10000,
+                       initial_temp=1000)
 
     ts = [i*d for i in range(1, N+1)]
     ts.insert(0, 0)

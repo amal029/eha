@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
 
 from z3 import Real, sat, If, Or, Int, AlgebraicNumRef, Optimize
+# from z3 import Solver
 import z3
 
 
 class MPC:
 
     def __init__(self, N, M, Q, fs, consxl, consxr,
-                 consul, consur, norm=None, DEBUG=False, P=0, Pset=[]):
+                 consul, consur, norm=None, DEBUG=False, P=0, Pset=[],
+                 TIMEOUT=-1):
         z3.set_param('parallel.enable', True)
         self.N = N
         self.M = M
@@ -18,7 +20,9 @@ class MPC:
 
         # XXX: Initialse the solver
         self.s = Optimize()
-        # self.s.set(timeout=6000)
+        # self.s.set(dump_benchmarks=True)
+        # print(self.s.help())
+        self.s.set(timeout=TIMEOUT)
 
         # Initialise the variables for each step N
         self.xs = [Real('x_%s_%s' % (j+1, i))
@@ -125,9 +129,6 @@ class MPC:
             else:
                 Dggs = []
             self.s.add(self.obj == sum(Dxxs + Duus + Dggs))
-            # self.s.add(self.obj ==
-            # (MPC.mreduce(0, Dxs) + MPC.mreduce(0, Dus)))
-        pass
 
     @staticmethod
     def mabs(x):
@@ -153,7 +154,7 @@ class MPC:
         return objv
 
     def solve(self, IS, refx, refu, wx, wu, plan=False, opt=True,
-              refg=[], wg=[]):
+              refg=[], wg=[], mopt=False):
 
         self.s.push()           # put a point to push
         # XXX: Add the objective constraint
@@ -173,7 +174,7 @@ class MPC:
         if self.DEBUG:
             import sys
             osout = sys.stdout
-            with open('/tmp/DEBUG.txt', 'a') as f:
+            with open('/tmp/DEBUG.txt', 'w') as f:
                 sys.stdout = f
                 print(self.s.to_smt2())
                 sys.stdout = osout
@@ -182,8 +183,6 @@ class MPC:
             self.s.minimize(self.obj)
         res = self.s.check()
         if res == sat:
-            # XXX: Now minimize the objective function
-            # This is current objective value upper bound
             objv = MPC.getnum(self.s.model()[self.obj])
             res, model = objv, self.s.model()
             if self.DEBUG:
@@ -196,7 +195,11 @@ class MPC:
             self.s.pop()
             if plan:
                 traj = [MPC.getnum(model[i]) for i in self.xs]
-            return (toret, toretg, traj) if plan else (toret[:self.Q],
-                                                       toretg[:self.P])
+            return (toret, toretg, traj, objv) if plan else (toret[:self.Q],
+                                                             toretg[:self.P],
+                                                             objv)
         else:
-            raise Exception('Model cannot be satisfied')
+            if mopt:
+                return (None, None, None, None)
+            else:
+                raise Exception('Model cannot be satisfied')

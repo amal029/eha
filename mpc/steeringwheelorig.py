@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import importlib
 from math import pi, ceil
 from z3 import If, And
+from scipy.optimize import dual_annealing
 
 
 def set_plt_params():
@@ -21,7 +22,19 @@ def set_plt_params():
     plt.rcParams['figure.titlesize'] = 12
 
 
+objv = None
+uref = None
+traj = None
+gref = None
+mcount = 0
+
+
 def example():
+    global objv
+    global uref
+    global traj
+    global gref
+
     # XXX: Model a simple linear moving robot at constant velocity with
     # disturbance. Control it using MPC
     # The step-size
@@ -64,12 +77,38 @@ def example():
     xw = [4]
     uw = [1]
 
-    # XXX: Initial values for state and control inputs
-    # Get the solver
+    # XXX: The admissible intial plan
     s = SMPC.MPC(N, 1, 1, [p], xl, xu, ul, uu)
-    uref, _, traj = s.solve([pi], rx, ru, xw, uw, plan=True,
-                            opt=True)
+    uref, gref, traj, objv = s.solve([pi], rx, ru, xw, uw, plan=True, opt=True)
 
+    Q = 1     # the number of continous control inputs
+
+    # XXX: Now start differential_evolution to get the minimum
+    def mopt(x):
+        global objv
+        global uref
+        global traj
+        global gref
+        global mcount
+        mcount += 1
+        if (mcount % 1000 == 0):
+            print('iter: ', mcount)
+        assert(len(x) == N*Q)
+        s = SMPC.MPC(N, 1, 1, [p], xl, xu, x, x)
+        nuref, ngref, ntraj, nobjv = s.solve([pi], rx, ru, xw, uw, plan=True,
+                                             opt=False, mopt=True)
+        if nobjv is not None:
+            print('found a better solution!')
+            objv = nobjv
+            uref = nuref
+            traj = ntraj
+            gref = ngref
+        return objv
+
+    bounds = list(zip(ul, uu))
+    # _ = differential_evolution(mopt, bounds, strategy='rand1bin')
+    _ = dual_annealing(mopt, bounds, x0=uref, maxfun=10000, initial_temp=10000)
+    # print(result.x)
     ts = [i*d for i in range(N)]
     ts.insert(0, 0)
     # print(traj, uref)
