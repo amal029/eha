@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import src.mpc as SMPC
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import importlib
 from math import ceil
@@ -150,24 +152,24 @@ if __name__ == '__main__':
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x1(t)$ (units)', fontweight='bold')
     plt.savefig('/tmp/watertankx1.pdf', bbox_inches='tight')
-    plt.show()
+    plt.close()
     # plt.plot(ts, x2s)
     # plt.plot(ts, tr2s[:len(ts)])
     plt.plot(ts, tr2s)
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x2(t)$ (units)', fontweight='bold')
     plt.savefig('/tmp/watertankx2.pdf', bbox_inches='tight')
-    plt.show()
+    plt.close()
     # plt.scatter(ts[1:], us)
     plt.plot(ts[:len(uref)], uref)
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$u(t)$ (units)', fontweight='bold')
     plt.savefig('/tmp/watertankuref.pdf', bbox_inches='tight')
-    plt.show()
+    plt.close()
     # gs = [j for i in gs for j in i]   # requires flattening
     # plt.plot(ts[1:], gs)
     plt.plot(ts[:len(gref)], gref)
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$g(t)$ (units)', fontweight='bold')
     plt.savefig('/tmp/watertankgref.pdf', bbox_inches='tight')
-    plt.show()
+    plt.close()
