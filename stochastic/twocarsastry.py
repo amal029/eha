@@ -149,7 +149,7 @@ def set_plt_params():
     plt.rcParams['font.monospace'] = 'Ubuntu Mono'
     plt.rcParams['font.size'] = 10
     plt.rcParams['axes.labelsize'] = 10
-    plt.rcParams['axes.labelweight'] = 'bold'
+    # plt.rcParams['axes.labelweight'] = 'bold'
     plt.rcParams['axes.titlesize'] = 10
     plt.rcParams['xtick.labelsize'] = 8
     plt.rcParams['ytick.labelsize'] = 8
@@ -174,10 +174,10 @@ if __name__ == '__main__':
     x2s = [x[1] for x in xs]
     v1s = [x[2] for x in xs]
     ax = plt.subplot(111)
-    ax.plot(ts, x2s, label=r'$x1_{pos}$')
-    ax.plot(ts, x1s, label=r'$x2_{pos}$',)
+    ax.plot(ts, x2s, label=r'$x1(t)$')
+    ax.plot(ts, x1s, label=r'$x2(t)$',)
     ax.legend()
-    plt.xlabel('Time (seconds)', fontweight='bold')
-    plt.ylabel(r'$Position$ (units)', fontweight='bold')
+    plt.xlabel('Time (sec)')
+    plt.ylabel(r'$Position$ (units)')
     plt.savefig('/tmp/twocarsastry.pdf', bbox_inches='tight')
     plt.show()

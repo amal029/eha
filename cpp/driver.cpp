@@ -278,7 +278,7 @@ int main(int argc, char *argv[]) {
   plt::plot(time, meanx1, {{"label", "mean"}});
   plt::plot(time, mplusCIx1, {{"label", "CI 95% upper bound"}});
   plt::plot(time, mminusCIx1, {{"label", "CI 95% lower bound"}});
-  plt::xlabel("Time (sec)");
+  plt::xlabel("Time (seconds)");
   plt::ylabel("$x(t)$ (units)");
   plt::grid();
   plt::legend();
