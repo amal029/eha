@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import importlib
 from math import pi, ceil
 from z3 import If, And
-from scipy.optimize import dual_annealing
+# from scipy.optimize import dual_annealing
 
 
 def set_plt_params():
@@ -68,7 +68,7 @@ def example():
 
     # XXX: Very important constraint to guarantee convergence with SAT.
     # XXX: Boundary constraint
-    BACK = 1
+    BACK = 3
     for i in range(N-1, N-BACK, -1):
         xl[i] = pi/2
         xu[i] = pi/2
@@ -82,7 +82,8 @@ def example():
 
     # XXX: The admissible intial plan
     s = SMPC.MPC(N, 1, 1, [p], xl, xu, ul, uu)
-    uref, gref, traj, objv = s.solve([pi], rx, ru, xw, uw, plan=True, opt=True)
+    uref, gref, traj, objv = s.solve([pi], rx, ru, xw, uw, plan=True,
+                                     opt=False)
 
     Q = 1     # the number of continous control inputs
 

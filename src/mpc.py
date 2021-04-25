@@ -11,8 +11,8 @@ class MPC:
                  consul, consur, norm=None, DEBUG=False, P=0, Pset=[],
                  TIMEOUT=-1, opt=True):
         z3.set_param('parallel.enable', True)
-        z3.set_param('verbose', 1)
-        z3.set_param('proof', True)
+        # z3.set_param('verbose', 1)
+        # z3.set_param('proof', True)
         self.N = N
         self.M = M
         self.Q = Q
