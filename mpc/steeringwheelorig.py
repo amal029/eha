@@ -59,6 +59,7 @@ def example():
     rx = [[pi/2]]*N    # The ref point for system state
     ru = [[0]]*N    # The ref point for control input
     # XXX: The bounds for state and control inputs
+    # XXX: Path constraint
     xl = [0]*N
     xu = [2*pi]*N
 
@@ -66,10 +67,12 @@ def example():
     # be very close to pi/2
 
     # XXX: Very important constraint to guarantee convergence with SAT.
-    BACK = 5
+    # XXX: Boundary constraint
+    BACK = 1
     for i in range(N-1, N-BACK, -1):
         xl[i] = pi/2
         xu[i] = pi/2
+    # XXX: Path constraint
     ul = [-2]*N
     uu = [2]*N
 
@@ -105,9 +108,9 @@ def example():
             gref = ngref
         return objv
 
-    bounds = list(zip(ul, uu))
+    # bounds = list(zip(ul, uu))
     # _ = differential_evolution(mopt, bounds, strategy='rand1bin')
-    _ = dual_annealing(mopt, bounds, x0=uref, maxfun=10000, initial_temp=10000)
+    # _ = dual_annealing(mopt, bounds, x0=uref, maxfun=10000, initial_temp=10000)
     # print(result.x)
     ts = [i*d for i in range(N)]
     ts.insert(0, 0)

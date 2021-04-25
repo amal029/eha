@@ -118,11 +118,13 @@ def example():
             gref = ngref
         return objv
 
-    bounds = list(zip(ul, uu))
+    # bounds = list(zip(ul, uu))
     # _ = differential_evolution(mopt, bounds, strategy='rand1bin')
-    _ = dual_annealing(mopt, bounds, x0=uref, maxfun=10000,
-                       initial_temp=1000)
+    # _ = dual_annealing(mopt, bounds, x0=uref, maxfun=10000,
+    #                    initial_temp=1000)
 
+    # XXX: This ts should change to not pass time when mode switch
+    # happens.
     ts = [i*d for i in range(1, N+1)]
     ts.insert(0, 0)
     # print(uref, gref, traj)

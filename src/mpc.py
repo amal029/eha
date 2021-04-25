@@ -11,6 +11,8 @@ class MPC:
                  consul, consur, norm=None, DEBUG=False, P=0, Pset=[],
                  TIMEOUT=-1, opt=True):
         z3.set_param('parallel.enable', True)
+        z3.set_param('verbose', 1)
+        z3.set_param('proof', True)
         self.N = N
         self.M = M
         self.Q = Q
@@ -177,11 +179,12 @@ class MPC:
             with open('/tmp/DEBUG.txt', 'w') as f:
                 sys.stdout = f
                 print(self.s.to_smt2())
-                sys.stdout = osout
+            sys.stdout = osout
         # XXX: The state of the solver
         if opt:
             self.s.minimize(self.obj)
         res = self.s.check()
+        print(res)
         if res == sat:
             objv = MPC.getnum(self.s.model()[self.obj])
             res, model = objv, self.s.model()
