@@ -34,30 +34,31 @@ def example():
     global traj
     global gref
 
-    # XXX: Use 0.04 seconds for planning the trajectory
-    d = 0.2
+    d = 1
     # The time horizon (second)
-    h = 4                       # This needs to be optimised
+    h = 4                      # This needs to be optimised
     # N = 4
     N = ceil(h/d)   # The number of prediction steps in MPC
 
     # XXX: The final position/velocity
-    X1 = 0
-    X2 = 0
+    X1 = -4
+    X2 = 1
 
     # XXX: start position and velocity
-    x0 = [-1, 0]
+    x0 = [-5, 0]
 
     # XXX: Hybrid plant model, just forward Euler for now
     px1 = (lambda x: x[0] + x[1]*d)
 
     # XXX: The utility functions
-    gf1 = (lambda x: 1 + 5*x + (25/2)*x**2 + (125/6)*x**3)
-    g1 = (lambda x: gf1(x)/(12.18+gf1(x)))
+    # gf1 = (lambda x: 1 + 5*x + (25/2)*x**2)
+    gf1 = (lambda x: 1 + 5*x)
+    # gf1 = (lambda x: 1 + 5*x + (25/2)*x**2 + (125/6)*x**3)
+    g1 = (lambda x: 1/(12.18/gf1(x) + 1))
     g2 = (lambda x: 12.18/(12.18+gf1(x)))
 
     # XXX: Evolution of x2
-    px2 = (lambda x: x[1] + (If(x[3] == 0, g1(x[1]), g2(x[1])))*d)
+    px2 = (lambda x: x[1] + (If(x[3] == 0, g1(x[1])*x[2], g2(x[1])*x[2]))*d)
 
     # XXX: The reference points
     rx = [[0, 0]]*N    # The ref point for system state
@@ -71,10 +72,10 @@ def example():
     # XXX: The boundary condition at the final point
     BACK = 1
     for i in range(N*2-1, N*2-(BACK*2), -2):
-        xl[i] = X1
-        xl[i-1] = X2
-        xu[i] = X1
-        xu[i-1] = X2
+        xl[i] = X2
+        xl[i-1] = X1
+        xu[i] = X2
+        xu[i-1] = X1
 
     # XXX: The control bounds
     ul = [-1]*N
@@ -84,9 +85,9 @@ def example():
     gb = [{0, 1}]               # 0 or 1
 
     # XXX: Cost for different points
-    xw = [1, 1]*N
+    xw = [0, 0]*N
     uw = [0]*N
-    gw = [0.5]*N
+    gw = [0]*N
 
     # XXX: Initial values for state and control inputs
     # Get the solver
