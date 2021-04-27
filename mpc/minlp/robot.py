@@ -20,8 +20,8 @@ def set_plt_params():
 
 def example():
     # XXX: Number of time steps
-    nt = 5
-    tm = np.linspace(0, 1, nt)
+    nt = 50
+    tm = np.linspace(0, 2, nt)
 
     # XXX: Initialize GEKKO
     m = GEKKO(remote=False)
@@ -35,34 +35,42 @@ def example():
     m.ph = m.Var(value=0, lb=-2, ub=2, fixed_initial=True, name='ph')
 
     # XXX: The continuous control variable
-    m.u1 = m.Var(lb=3, ub=4, fixed_initial=False, name='u1')
-    m.u2 = m.Var(lb=1, ub=1, fixed_initial=False, name='u2')
+    m.u1 = m.Var(lb=0, ub=40, fixed_initial=False, name='u1')
+    m.u2 = m.Var(lb=-10, ub=10, fixed_initial=False, name='u2')
 
     # XXX: Dynamics of the system
-    ll = 1
-    g = m.Var(lb=-1, ub=1, integer=True, fixed_initial=False, name='g')
-    m.Equation(g == -(m.sign3(m.x-2.8))*(m.sign3(m.y-1.8) - m.sign3(m.y+0.8)))
-    m.Equation(m.x.dt() == m.if3(g-1, m.cos(m.th)*m.u1, 0))
-    # m.Equation(m.y.dt() == m.if3(g-1, m.sin(m.th)*(-m.u1), 0))
-    # m.Equation(m.th.dt() == m.if3(g-1, m.tan(m.ph)/ll*m.u1, 0))
-    # m.Equation(m.ph.dt() == m.if3(g-1, -m.u2, 0))
+    ll = 10
+    g1 = m.Var(lb=-1, ub=1, integer=True, fixed_initial=False, name='g1')
+    g2 = m.Var(lb=-1, ub=1, integer=True, fixed_initial=False, name='g2')
+    # g3 = m.Var(lb=-1, ub=1, integer=True, fixed_initial=False, name='g3')
+    m.Equation(g1 == m.sign3(m.y-1.8)*(-m.sign3(m.x-2.8)))
+    m.Equation(g2 == -m.sign3(m.x-2.8)*(-m.sign3(m.y-0.8)))
+
+    # XXX: New vars
+    g = m.Var(lb=-2, ub=2, integer=True, fixed_initial=False, name='g')
+    m.Equation(g == g1 + g2)
+
+    m.Equation(m.x.dt() == m.if3(g+2, 0, m.cos(m.th)*m.u1))
+    m.Equation(m.y.dt() == m.if3(g+2, 0, m.sin(m.th)*(-m.u1)))
+    m.Equation(m.th.dt() == m.if3(g+2, 0, m.tan(m.ph)/ll*m.u1))
+    m.Equation(m.ph.dt() == m.if3(g+2, 0, -m.u2))
 
     # XXX: The objective
     m.Obj(
-        m.integral((m.x-0.7)**2)
-        + m.integral((m.y+0.7)**2)
-        # + 0*m.integral((m.th - 2.0)**2)
-        # + 0*m.integral((m.ph - 0.47)**2)
+        40*m.integral((m.x-2.7)**2)
+        + 40*m.integral((m.y-1.7)**2)
+        + m.integral(m.u1**2)
+        + m.integral(m.u2**2)
     )
 
     m.options.SOLVER = 1        # APOPT solver
-    m.solver_options = ['minlp_maximum_iterations 1000000', \
+    m.solver_options = ['minlp_maximum_iterations 10000', \
                         # minlp iterations with integer solution
                         'minlp_max_iter_with_int_sol 10', \
                         # treat minlp as nlp
                         'minlp_as_nlp 0', \
                         # nlp sub-problem max iterations
-                        'nlp_maximum_iterations 50', \
+                        'nlp_maximum_iterations 500', \
                         # 1 = depth first, 2 = breadth first
                         'minlp_branch_method 1', \
                         # maximum deviation from whole number
@@ -72,7 +80,8 @@ def example():
     m.options.IMODE = 5         # simultaneous dynamic collocation
     m.solve(debug=1)
 
-    print(g.value)
+    print(g1.value, g2.value, g.value)
+    # print(m.g11.value, m.g21.value, m.g31.value)
     print(m.time, m.x.value, m.y.value, m.th.value,
           m.ph.value, m.u1.value, m.u2.value)
 
@@ -86,3 +95,12 @@ if __name__ == '__main__':
     plt.style.use('ggplot')
     plt.plot(xxs, yys)
     plt.show()
+    plt.close()
+
+    plt.plot(ts, uref1)
+    plt.show()
+    plt.close()
+
+    plt.plot(ts, uref2)
+    plt.show()
+    plt.close()
