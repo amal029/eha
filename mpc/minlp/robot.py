@@ -21,7 +21,7 @@ def set_plt_params():
 def example():
     # XXX: Number of time steps
     nt = 50
-    tm = np.linspace(0, 2, nt)
+    tm = np.linspace(0, 1.8, nt)
 
     # XXX: Initialize GEKKO
     m = GEKKO(remote=False)
@@ -35,7 +35,7 @@ def example():
     m.ph = m.Var(value=0, lb=-2, ub=2, fixed_initial=True, name='ph')
 
     # XXX: The continuous control variable
-    m.u1 = m.Var(lb=0, ub=40, fixed_initial=False, name='u1')
+    m.u1 = m.Var(lb=0, ub=10, fixed_initial=False, name='u1')
     m.u2 = m.Var(lb=-10, ub=10, fixed_initial=False, name='u2')
 
     # XXX: Dynamics of the system
@@ -54,12 +54,16 @@ def example():
     m.Equation(m.th.dt() == m.if3(g+2, 0, m.tan(m.ph)/ll*m.u1))
     m.Equation(m.ph.dt() == m.if3(g+2, 0, -m.u2))
 
+    # XXX: Final boundary constraint
+    m.fix_final(m.x, 2.7)
+    m.fix_final(m.y, 1.7)
+
     # XXX: The objective
     m.Obj(
-        40*m.integral((m.x-2.7)**2)
-        + 40*m.integral((m.y-1.7)**2)
-        + m.integral(m.u1**2)
-        + m.integral(m.u2**2)
+        4*m.integral((m.x-2.7)**2)
+        + 4*m.integral((m.y-1.7)**2)
+        + 0.1*m.integral(m.u1**2)
+        + 0.1*m.integral(m.u2**2)
     )
 
     m.options.SOLVER = 1        # APOPT solver

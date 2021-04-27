@@ -50,19 +50,19 @@ def example():
     # XXX: The objective
     # FIXME: This should be minimize time
     m.Obj(
-        m.integral(m.x1**2) +
-        m.integral(m.x2**2)
-        + 0.5*m.integral((m.g-1)**2)
+        4*m.integral(m.x1**2) +
+        4*m.integral(m.x2**2)
+        + 0.05*m.integral((m.g-1)**2)
     )
 
     m.options.SOLVER = 1        # APOPT solver
-    m.solver_options = ['minlp_maximum_iterations 1000000', \
+    m.solver_options = ['minlp_maximum_iterations 10000', \
                         # minlp iterations with integer solution
                         'minlp_max_iter_with_int_sol 10', \
                         # treat minlp as nlp
                         'minlp_as_nlp 0', \
                         # nlp sub-problem max iterations
-                        'nlp_maximum_iterations 50', \
+                        'nlp_maximum_iterations 500', \
                         # 1 = depth first, 2 = breadth first
                         'minlp_branch_method 1', \
                         # maximum deviation from whole number
@@ -92,6 +92,13 @@ if __name__ == '__main__':
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x2(t)$ (units)', fontweight='bold')
     plt.savefig('/tmp/gearsx2minlp.pdf', bbox_inches='tight')
+    plt.show()
+    plt.close()
+
+    plt.plot(tr1s, tr2s)
+    plt.xlabel('x1(t)')
+    plt.ylabel('x2(t)')
+    # plt.legend(loc='best')
     plt.show()
     plt.close()
 
