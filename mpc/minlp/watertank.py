@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 def example():
     # XXX: Number of time steps
-    nt = 50
+    nt = 40
     tm = np.linspace(0, 1, nt)
 
     # XXX: Initialize GEKKO
@@ -39,8 +39,8 @@ def example():
 
     # FIXME: Add the objective function here later
     m.Obj(
-        # m.integral(m.u**2) +
-        # m.integral(m.g**2) +
+        # 0.5*m.integral(m.u**2) +
+        # 0.5*m.integral(m.g**2) +
         m.integral((m.x1-2)**2) +
         m.integral((m.x2-2)**2)
     )
@@ -117,7 +117,7 @@ if __name__ == '__main__':
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$u(t)$ (units)', fontweight='bold')
     plt.savefig('/tmp/watertankuminlp.pdf', bbox_inches='tight')
-    # plt.show()
+    plt.show()
     plt.close()
 
     # g
@@ -125,5 +125,5 @@ if __name__ == '__main__':
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$g(t)$ (units)', fontweight='bold')
     plt.savefig('/tmp/watertankgminlp.pdf', bbox_inches='tight')
-    # plt.show()
+    plt.show()
     plt.close()
