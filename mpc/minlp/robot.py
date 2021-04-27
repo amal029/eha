@@ -42,7 +42,6 @@ def example():
     ll = 10
     g1 = m.Var(lb=-1, ub=1, integer=True, fixed_initial=False, name='g1')
     g2 = m.Var(lb=-1, ub=1, integer=True, fixed_initial=False, name='g2')
-    # g3 = m.Var(lb=-1, ub=1, integer=True, fixed_initial=False, name='g3')
     m.Equation(g1 == m.sign3(m.y-1.8)*(-m.sign3(m.x-2.8)))
     m.Equation(g2 == -m.sign3(m.x-2.8)*(-m.sign3(m.y-0.8)))
 
@@ -80,10 +79,10 @@ def example():
     m.options.IMODE = 5         # simultaneous dynamic collocation
     m.solve(debug=1)
 
-    print(g1.value, g2.value, g.value)
+    # print(g1.value, g2.value, g.value)
     # print(m.g11.value, m.g21.value, m.g31.value)
-    print(m.time, m.x.value, m.y.value, m.th.value,
-          m.ph.value, m.u1.value, m.u2.value)
+    # print(m.time, m.x.value, m.y.value, m.th.value,
+    #       m.ph.value, m.u1.value, m.u2.value)
 
     return (m.time, m.x.value, m.y.value, m.th.value,
             m.ph.value, m.u1.value, m.u2.value)
