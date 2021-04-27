@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 import src.mpc as SMPC
-import matplotlib
-matplotlib.use('Agg')
+# import matplotlib
+# matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import importlib
 from math import ceil
 from z3 import If
-from scipy.optimize import dual_annealing
+# from scipy.optimize import dual_annealing
 
 
 def set_plt_params():
