@@ -24,6 +24,11 @@ def example():
     nt = 30
     tm = np.linspace(0, 2, nt)
 
+    # XXX: The below can be used to make a dynamic grid
+    # tm = np.insert(tm, 1, 0.04)
+    # print(tm)
+    # print(len(tm))
+
     # XXX: Initialize GEKKO
     m = GEKKO(remote=False)
     # XXX: Set the time for the model
@@ -89,6 +94,7 @@ def example():
           )
 
     m.options.SOLVER = 1        # APOPT solver
+    # m.options.NODES = 5        # number of colocation points
     m.solver_options = ['minlp_maximum_iterations 10000', \
                         # minlp iterations with integer solution
                         'minlp_max_iter_with_int_sol 10', \
