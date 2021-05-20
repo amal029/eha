@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+
 import numpy as np
 from numpy.random import default_rng
 from gekko import GEKKO
@@ -29,7 +30,7 @@ def example(R, delta):
            for i in range(R)]
 
     # XXX: The continuous control variable
-    m.u = [m.Var(lb=-1, ub=1, fixed_initial=False, name='u_%s' % i)
+    m.u = [m.Var(lb=-0.5, ub=0.5, fixed_initial=False, name='u_%s' % i)
            for i in range(R-1)]
 
     # XXX: The brownian path
@@ -41,9 +42,9 @@ def example(R, delta):
     # XXX: Final boundary condition
     m.Equation(m.x[-1] == np.pi/2)
 
-    # FIXME: This is not a hybrid system!
-    # XXX: The dynamics
-    [m.Equation(m.x[i] == m.x[i-1] + m.u[i-1]
+    # XXX: The dynamics (hybrid stochastic system)
+    [m.Equation(m.x[i] == m.x[i-1]
+                + m.if3(m.x[i-1]-np.pi/2, m.u[i-1], -m.u[i-1])
                 + m.n[i-1])
      for i in range(1, R)]
 
@@ -89,7 +90,7 @@ if __name__ == '__main__':
     plt.show()
     plt.close()
 
-    plt.plot(ts[1:], uref)
+    plt.plot(ts[:len(ts)-1], uref)
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$u(t)$ (units)', fontweight='bold')
     plt.savefig('/tmp/steeringurefminlp.pdf', bbox_inches='tight')
