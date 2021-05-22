@@ -44,7 +44,7 @@ def example(R, delta):
 
     # XXX: The dynamics (hybrid stochastic system)
     [m.Equation(m.x[i] == m.x[i-1]
-                + m.if3(m.x[i-1]-np.pi/2, m.u[i-1], -m.u[i-1])
+                + m.if3(m.cos(m.x[i-1]), m.u[i-1], -m.u[i-1])
                 + m.n[i-1])
      for i in range(1, R)]
 
