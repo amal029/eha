@@ -54,8 +54,8 @@ def example(R, delta):
     m.Equation(m.x2[0] == 0)
 
     # XXX: The final boundary condition
-    # m.Equation(m.x1[-1] == 0)
-    # m.Equation(m.x2[-1] == 0)
+    m.Equation(m.x1[-1] == 0)
+    m.Equation(m.x2[-1] == 0)
 
     # XXX: The dynamics
     [m.Equation(m.x1[i] == m.x1[i-1] + m.x2[i-1]*delta + 0.1*m.n1[i-1])
@@ -91,6 +91,7 @@ def example(R, delta):
                         # covergence tolerance
                         'minlp_gap_tol 0.01']
     m.options.IMODE = 2         # steady state control
+    m.options.MAX_TIME = 120
     m.solve(debug=1)
 
     return (time,

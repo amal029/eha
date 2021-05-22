@@ -64,32 +64,34 @@ def example(R, delta):
     # m.Equation(m.a[0] == np.pi/2)
 
     # XXX: The final boundary condition
-    # m.Equation(m.x[-1] == 8)
-    # m.Equation(m.y[-1] == 2)
+    m.Equation(m.x[-1] == 5)
+    m.Equation(m.y[-1] == 2)
 
     # XXX: The dynamics
-    [m.Equation(m.x[i] == m.x[i-1]*delta +
+    [m.Equation(m.x[i] == m.x[i-1] +
                 # XXX: Location "Move"
-                (1-m.g[i-1])*(m.p[i-1]*m.cos(m.a[i-1]) +
+                (1-m.g[i-1])*(m.p[i-1]*m.cos(m.a[i-1])*delta +
                               0.1*m.e1m[i-1]*m.cos(m.a[i-1])) +
                 # XXX: Location "Turn"
                 m.g[i-1]*(0.1*m.e1t[i-1]))
      for i in range(1, R)]
 
-    [m.Equation(m.y[i] == m.y[i-1]*delta +
+    [m.Equation(m.y[i] == m.y[i-1] +
                 # XXX: Location "Move"
-                (1-m.g[i-1])*(m.p[i-1]*m.sin(m.a[i-1]) +
+                (1-m.g[i-1])*(m.p[i-1]*m.sin(m.a[i-1])*delta +
                               0.2*m.e2m[i-1]*m.sin(m.a[i-1])) +
                 # XXX: Location "Turn"
                 m.g[i-1]*(0.2*m.e2t[i-1]))
      for i in range(1, R)]
 
-    [m.Equation(m.a[i] == m.a[i-1]*delta +
+    [m.Equation(m.a[i] == m.a[i-1] +
                 # XXX: Location "Move"
                 (1-m.g[i-1])*(0.1*m.e3m[i-1]) +
                 # XXX: Location "Turn"
-                m.g[i-1]*(m.q[i-1] + 0.1*m.e3t[i-1]))
+                m.g[i-1]*(m.q[i-1]*delta + 0.1*m.e3t[i-1]))
         for i in range(1, R)]
+
+    # XXX: Draw obstacle from 3-4 on x and all except 2-4 on y
 
     # XXX: Objective
     m.Obj(
@@ -131,9 +133,9 @@ def example(R, delta):
 
 if __name__ == '__main__':
     set_plt_params()
-    R = 20
+    R = 40
     # How big each step
-    delta = 0.85                    # total = R*delta second
+    delta = 0.2                    # total = R*delta second
     try:
         ts, xs, ys, aas, ps, qs, gref = example(R, delta)
     except Exception:
