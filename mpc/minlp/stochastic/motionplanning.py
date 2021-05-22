@@ -68,7 +68,7 @@ def example(R, delta):
     # m.Equation(m.y[-1] == 2)
 
     # XXX: The dynamics
-    [m.Equation(m.x[i] == m.x[i-1] +
+    [m.Equation(m.x[i] == m.x[i-1]*delta +
                 # XXX: Location "Move"
                 (1-m.g[i-1])*(m.p[i-1]*m.cos(m.a[i-1]) +
                               0.1*m.e1m[i-1]*m.cos(m.a[i-1])) +
@@ -76,7 +76,7 @@ def example(R, delta):
                 m.g[i-1]*(0.1*m.e1t[i-1]))
      for i in range(1, R)]
 
-    [m.Equation(m.y[i] == m.y[i-1] +
+    [m.Equation(m.y[i] == m.y[i-1]*delta +
                 # XXX: Location "Move"
                 (1-m.g[i-1])*(m.p[i-1]*m.sin(m.a[i-1]) +
                               0.2*m.e2m[i-1]*m.sin(m.a[i-1])) +
@@ -84,7 +84,7 @@ def example(R, delta):
                 m.g[i-1]*(0.2*m.e2t[i-1]))
      for i in range(1, R)]
 
-    [m.Equation(m.a[i] == m.a[i-1] +
+    [m.Equation(m.a[i] == m.a[i-1]*delta +
                 # XXX: Location "Move"
                 (1-m.g[i-1])*(0.1*m.e3m[i-1]) +
                 # XXX: Location "Turn"
@@ -117,6 +117,7 @@ def example(R, delta):
                         # covergence tolerance
                         'minlp_gap_tol 0.01']
     m.options.IMODE = 2         # steady state control
+    m.options.MAX_TIME = 120
     # m.options.DIAGLEVEL = 2
     # m.options.COLDSTART = 2
     m.solve(debug=2)
@@ -132,7 +133,7 @@ def example(R, delta):
 
 if __name__ == '__main__':
     set_plt_params()
-    R = 40
+    R = 25
     # How big each step
     delta = 1                    # total = R*delta second
     try:
