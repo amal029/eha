@@ -50,56 +50,45 @@ def example(R, delta):
 
     # XXX: The brownian path
     rng = default_rng()
-    m.e1m = rng.normal(loc=0.5, scale=np.sqrt(0.01), size=R-1)
-    m.e2m = rng.normal(loc=0.5, scale=np.sqrt(0.01), size=R-1)
-    m.e3m = rng.normal(loc=0.02, scale=np.sqrt(0.002), size=R-1)
+    m.e1m = rng.normal(loc=0, scale=np.sqrt(delta), size=R-1)
+    m.e2m = rng.normal(loc=0, scale=np.sqrt(delta), size=R-1)
+    m.e3m = rng.normal(loc=0, scale=np.sqrt(delta), size=R-1)
 
-    m.e1t = rng.normal(loc=0.2, scale=np.sqrt(0.01), size=R-1)
-    m.e2t = rng.normal(loc=0.2, scale=np.sqrt(0.01), size=R-1)
-    m.e3t = rng.normal(loc=0.01, scale=np.sqrt(0.002), size=R-1)
+    m.e1t = rng.normal(loc=0, scale=np.sqrt(delta), size=R-1)
+    m.e2t = rng.normal(loc=0, scale=np.sqrt(delta), size=R-1)
+    m.e3t = rng.normal(loc=0, scale=np.sqrt(delta), size=R-1)
 
     # XXX: The initial boundary conditions
     m.Equation(m.x[0] == 2)
     m.Equation(m.y[0] == 3)
     # m.Equation(m.a[0] == np.pi/2)
 
-    # XXX: Obstacle map X
-    # [m.Equation(i >= 0)
-    #  for i in m.x]
-    # [m.Equation(i <= 4)
-    #  for i in m.x]
-    # [m.Equation(i >= 6)
-    #  for i in m.x]
-    # [m.Equation(i <= 10)
-    #  for i in m.x]
-
     # XXX: The final boundary condition
     # m.Equation(m.x[-1] == 8)
     # m.Equation(m.y[-1] == 2)
-    # m.Equation(m.a[-1] == 0)
 
     # XXX: The dynamics
     [m.Equation(m.x[i] == m.x[i-1] +
                 # XXX: Location "Move"
                 (1-m.g[i-1])*(m.p[i-1]*m.cos(m.a[i-1]) +
-                              m.e1m[i-1]*m.cos(m.a[i-1])) +
+                              0.1*m.e1m[i-1]*m.cos(m.a[i-1])) +
                 # XXX: Location "Turn"
-                m.g[i-1]*(m.e1t[i-1]))
+                m.g[i-1]*(0.1*m.e1t[i-1]))
      for i in range(1, R)]
 
     [m.Equation(m.y[i] == m.y[i-1] +
                 # XXX: Location "Move"
                 (1-m.g[i-1])*(m.p[i-1]*m.sin(m.a[i-1]) +
-                              m.e2m[i-1]*m.sin(m.a[i-1])) +
+                              0.2*m.e2m[i-1]*m.sin(m.a[i-1])) +
                 # XXX: Location "Turn"
-                m.g[i-1]*(m.e2t[i-1]))
+                m.g[i-1]*(0.2*m.e2t[i-1]))
      for i in range(1, R)]
 
     [m.Equation(m.a[i] == m.a[i-1] +
                 # XXX: Location "Move"
-                (1-m.g[i-1])*(m.e3m[i-1]) +
+                (1-m.g[i-1])*(0.1*m.e3m[i-1]) +
                 # XXX: Location "Turn"
-                m.g[i-1]*(m.q[i-1] + m.e3t[i-1]))
+                m.g[i-1]*(m.q[i-1] + 0.1*m.e3t[i-1]))
         for i in range(1, R)]
 
     # XXX: The objective
@@ -145,7 +134,7 @@ if __name__ == '__main__':
     set_plt_params()
     R = 40
     # How big each step
-    delta = 0.01                    # total = R*delta second
+    delta = 1                    # total = R*delta second
     try:
         ts, xs, ys, aas, ps, qs, gref = example(R, delta)
     except Exception:
