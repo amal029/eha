@@ -91,15 +91,13 @@ def example(R, delta):
                 m.g[i-1]*(m.q[i-1] + 0.1*m.e3t[i-1]))
         for i in range(1, R)]
 
-    # XXX: The objective
-    # FIXME: This should be minimize time
-    # m.Obj(m.sum([(i-2)**2 for i in m.y])
-    #       + m.sum([(i-8)**2 for i in m.x]))
+    # XXX: Objective
     m.Obj(
-        100*m.sum([(i-8)**2 for i in m.x])
-        + 200*m.sum([(i-2)**2 for i in m.y])
-        # + m.sum([i**2 for i in m.p])
-        # + m.sum([i**2 for i in m.q])
+        40*m.sum([(i-5)**2 for i in m.x])
+        + 40*m.sum([(i-2)**2 for i in m.y])
+        + m.sum([i**2 for i in m.p])
+        + m.sum([i**2 for i in m.q])
+        + m.sum([i**2 for i in m.g])
     )
 
     m.options.SOLVER = 1        # APOPT solver
@@ -133,9 +131,9 @@ def example(R, delta):
 
 if __name__ == '__main__':
     set_plt_params()
-    R = 25
+    R = 20
     # How big each step
-    delta = 1                    # total = R*delta second
+    delta = 0.85                    # total = R*delta second
     try:
         ts, xs, ys, aas, ps, qs, gref = example(R, delta)
     except Exception:
