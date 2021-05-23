@@ -52,7 +52,7 @@ def example(R, delta):
                 m.d[i-1]*((1 - m.sqrt(m.x1[i-1]))*delta
                           + 0.1*m.n1[i-1])
                 + (1-m.d[i-1])*((2 - m.sqrt(m.x1[i-1]))*delta
-                                + 0.01*m.n1[i-1]))
+                                + 0.05*m.n1[i-1]))
      for i in range(1, R)]
 
     [m.Equation(m.x2[i] == m.x2[i-1] +
