@@ -136,57 +136,105 @@ if __name__ == '__main__':
     R = 40
     # How big each step
     delta = 0.2                    # total = R*delta second
-    try:
-        ts, xs, ys, aas, ps, qs, gref = example(R, delta)
-    except Exception:
-        pass
+
+    N = 6
+
+    xs = []
+    ys = []
+    i = 0
+
+    while(i < N):
+        try:
+            ts, tr1s, tr2s, _, _, _, _ = example(R, delta)
+            i += 1
+            xs.append([j for i in tr1s for j in i])
+            ys.append([j for i in tr2s for j in i])
+        except Exception:
+            pass
+
+    meanx1 = [0]*R
+    meanx2 = [0]*R
+    for i in range(R):
+        for j in range(N):
+            meanx1[i] += xs[j][i]
+            meanx2[i] += ys[j][i]
+
+        meanx1[i] /= N           # mean at time points
+        meanx2[i] /= N           # mean at time points
+
+    # XXX: Now the standard deviation
+    sigma1 = [0]*R
+    sigma2 = [0]*R
+    for i in range(R):
+        for j in range(N):
+            sigma1[i] += (meanx1[i]-xs[j][i])**2
+            sigma2[i] += (meanx2[i]-ys[j][i])**2
+
+        sigma1[i] /= N
+        sigma1[i] = np.sqrt(sigma1[i])
+
+        sigma2[i] /= N
+        sigma2[i] = np.sqrt(sigma2[i])
+
+    # XXX: Now compute the envelope
+    tn = 1.96
+    x1CI = [tn*i/np.sqrt(N) for i in sigma1]
+    x1CIplus = [i + j for i, j in zip(meanx1, x1CI)]
+    x1CIminus = [i - j for i, j in zip(meanx1, x1CI)]
+
+    x2CI = [tn*i/np.sqrt(N) for i in sigma1]
+    x2CIplus = [i + j for i, j in zip(meanx2, x2CI)]
+    x2CIminus = [i - j for i, j in zip(meanx2, x2CI)]
 
     plt.style.use('ggplot')
-    plt.plot(ts, xs)
+    plt.plot(ts, meanx1, label='Mean x(t)')
+    plt.plot(ts, x1CIplus, label='CI 95% upper bound')
+    plt.plot(ts, x1CIminus, label='CI 95% lower bound')
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x(t)$ (units)', fontweight='bold')
     plt.savefig('/tmp/motionstochasticxsminlp.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
 
-    plt.plot(ts, ys)
+    plt.plot(ts, meanx2, label='Mean x2(t)')
+    plt.plot(ts, x2CIplus, label='CI 95% upper bound')
+    plt.plot(ts, x2CIminus, label='CI 95% lower bound')
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$y(t)$ (units)', fontweight='bold')
     plt.savefig('/tmp/motionstochasticysminlp.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
 
-    plt.plot(ts, aas)
-    plt.xlabel('Time (seconds)', fontweight='bold')
-    plt.ylabel(r'$\omega(t)$ (units)', fontweight='bold')
-    plt.savefig('/tmp/motionstochasticaasminlp.pdf', bbox_inches='tight')
-    plt.show()
-    plt.close()
-
-    plt.plot(xs, ys)
+    plt.plot(meanx1, meanx2)
     plt.xlabel('x(t)')
     plt.ylabel('y(t)')
-    # plt.legend(loc='best')
     plt.show()
     plt.close()
 
-    plt.plot(ts[:len(ts)-1], ps)
-    plt.xlabel('Time (seconds)', fontweight='bold')
-    plt.ylabel(r'$p(t)$ (units)', fontweight='bold')
-    plt.savefig('/tmp/motionstochasticurefminlp.pdf', bbox_inches='tight')
-    plt.show()
-    plt.close()
+    # plt.plot(ts, aas)
+    # plt.xlabel('Time (seconds)', fontweight='bold')
+    # plt.ylabel(r'$\omega(t)$ (units)', fontweight='bold')
+    # plt.savefig('/tmp/motionstochasticaasminlp.pdf', bbox_inches='tight')
+    # plt.show()
+    # plt.close()
 
-    plt.plot(ts[:len(ts)-1], qs)
-    plt.xlabel('Time (seconds)', fontweight='bold')
-    plt.ylabel(r'$q(t)$ (units)', fontweight='bold')
-    plt.savefig('/tmp/motionstochasticurefminlp.pdf', bbox_inches='tight')
-    plt.show()
-    plt.close()
+    # plt.plot(ts[:len(ts)-1], ps)
+    # plt.xlabel('Time (seconds)', fontweight='bold')
+    # plt.ylabel(r'$p(t)$ (units)', fontweight='bold')
+    # plt.savefig('/tmp/motionstochasticurefminlp.pdf', bbox_inches='tight')
+    # plt.show()
+    # plt.close()
 
-    plt.plot(ts[:len(ts)-1], gref)
-    plt.xlabel('Time (seconds)', fontweight='bold')
-    plt.ylabel(r'$g(t)$ (units)', fontweight='bold')
-    plt.savefig('/tmp/motionstochasticgrefminlp.pdf', bbox_inches='tight')
-    plt.show()
-    plt.close()
+    # plt.plot(ts[:len(ts)-1], qs)
+    # plt.xlabel('Time (seconds)', fontweight='bold')
+    # plt.ylabel(r'$q(t)$ (units)', fontweight='bold')
+    # plt.savefig('/tmp/motionstochasticurefminlp.pdf', bbox_inches='tight')
+    # plt.show()
+    # plt.close()
+
+    # plt.plot(ts[:len(ts)-1], gref)
+    # plt.xlabel('Time (seconds)', fontweight='bold')
+    # plt.ylabel(r'$g(t)$ (units)', fontweight='bold')
+    # plt.savefig('/tmp/motionstochasticgrefminlp.pdf', bbox_inches='tight')
+    # plt.show()
+    # plt.close()
