@@ -117,7 +117,7 @@ def example(R, delta):
                         # covergence tolerance
                         'minlp_gap_tol 0.01']
     m.options.IMODE = 2         # steady state control
-    m.options.MAX_TIME = 120
+    m.options.MAX_TIME = 30
     # m.options.DIAGLEVEL = 2
     # m.options.COLDSTART = 2
     m.solve(debug=2)
@@ -146,11 +146,15 @@ if __name__ == '__main__':
     while(i < N):
         try:
             ts, tr1s, tr2s, _, _, _, _ = example(R, delta)
+            # i += 1
+            # xs.append([j for i in tr1s for j in i])
+            # ys.append([j for i in tr2s for j in i])
+        except Exception:
+            pass
+        else:
             i += 1
             xs.append([j for i in tr1s for j in i])
             ys.append([j for i in tr2s for j in i])
-        except Exception:
-            pass
 
     meanx1 = [0]*R
     meanx2 = [0]*R
@@ -205,7 +209,9 @@ if __name__ == '__main__':
     plt.show()
     plt.close()
 
+    plt.plot(x1CIminus, x2CIminus)
     plt.plot(meanx1, meanx2)
+    plt.plot(x1CIplus, x2CIplus)
     plt.xlabel('x(t)')
     plt.ylabel('y(t)')
     plt.show()
