@@ -38,14 +38,14 @@ def example(R, delta):
     m.n = rng.normal(loc=0, scale=np.sqrt(delta), size=R-1)
 
     # XXX: Initial boundary condition
-    m.Equation(m.x[0] == np.pi)
+    m.Equation(m.x[0] == rng.normal(loc=np.pi, scale=0.2))
     # XXX: Final boundary condition
     m.Equation(m.x[-1] == np.pi/2)
 
     # XXX: The dynamics (hybrid stochastic system)
     [m.Equation(m.x[i] == m.x[i-1]
                 + m.if3(m.cos(m.x[i-1]), m.u[i-1], -m.u[i-1])
-                + m.n[i-1])
+                + 2*m.n[i-1])
      for i in range(1, R)]
 
     # XXX: The objective
@@ -67,6 +67,7 @@ def example(R, delta):
                         # covergence tolerance
                         'minlp_gap_tol 0.01']
     m.options.IMODE = 2         # steady state control
+    m.options.MAX_TIME = 120    # 2 minutes max
     m.solve(debug=1)
 
     return (time,
@@ -80,19 +81,57 @@ if __name__ == '__main__':
     R = 100
     # How big each step
     delta = 0.01                    # total = R*delta second
-    ts, tr1s, uref = example(R, delta)
+
+    # XXX: Now run for N times (monte carlo)
+    N = 31
+    xs = []
+    i = 0
+    while(i < N):
+        try:
+            ts, tr1s, _ = example(R, delta)
+            tr1s = [j for i in tr1s for j in i]
+            i += 1
+            xs.append(tr1s)
+        except Exception:
+            pass
+
+    # XXX: The mean of each point
+    meanx = [0]*R
+    for i in range(R):
+        for j in range(N):
+            meanx[i] += xs[j][i]
+        meanx[i] /= N           # mean at time points
+
+    # XXX: Now the standard deviation
+    sigma = [0]*R
+    for i in range(R):
+        for j in range(N):
+            sigma[i] += (meanx[i]-xs[j][i])**2
+        sigma[i] /= N
+        sigma[i] = np.sqrt(sigma[i])
+
+    # XXX: Now compute the envelope
+    tn = 1.96
+    xCI = [tn*i/np.sqrt(N) for i in sigma]
+    xCIplus = [i + j for i, j in zip(meanx, xCI)]
+    xCIminus = [i - j for i, j in zip(meanx, xCI)]
+
+    # XXX: Plot the 95% confidence interval envelope
     plt.style.use('ggplot')
 
-    plt.plot(ts, tr1s)
+    plt.plot(ts, meanx, label='mean x(t)')
+    plt.plot(ts, xCIplus, label='CI 95% upper bound')
+    plt.plot(ts, xCIminus, label='CI 95% lower bound')
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x1(t)$ (units)', fontweight='bold')
+    plt.legend(loc='best')
     plt.savefig('/tmp/steeringstochasticxminlp.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
 
-    plt.plot(ts[:len(ts)-1], uref)
-    plt.xlabel('Time (seconds)', fontweight='bold')
-    plt.ylabel(r'$u(t)$ (units)', fontweight='bold')
-    plt.savefig('/tmp/steeringstochasticurefminlp.pdf', bbox_inches='tight')
-    plt.show()
-    plt.close()
+    # plt.plot(ts[:len(ts)-1], uref)
+    # plt.xlabel('Time (seconds)', fontweight='bold')
+    # plt.ylabel(r'$u(t)$ (units)', fontweight='bold')
+    # plt.savefig('/tmp/steeringstochasticurefminlp.pdf', bbox_inches='tight')
+    # plt.show()
+    # plt.close()
