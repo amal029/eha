@@ -106,40 +106,92 @@ if __name__ == '__main__':
     R = 150
     # How big each step
     delta = 0.04                    # total = R*delta second
-    ts, tr1s, tr2s, uref, gref = example(R, delta)
+
+    N = 31
+    x1s = []
+    x2s = []
+
+    i = 0
+    while(i < N):
+        try:
+            ts, tr1s, tr2s, _, _ = example(R, delta)
+            i += 1
+            x1s.append([j for i in tr1s for j in i])
+            x2s.append([j for i in tr2s for j in i])
+        except Exception:
+            pass
+
+    meanx1 = [0]*R
+    meanx2 = [0]*R
+    for i in range(R):
+        for j in range(N):
+            meanx1[i] += x1s[j][i]
+            meanx2[i] += x2s[j][i]
+
+        meanx1[i] /= N           # mean at time points
+        meanx2[i] /= N           # mean at time points
+
+    # XXX: Now the standard deviation
+    sigma1 = [0]*R
+    sigma2 = [0]*R
+    for i in range(R):
+        for j in range(N):
+            sigma1[i] += (meanx1[i]-x1s[j][i])**2
+            sigma2[i] += (meanx2[i]-x2s[j][i])**2
+
+        sigma1[i] /= N
+        sigma1[i] = np.sqrt(sigma1[i])
+
+        sigma2[i] /= N
+        sigma2[i] = np.sqrt(sigma2[i])
+
+    # XXX: Now compute the envelope
+    tn = 1.96
+    x1CI = [tn*i/np.sqrt(N) for i in sigma1]
+    x1CIplus = [i + j for i, j in zip(meanx1, x1CI)]
+    x1CIminus = [i - j for i, j in zip(meanx1, x1CI)]
+
+    x2CI = [tn*i/np.sqrt(N) for i in sigma1]
+    x2CIplus = [i + j for i, j in zip(meanx2, x2CI)]
+    x2CIminus = [i - j for i, j in zip(meanx2, x2CI)]
 
     plt.style.use('ggplot')
-    plt.plot(ts, tr1s)
+    plt.plot(ts, meanx1, label='Mean x1(t)')
+    plt.plot(ts, x1CIplus, label='CI 95% upper bound')
+    plt.plot(ts, x1CIminus, label='CI 95% lower bound')
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x1(t)$ (units)', fontweight='bold')
+    plt.legend(loc='best')
     plt.savefig('/tmp/gearsstochasticx1minlp.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
 
-    plt.plot(ts, tr2s)
+    plt.plot(ts, meanx2, label='Mean x2(t)')
+    plt.plot(ts, x2CIplus, label='CI 95% upper bound')
+    plt.plot(ts, x2CIminus, label='CI 95% lower bound')
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x2(t)$ (units)', fontweight='bold')
+    plt.legend(loc='best')
     plt.savefig('/tmp/gearsstochasticx2minlp.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
 
-    plt.plot(tr1s, tr2s)
-    plt.xlabel('x1(t)')
-    plt.ylabel('x2(t)')
-    # plt.legend(loc='best')
+    plt.plot(meanx1, meanx2)
+    plt.xlabel('Average x1(t)')
+    plt.ylabel('Average x2(t)')
     plt.show()
     plt.close()
 
-    plt.plot(ts[:len(ts)-1], uref)
-    plt.xlabel('Time (seconds)', fontweight='bold')
-    plt.ylabel(r'$u(t)$ (units)', fontweight='bold')
-    plt.savefig('/tmp/gearsstochasticurefminlp.pdf', bbox_inches='tight')
-    plt.show()
-    plt.close()
+    # plt.plot(ts[:len(ts)-1], uref)
+    # plt.xlabel('Time (seconds)', fontweight='bold')
+    # plt.ylabel(r'$u(t)$ (units)', fontweight='bold')
+    # plt.savefig('/tmp/gearsstochasticurefminlp.pdf', bbox_inches='tight')
+    # plt.show()
+    # plt.close()
 
-    plt.plot(ts[:len(ts)-1], gref)
-    plt.xlabel('Time (seconds)', fontweight='bold')
-    plt.ylabel(r'$g(t)$ (units)', fontweight='bold')
-    plt.savefig('/tmp/gearsstochasticgrefminlp.pdf', bbox_inches='tight')
-    plt.show()
-    plt.close()
+    # plt.plot(ts[:len(ts)-1], gref)
+    # plt.xlabel('Time (seconds)', fontweight='bold')
+    # plt.ylabel(r'$g(t)$ (units)', fontweight='bold')
+    # plt.savefig('/tmp/gearsstochasticgrefminlp.pdf', bbox_inches='tight')
+    # plt.show()
+    # plt.close()
