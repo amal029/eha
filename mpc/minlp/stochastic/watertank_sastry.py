@@ -41,7 +41,7 @@ def example(R, delta):
     m.x2 = [m.Var(name='x2_%s' % i) for i in range(R)]
 
     # # XXX: Continous control varible
-    # m.u = [m.Var(name='u_%s' % i, lb=1, ub=2) for i in range(R-1)]
+    m.u = [m.Var(name='u_%s' % i, lb=1, ub=2) for i in range(R-1)]
 
     rng = default_rng()
     m.n1 = rng.normal(loc=0, scale=np.sqrt(delta), size=R-1)
@@ -49,9 +49,9 @@ def example(R, delta):
 
     # Now the dynamics
     [m.Equation(m.x1[i] == m.x1[i-1] +
-                m.d[i-1]*((1 - m.sqrt(m.x1[i-1]))*delta
+                m.d[i-1]*((m.u[i-1] - m.sqrt(m.x1[i-1]))*delta
                           + 0.1*m.n1[i-1])
-                + (1-m.d[i-1])*((2 - m.sqrt(m.x1[i-1]))*delta
+                + (1-m.d[i-1])*((m.u[i-1] - m.sqrt(m.x1[i-1]))*delta
                                 + 0.05*m.n1[i-1]))
      for i in range(1, R)]
 
@@ -101,7 +101,7 @@ if __name__ == '__main__':
     set_plt_params()
     R = 100
     delta = 0.1
-    N = 3
+    N = 5
     i = 0
     x1s = []
     x2s = []
@@ -150,15 +150,16 @@ if __name__ == '__main__':
     x2CIminus = [i - j for i, j in zip(meanx2, x2CI)]
 
     plt.style.use('ggplot')
-    plt.plot(ts, meanx1, label='Mean x1(t)', marker='+')
-    plt.plot(ts, x1CIplus, label='x1(t) CI 95% upper bound')
-    plt.plot(ts, x1CIminus, label='x2(t) CI 95% lower bound')
-    plt.plot(ts, meanx2, label='Mean x2(t)', marker='^')
-    plt.plot(ts, x2CIplus, label='x2(t) CI 95% upper bound')
-    plt.plot(ts, x2CIminus, label='x2(t) CI 95% lower bound')
+    plt.plot(ts, meanx1, label='Mean x1(t)', linestyle='--', marker='+')
+    plt.plot(ts, x1CIplus, label='x1(t) CI 95% upper bound', marker='1')
+    plt.plot(ts, x1CIminus, label='x2(t) CI 95% lower bound', marker='2')
+    plt.plot(ts, meanx2, label='Mean x2(t)', linestyle='--', marker='|')
+    plt.plot(ts, x2CIplus, label='x2(t) CI 95% upper bound', marker='3')
+    plt.plot(ts, x2CIminus, label='x2(t) CI 95% lower bound', marker='4')
     # plt.plot(ts, x1s, label='x1(t)')
     # plt.plot(ts, x2s, label='x2(t)')
     plt.legend(loc='best')
+    plt.savefig('/tmp/watertanksastrystochastic.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
 
