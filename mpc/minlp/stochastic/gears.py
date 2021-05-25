@@ -177,9 +177,11 @@ if __name__ == '__main__':
     plt.show()
     plt.close()
 
+    plt.plot(x1CIminus, x2CIminus)
     plt.plot(meanx1, meanx2)
-    plt.xlabel('Average x1(t)')
-    plt.ylabel('Average x2(t)')
+    plt.plot(x1CIplus, x2CIplus)
+    plt.xlabel('x1(t)')
+    plt.ylabel('x2(t)')
     plt.show()
     plt.close()
 

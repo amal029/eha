@@ -66,7 +66,7 @@ def example(R, delta):
     m.Equation(m.d[0] == 1)
 
     # XXX: final boundary condition
-    # m.Equation(m.x2[-1] == 3)
+    m.Equation(m.x2[-1] == 3)
 
     # XXX: Objective
     m.Obj(2*m.sum([(i-3)**2 for i in m.x2]))
@@ -87,7 +87,7 @@ def example(R, delta):
                         # covergence tolerance
                         'minlp_gap_tol 0.0001']
     m.options.IMODE = 2         # steady state
-    m.options.MAX_TIME = 120
+    m.options.MAX_TIME = 30
     m.solve(debug=1)
 
     # XXX: convert binary to number
@@ -101,11 +101,63 @@ if __name__ == '__main__':
     set_plt_params()
     R = 100
     delta = 0.1
-    ts, x1s, x2s, ds = example(R, delta)
-    plt.style.use('ggplot')
+    N = 3
+    i = 0
+    x1s = []
+    x2s = []
+    while(i < N):
+        try:
+            ts, tr1s, tr2s, _ = example(R, delta)
+        except Exception:
+            pass
+        else:
+            i += 1
+            x1s.append([j for i in tr1s for j in i])
+            x2s.append([j for i in tr2s for j in i])
 
-    plt.plot(ts, x1s, label='x1(t)')
-    plt.plot(ts, x2s, label='x2(t)')
+    meanx1 = [0]*R
+    meanx2 = [0]*R
+    for i in range(R):
+        for j in range(N):
+            meanx1[i] += x1s[j][i]
+            meanx2[i] += x2s[j][i]
+
+        meanx1[i] /= N           # mean at time points
+        meanx2[i] /= N           # mean at time points
+
+    # XXX: Now the standard deviation
+    sigma1 = [0]*R
+    sigma2 = [0]*R
+    for i in range(R):
+        for j in range(N):
+            sigma1[i] += (meanx1[i]-x1s[j][i])**2
+            sigma2[i] += (meanx2[i]-x2s[j][i])**2
+
+        sigma1[i] /= N
+        sigma1[i] = np.sqrt(sigma1[i])
+
+        sigma2[i] /= N
+        sigma2[i] = np.sqrt(sigma2[i])
+
+    # XXX: Now compute the envelope
+    tn = 1.96
+    x1CI = [tn*i/np.sqrt(N) for i in sigma1]
+    x1CIplus = [i + j for i, j in zip(meanx1, x1CI)]
+    x1CIminus = [i - j for i, j in zip(meanx1, x1CI)]
+
+    x2CI = [tn*i/np.sqrt(N) for i in sigma1]
+    x2CIplus = [i + j for i, j in zip(meanx2, x2CI)]
+    x2CIminus = [i - j for i, j in zip(meanx2, x2CI)]
+
+    plt.style.use('ggplot')
+    plt.plot(ts, meanx1, label='Mean x1(t)', marker='+')
+    plt.plot(ts, x1CIplus, label='x1(t) CI 95% upper bound')
+    plt.plot(ts, x1CIminus, label='x2(t) CI 95% lower bound')
+    plt.plot(ts, meanx2, label='Mean x2(t)', marker='^')
+    plt.plot(ts, x2CIplus, label='x2(t) CI 95% upper bound')
+    plt.plot(ts, x2CIminus, label='x2(t) CI 95% lower bound')
+    # plt.plot(ts, x1s, label='x1(t)')
+    # plt.plot(ts, x2s, label='x2(t)')
     plt.legend(loc='best')
     plt.show()
     plt.close()
