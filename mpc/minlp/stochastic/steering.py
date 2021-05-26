@@ -83,7 +83,7 @@ if __name__ == '__main__':
     delta = 0.01                    # total = R*delta second
 
     # XXX: Now run for N times (monte carlo)
-    N = 31
+    N = 11
     xs = []
     i = 0
     while(i < N):
@@ -120,13 +120,14 @@ if __name__ == '__main__':
     # XXX: Plot the 95% confidence interval envelope
     plt.style.use('ggplot')
 
-    plt.plot(ts, meanx, label='mean x(t)')
-    plt.plot(ts, xCIplus, label='CI 95% upper bound')
-    plt.plot(ts, xCIminus, label='CI 95% lower bound')
+    plt.plot(ts, meanx, linestyle='--', marker='+',
+             label='Average Trajectory')
+    plt.plot(ts, xCIplus, label='CI 95% upper bound', marker='2')
+    plt.plot(ts, xCIminus, label='CI 95% lower bound', marker='1')
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x1(t)$ (units)', fontweight='bold')
     plt.legend(loc='best')
-    plt.savefig('/tmp/steeringstochasticxminlp.pdf', bbox_inches='tight')
+    plt.savefig('steeting.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
 
