@@ -101,7 +101,7 @@ if __name__ == '__main__':
     set_plt_params()
     R = 100
     delta = 0.1
-    N = 5
+    N = 31
     i = 0
     x1s = []
     x2s = []
@@ -159,7 +159,7 @@ if __name__ == '__main__':
     # plt.plot(ts, x1s, label='x1(t)')
     # plt.plot(ts, x2s, label='x2(t)')
     plt.legend(loc='best')
-    plt.savefig('/tmp/watertanksastrystochastic.pdf', bbox_inches='tight')
+    plt.savefig('watertanksastrystochastic.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
 

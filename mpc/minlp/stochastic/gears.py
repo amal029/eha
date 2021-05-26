@@ -107,7 +107,7 @@ if __name__ == '__main__':
     # How big each step
     delta = 0.04                    # total = R*delta second
 
-    N = 31
+    N = 6
     x1s = []
     x2s = []
 
@@ -163,7 +163,7 @@ if __name__ == '__main__':
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x1(t)$ (units)', fontweight='bold')
     plt.legend(loc='best')
-    plt.savefig('/tmp/gearsstochasticx1minlp.pdf', bbox_inches='tight')
+    plt.savefig('gearsstochasticx1minlp.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
 
@@ -173,15 +173,18 @@ if __name__ == '__main__':
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x2(t)$ (units)', fontweight='bold')
     plt.legend(loc='best')
-    plt.savefig('/tmp/gearsstochasticx2minlp.pdf', bbox_inches='tight')
+    plt.savefig('gearsstochasticx2minlp.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
 
-    plt.plot(x1CIminus, x2CIminus)
-    plt.plot(meanx1, meanx2)
-    plt.plot(x1CIplus, x2CIplus)
+    plt.plot(x1CIminus, x2CIminus, marker='1', label='CI 95% lower bound')
+    plt.plot(meanx1, meanx2, linestyle='--', marker='+',
+             label='Mean trajectory')
+    plt.plot(x1CIplus, x2CIplus, marker='2', label='CI 95% upper bound')
+    plt.legend(loc='best')
     plt.xlabel('x1(t)')
     plt.ylabel('x2(t)')
+    plt.savefig('gears.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
 

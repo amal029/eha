@@ -3,6 +3,7 @@
 import numpy as np
 from numpy.random import default_rng
 from gekko import GEKKO
+from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
 
 
@@ -117,7 +118,7 @@ def example(R, delta):
                         # covergence tolerance
                         'minlp_gap_tol 0.01']
     m.options.IMODE = 2         # steady state control
-    m.options.MAX_TIME = 30
+    m.options.MAX_TIME = 3
     # m.options.DIAGLEVEL = 2
     # m.options.COLDSTART = 2
     m.solve(debug=2)
@@ -137,7 +138,7 @@ if __name__ == '__main__':
     # How big each step
     delta = 0.2                    # total = R*delta second
 
-    N = 6
+    N = 11
 
     xs = []
     ys = []
@@ -196,7 +197,7 @@ if __name__ == '__main__':
     plt.plot(ts, x1CIminus, label='CI 95% lower bound')
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x(t)$ (units)', fontweight='bold')
-    plt.savefig('/tmp/motionstochasticxsminlp.pdf', bbox_inches='tight')
+    plt.savefig('motionstochasticxsminlp.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
 
@@ -205,15 +206,21 @@ if __name__ == '__main__':
     plt.plot(ts, x2CIminus, label='CI 95% lower bound')
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$y(t)$ (units)', fontweight='bold')
-    plt.savefig('/tmp/motionstochasticysminlp.pdf', bbox_inches='tight')
+    plt.savefig('motionstochasticysminlp.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
 
-    plt.plot(x1CIminus, x2CIminus)
-    plt.plot(meanx1, meanx2)
-    plt.plot(x1CIplus, x2CIplus)
+    fig, ax = plt.subplots()
+    ax.plot(x1CIminus, x2CIminus, marker='1', label='CI 95% lower bound')
+    ax.plot(meanx1, meanx2, linestyle='--', marker='+',
+            label='Mean Trajectory')
+    ax.plot(x1CIplus, x2CIplus, marker='2', label='CI 95% upper bound')
+    ax.add_patch(Rectangle((3, 4), 1, 6))
+    ax.add_patch(Rectangle((3, 0), 1, 2))
     plt.xlabel('x(t)')
     plt.ylabel('y(t)')
+    plt.legend(loc='best')
+    plt.savefig('motionplanning.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
 
