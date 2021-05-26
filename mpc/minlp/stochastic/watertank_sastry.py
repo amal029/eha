@@ -87,7 +87,7 @@ def example(R, delta):
                         # covergence tolerance
                         'minlp_gap_tol 0.0001']
     m.options.IMODE = 2         # steady state
-    m.options.MAX_TIME = 30
+    m.options.MAX_TIME = 5
     m.solve(debug=1)
 
     # XXX: convert binary to number
@@ -151,11 +151,11 @@ if __name__ == '__main__':
 
     plt.style.use('ggplot')
     plt.plot(ts, meanx1, label='Mean x1(t)', linestyle='--', marker='+')
-    plt.plot(ts, x1CIplus, label='x1(t) CI 95% upper bound', marker='1')
-    plt.plot(ts, x1CIminus, label='x2(t) CI 95% lower bound', marker='2')
+    plt.plot(ts, x1CIplus, label='x1(t) CI 95% upper bound', marker='2')
+    plt.plot(ts, x1CIminus, label='x1(t) CI 95% lower bound', marker='1')
     plt.plot(ts, meanx2, label='Mean x2(t)', linestyle='--', marker='|')
-    plt.plot(ts, x2CIplus, label='x2(t) CI 95% upper bound', marker='3')
-    plt.plot(ts, x2CIminus, label='x2(t) CI 95% lower bound', marker='4')
+    plt.plot(ts, x2CIplus, label='x2(t) CI 95% upper bound', marker='4')
+    plt.plot(ts, x2CIminus, label='x2(t) CI 95% lower bound', marker='3')
     # plt.plot(ts, x1s, label='x1(t)')
     # plt.plot(ts, x2s, label='x2(t)')
     plt.legend(loc='best')
