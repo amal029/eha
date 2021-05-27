@@ -118,7 +118,7 @@ def example(R, delta):
                         # covergence tolerance
                         'minlp_gap_tol 0.01']
     m.options.IMODE = 2         # steady state control
-    m.options.MAX_TIME = 3
+    m.options.MAX_TIME = 5
     # m.options.DIAGLEVEL = 2
     # m.options.COLDSTART = 2
     m.solve(debug=2)
@@ -138,7 +138,7 @@ if __name__ == '__main__':
     # How big each step
     delta = 0.2                    # total = R*delta second
 
-    N = 11
+    N = 31
 
     xs = []
     ys = []
@@ -182,7 +182,7 @@ if __name__ == '__main__':
         sigma2[i] = np.sqrt(sigma2[i])
 
     # XXX: Now compute the envelope
-    tn = 1.96
+    tn = 2.576
     x1CI = [tn*i/np.sqrt(N) for i in sigma1]
     x1CIplus = [i + j for i, j in zip(meanx1, x1CI)]
     x1CIminus = [i - j for i, j in zip(meanx1, x1CI)]
@@ -193,8 +193,8 @@ if __name__ == '__main__':
 
     plt.style.use('ggplot')
     plt.plot(ts, meanx1, label='Mean x(t)')
-    plt.plot(ts, x1CIplus, label='CI 95% upper bound')
-    plt.plot(ts, x1CIminus, label='CI 95% lower bound')
+    plt.plot(ts, x1CIplus, label='CI 99% upper bound')
+    plt.plot(ts, x1CIminus, label='CI 99% lower bound')
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x(t)$ (units)', fontweight='bold')
     plt.savefig('motionstochasticxsminlp.pdf', bbox_inches='tight')
@@ -202,8 +202,8 @@ if __name__ == '__main__':
     plt.close()
 
     plt.plot(ts, meanx2, label='Mean x2(t)')
-    plt.plot(ts, x2CIplus, label='CI 95% upper bound')
-    plt.plot(ts, x2CIminus, label='CI 95% lower bound')
+    plt.plot(ts, x2CIplus, label='CI 99% upper bound')
+    plt.plot(ts, x2CIminus, label='CI 99% lower bound')
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$y(t)$ (units)', fontweight='bold')
     plt.savefig('motionstochasticysminlp.pdf', bbox_inches='tight')
@@ -211,10 +211,10 @@ if __name__ == '__main__':
     plt.close()
 
     fig, ax = plt.subplots()
-    ax.plot(x1CIminus, x2CIminus, marker='1', label='CI 95% lower bound')
+    ax.plot(x1CIminus, x2CIminus, marker='1', label='CI 99% lower bound')
     ax.plot(meanx1, meanx2, linestyle='--', marker='+',
             label='Mean Trajectory')
-    ax.plot(x1CIplus, x2CIplus, marker='2', label='CI 95% upper bound')
+    ax.plot(x1CIplus, x2CIplus, marker='2', label='CI 99% upper bound')
     ax.add_patch(Rectangle((3, 4), 1, 6))
     ax.add_patch(Rectangle((3, 0), 1, 2))
     plt.xlabel('x(t)')

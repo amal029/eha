@@ -140,7 +140,7 @@ if __name__ == '__main__':
         sigma2[i] = np.sqrt(sigma2[i])
 
     # XXX: Now compute the envelope
-    tn = 1.96
+    tn = 2.576
     x1CI = [tn*i/np.sqrt(N) for i in sigma1]
     x1CIplus = [i + j for i, j in zip(meanx1, x1CI)]
     x1CIminus = [i - j for i, j in zip(meanx1, x1CI)]
@@ -151,11 +151,11 @@ if __name__ == '__main__':
 
     plt.style.use('ggplot')
     plt.plot(ts, meanx1, label='Mean x1(t)', linestyle='--', marker='+')
-    plt.plot(ts, x1CIplus, label='x1(t) CI 95% upper bound', marker='2')
-    plt.plot(ts, x1CIminus, label='x1(t) CI 95% lower bound', marker='1')
+    plt.plot(ts, x1CIplus, label='x1(t) CI 99% upper bound', marker='2')
+    plt.plot(ts, x1CIminus, label='x1(t) CI 99% lower bound', marker='1')
     plt.plot(ts, meanx2, label='Mean x2(t)', linestyle='--', marker='|')
-    plt.plot(ts, x2CIplus, label='x2(t) CI 95% upper bound', marker='4')
-    plt.plot(ts, x2CIminus, label='x2(t) CI 95% lower bound', marker='3')
+    plt.plot(ts, x2CIplus, label='x2(t) CI 99% upper bound', marker='4')
+    plt.plot(ts, x2CIminus, label='x2(t) CI 99% lower bound', marker='3')
     # plt.plot(ts, x1s, label='x1(t)')
     # plt.plot(ts, x2s, label='x2(t)')
     plt.legend(loc='best')

@@ -83,7 +83,7 @@ if __name__ == '__main__':
     delta = 0.01                    # total = R*delta second
 
     # XXX: Now run for N times (monte carlo)
-    N = 11
+    N = 31
     xs = []
     i = 0
     while(i < N):
@@ -112,7 +112,7 @@ if __name__ == '__main__':
         sigma[i] = np.sqrt(sigma[i])
 
     # XXX: Now compute the envelope
-    tn = 1.96
+    tn = 2.576
     xCI = [tn*i/np.sqrt(N) for i in sigma]
     xCIplus = [i + j for i, j in zip(meanx, xCI)]
     xCIminus = [i - j for i, j in zip(meanx, xCI)]
@@ -122,8 +122,8 @@ if __name__ == '__main__':
 
     plt.plot(ts, meanx, linestyle='--', marker='+',
              label='Average Trajectory')
-    plt.plot(ts, xCIplus, label='CI 95% upper bound', marker='2')
-    plt.plot(ts, xCIminus, label='CI 95% lower bound', marker='1')
+    plt.plot(ts, xCIplus, label='CI 99% upper bound', marker='2')
+    plt.plot(ts, xCIminus, label='CI 99% lower bound', marker='1')
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x1(t)$ (units)', fontweight='bold')
     plt.legend(loc='best')
