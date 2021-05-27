@@ -188,17 +188,3 @@ if __name__ == '__main__':
     plt.savefig('gears.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
-
-    # plt.plot(ts[:len(ts)-1], uref)
-    # plt.xlabel('Time (seconds)', fontweight='bold')
-    # plt.ylabel(r'$u(t)$ (units)', fontweight='bold')
-    # plt.savefig('/tmp/gearsstochasticurefminlp.pdf', bbox_inches='tight')
-    # plt.show()
-    # plt.close()
-
-    # plt.plot(ts[:len(ts)-1], gref)
-    # plt.xlabel('Time (seconds)', fontweight='bold')
-    # plt.ylabel(r'$g(t)$ (units)', fontweight='bold')
-    # plt.savefig('/tmp/gearsstochasticgrefminlp.pdf', bbox_inches='tight')
-    # plt.show()
-    # plt.close()
