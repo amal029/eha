@@ -77,7 +77,7 @@ def example(R, delta):
                         # minlp iterations with integer solution
                         'minlp_max_iter_with_int_sol 100', \
                         # treat minlp as nlp
-                        'minlp_as_nlp 1', \
+                        'minlp_as_nlp 0', \
                         # nlp sub-problem max iterations
                         'nlp_maximum_iterations 500', \
                         # 1 = depth first, 2 = breadth first
