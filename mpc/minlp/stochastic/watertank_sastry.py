@@ -99,8 +99,8 @@ def example(R, delta):
 
 if __name__ == '__main__':
     set_plt_params()
-    R = 100
-    delta = 0.1
+    R = 200
+    delta = 0.05
     N = 31
     i = 0
     x1s = []
@@ -150,12 +150,18 @@ if __name__ == '__main__':
     x2CIminus = [i - j for i, j in zip(meanx2, x2CI)]
 
     plt.style.use('ggplot')
-    plt.plot(ts, meanx1, label='Mean x1(t)', linestyle='--', marker='+')
-    plt.plot(ts, x1CIplus, label='x1(t) CI 99% upper bound', marker='2')
-    plt.plot(ts, x1CIminus, label='x1(t) CI 99% lower bound', marker='1')
-    plt.plot(ts, meanx2, label='Mean x2(t)', linestyle='--', marker='|')
-    plt.plot(ts, x2CIplus, label='x2(t) CI 99% upper bound', marker='4')
-    plt.plot(ts, x2CIminus, label='x2(t) CI 99% lower bound', marker='3')
+    plt.plot(ts, meanx1, label='Mean x1(t)', linestyle='--', marker='+',
+             markevery=4)
+    plt.plot(ts, x1CIplus, label='x1(t) CI 99% upper bound', marker='2',
+             markevery=4)
+    plt.plot(ts, x1CIminus, label='x1(t) CI 99% lower bound', marker='1',
+             markevery=4)
+    plt.plot(ts, meanx2, label='Mean x2(t)', linestyle='--', marker='|',
+             markevery=6)
+    plt.plot(ts, x2CIplus, label='x2(t) CI 99% upper bound', marker='4',
+             markevery=6)
+    plt.plot(ts, x2CIminus, label='x2(t) CI 99% lower bound', marker='3',
+             markevery=6)
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x1(t), x2(t)$ (lts)', fontweight='bold')
     plt.legend(loc='best')

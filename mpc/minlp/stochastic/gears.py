@@ -178,10 +178,12 @@ if __name__ == '__main__':
     plt.show()
     plt.close()
 
-    plt.plot(x1CIminus, x2CIminus, marker='1', label='CI 99% lower bound')
+    plt.plot(x1CIminus, x2CIminus, marker='1', label='CI 99% lower bound',
+             markevery=5)
     plt.plot(meanx1, meanx2, linestyle='--', marker='+',
-             label='Mean trajectory')
-    plt.plot(x1CIplus, x2CIplus, marker='2', label='CI 99% upper bound')
+             label='Mean trajectory', markevery=5)
+    plt.plot(x1CIplus, x2CIplus, marker='2', label='CI 99% upper bound',
+             markevery=5)
     plt.legend(loc='best')
     plt.xlabel('x1(t)')
     plt.ylabel('x2(t)')

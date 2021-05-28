@@ -121,13 +121,15 @@ if __name__ == '__main__':
     plt.style.use('ggplot')
 
     plt.plot(ts, meanx, linestyle='--', marker='+',
-             label='Average Trajectory')
-    plt.plot(ts, xCIplus, label='CI 99% upper bound', marker='2')
-    plt.plot(ts, xCIminus, label='CI 99% lower bound', marker='1')
+             label='Average Trajectory', markevery=5)
+    plt.plot(ts, xCIplus, label='CI 99% upper bound', marker='2',
+             markevery=4)
+    plt.plot(ts, xCIminus, label='CI 99% lower bound', marker='1',
+             markevery=4)
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x1(t)$ (units)', fontweight='bold')
     plt.legend(loc='best')
-    plt.savefig('steeting.pdf', bbox_inches='tight')
+    plt.savefig('steering.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
 

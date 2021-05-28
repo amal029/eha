@@ -211,10 +211,12 @@ if __name__ == '__main__':
     plt.close()
 
     fig, ax = plt.subplots()
-    ax.plot(x1CIminus, x2CIminus, marker='1', label='CI 99% lower bound')
+    ax.plot(x1CIminus, x2CIminus, marker='1', label='CI 99% lower bound',
+            markevery=5)
     ax.plot(meanx1, meanx2, linestyle='--', marker='+',
-            label='Mean Trajectory')
-    ax.plot(x1CIplus, x2CIplus, marker='2', label='CI 99% upper bound')
+            label='Mean Trajectory', markevery=5)
+    ax.plot(x1CIplus, x2CIplus, marker='2', label='CI 99% upper bound',
+            markevery=5)
     ax.add_patch(Rectangle((3, 4), 1, 6))
     ax.add_patch(Rectangle((3, 0), 1, 2))
     plt.xlabel('x(t)')
