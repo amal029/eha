@@ -50,8 +50,8 @@ def example(R, delta):
     m.n2 = rng.normal(loc=0, scale=np.sqrt(delta), size=R-1)
 
     # XXX: The initial boundary conditions
-    m.Equation(m.x1[0] == -5)
-    m.Equation(m.x2[0] == 0)
+    m.Equation(m.x1[0] == rng.normal(loc=-5, scale=0.2))
+    m.Equation(m.x2[0] == rng.normal(loc=0, scale=0.3))
 
     # XXX: The final boundary condition
     m.Equation(m.x1[-1] == 0)

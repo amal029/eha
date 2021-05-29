@@ -60,8 +60,10 @@ def example(R, delta):
     m.e3t = rng.normal(loc=0, scale=np.sqrt(delta), size=R-1)
 
     # XXX: The initial boundary conditions
-    m.Equation(m.x[0] == 2)
-    m.Equation(m.y[0] == 3)
+    #m.Equation(m.x[0] == 2)
+    m.Equation(m.x[0] == rng.normal(loc=2, scale=0.1))
+    m.Equation(m.y[0] == rng.normal(loc=3, scale=0.2))
+    #m.Equation(m.y[0] == 3)
     # m.Equation(m.a[0] == np.pi/2)
 
     # XXX: The final boundary condition

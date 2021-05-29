@@ -61,8 +61,8 @@ def example(R, delta):
      for i in range(1, R)]
 
     # XXX: Initial boundary condition
-    m.Equation(m.x1[0] == 2)
-    m.Equation(m.x2[0] == 2)
+    m.Equation(m.x1[0] == rng.normal(loc=2, scale=0.2))
+    m.Equation(m.x2[0] == rng.normal(loc=2, scale=0.1))
     m.Equation(m.d[0] == 1)
 
     # XXX: final boundary condition
