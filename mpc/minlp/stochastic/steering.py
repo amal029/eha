@@ -44,7 +44,7 @@ def example(R, delta):
 
     # XXX: The dynamics (hybrid stochastic system)
     [m.Equation(m.x[i] == m.x[i-1]
-                + m.if3(m.cos(m.x[i-1]), m.u[i-1], -m.u[i-1])
+                + m.if3(m.cos(m.x[i-1]), m.u[i-1]*delta, -m.u[i-1]*delta)
                 + 2*m.n[i-1])
      for i in range(1, R)]
 
@@ -121,13 +121,13 @@ if __name__ == '__main__':
     plt.style.use('ggplot')
 
     plt.plot(ts, meanx, linestyle='--', marker='+',
-             label='Average Trajectory', markevery=5)
+             label='Mean Trajectory', markevery=5)
     plt.plot(ts, xCIplus, label='CI 99% upper bound', marker='2',
              markevery=4)
     plt.plot(ts, xCIminus, label='CI 99% lower bound', marker='1',
              markevery=4)
     plt.xlabel('Time (seconds)', fontweight='bold')
-    plt.ylabel(r'$x1(t)$ (units)', fontweight='bold')
+    plt.ylabel(r'$x(t)$ (units)', fontweight='bold')
     plt.legend(loc='best')
     plt.savefig('steering.pdf', bbox_inches='tight')
     plt.show()
