@@ -223,6 +223,8 @@ if __name__ == '__main__':
     ax.add_patch(Rectangle((3, 0), 1, 2))
     plt.xlabel('x(t)')
     plt.ylabel('y(t)')
+    plt.xticks(weight='bold')
+    plt.yticks(weight='bold')
     plt.legend(loc='best')
     plt.savefig('motionplanning.pdf', bbox_inches='tight')
     plt.show()

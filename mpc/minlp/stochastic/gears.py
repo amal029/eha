@@ -187,6 +187,8 @@ if __name__ == '__main__':
     plt.legend(loc='best')
     plt.xlabel('x1(t)')
     plt.ylabel('x2(t)')
+    plt.xticks(weight='bold')
+    plt.yticks(weight='bold')
     plt.savefig('gears.pdf', bbox_inches='tight')
     plt.show()
     plt.close()

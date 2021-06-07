@@ -165,7 +165,9 @@ if __name__ == '__main__':
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x1(t), x2(t)$ (lts)', fontweight='bold')
     plt.legend(loc='best')
-    plt.savefig('watertanksastrystochastic.pdf', bbox_inches='tight')
+    plt.xticks(weight='bold')
+    plt.yticks(weight='bold')
+    plt.savefig('watertank.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
 

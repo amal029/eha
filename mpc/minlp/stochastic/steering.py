@@ -128,6 +128,8 @@ if __name__ == '__main__':
              markevery=4)
     plt.xlabel('Time (seconds)', fontweight='bold')
     plt.ylabel(r'$x(t)$ (units)', fontweight='bold')
+    plt.xticks(weight='bold')
+    plt.yticks(weight='bold')
     plt.legend(loc='best')
     plt.savefig('steering.pdf', bbox_inches='tight')
     plt.show()
