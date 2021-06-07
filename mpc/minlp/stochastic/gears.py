@@ -61,8 +61,8 @@ def example(R, delta):
     [m.Equation(m.x1[i] == m.x1[i-1] + m.x2[i-1]*delta + 0.1*m.n1[i-1])
      for i in range(1, R)]
     [m.Equation(m.x2[i] == m.x2[i-1] +
-                (1-m.g[i-1])*(1/(1+m.exp(-5*(m.x2[i-1]-0.5))))*m.u[i-1] +
-                (m.g[i-1])*(1/(1+m.exp(5*(m.x2[i-1]-0.5))))*m.u[i-1] +
+                (1-m.g[i-1])*(1/(1+m.exp(-5*(m.x2[i-1]-0.5))))*m.u[i-1]*delta +
+                (m.g[i-1])*(1/(1+m.exp(5*(m.x2[i-1]-0.5))))*m.u[i-1]*delta +
                 # XXX: This is the 0.01*dW(t), noise term
                 0.01*m.n2[i-1])
      for i in range(1, R)]
