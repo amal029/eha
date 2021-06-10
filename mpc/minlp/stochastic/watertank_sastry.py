@@ -98,7 +98,8 @@ def example(R, delta):
 
 
 if __name__ == '__main__':
-    set_plt_params()
+    # set_plt_params()
+    plt.rcParams['pdf.fonttype'] = 42
     R = 200
     delta = 0.05
     N = 31

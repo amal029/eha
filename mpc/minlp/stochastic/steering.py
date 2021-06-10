@@ -76,7 +76,8 @@ def example(R, delta):
 
 
 if __name__ == '__main__':
-    set_plt_params()
+    # set_plt_params()
+    plt.rcParams['pdf.fonttype'] = 42
     # XXX: How many steps?
     R = 100
     # How big each step
@@ -127,7 +128,7 @@ if __name__ == '__main__':
     plt.plot(ts, xCIminus, label='CI 99% lower bound', marker='1',
              markevery=4)
     plt.xlabel('Time (seconds)', fontweight='bold')
-    plt.ylabel(r'$x(t)$ (units)', fontweight='bold')
+    plt.ylabel(r'x(t)$ (units)', fontweight='bold')
     plt.xticks(weight='bold', fontsize='large')
     plt.yticks(weight='bold', fontsize='large')
     plt.legend(loc='best')

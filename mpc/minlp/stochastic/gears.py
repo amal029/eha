@@ -102,7 +102,8 @@ def example(R, delta):
 
 
 if __name__ == '__main__':
-    set_plt_params()
+    # set_plt_params()
+    plt.rcParams['pdf.fonttype'] = 42
     R = 150
     # How big each step
     delta = 0.04                    # total = R*delta second
@@ -185,8 +186,8 @@ if __name__ == '__main__':
     plt.plot(x1CIplus, x2CIplus, marker='2', label='CI 99% upper bound',
              markevery=5)
     plt.legend(loc='best')
-    plt.xlabel('x1(t)')
-    plt.ylabel('x2(t)')
+    plt.xlabel(r'x1(t)', fontweight='bold')
+    plt.ylabel(r'x2(t)', fontweight='bold')
     plt.xticks(weight='bold', fontsize='large')
     plt.yticks(weight='bold', fontsize='large')
     plt.savefig('gears.pdf', bbox_inches='tight')

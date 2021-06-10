@@ -135,7 +135,9 @@ def example(R, delta):
 
 
 if __name__ == '__main__':
-    set_plt_params()
+    # set_plt_params()
+    plt.rcParams['pdf.fonttype'] = 42
+
     R = 40
     # How big each step
     delta = 0.2                    # total = R*delta second
@@ -221,8 +223,8 @@ if __name__ == '__main__':
             markevery=5)
     ax.add_patch(Rectangle((3, 4), 1, 6))
     ax.add_patch(Rectangle((3, 0), 1, 2))
-    plt.xlabel('x(t)')
-    plt.ylabel('y(t)')
+    plt.xlabel(r'x(t)', fontweight='bold')
+    plt.ylabel(r'y(t)', fontweight='bold')
     plt.xticks(weight='bold', fontsize='large')
     plt.yticks(weight='bold', fontsize='large')
     plt.legend(loc='best')
