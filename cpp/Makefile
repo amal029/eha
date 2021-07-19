@@ -23,7 +23,7 @@ endif
 INCLUDES += -I/opt/cln/include -I/opt/ginac/include
 INCLUDES += -I/opt
 INCLUDES += -I./libInterpolate/src
-INCLUDES += -I/usr/local/Cellar/boost/1.74.0/include
+INCLUDES += -I/usr/local/Cellar/boost/1.75.0_2/include
 INCLUDES += -I/usr/local/Frameworks/Python.framework/Versions/Current/include/python3.9
 
 INCLUDES += -I/Users/amal029_old/Library/Python/3.9/lib/python/site-packages/numpy/core/include

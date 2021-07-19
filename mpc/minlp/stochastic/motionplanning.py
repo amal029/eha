@@ -142,7 +142,7 @@ if __name__ == '__main__':
     # How big each step
     delta = 0.2                    # total = R*delta second
 
-    N = 31
+    N = 1
 
     xs = []
     ys = []
@@ -150,7 +150,7 @@ if __name__ == '__main__':
 
     while(i < N):
         try:
-            ts, tr1s, tr2s, _, _, _, _ = example(R, delta)
+            ts, tr1s, tr2s, _, ps, qs, gs = example(R, delta)
             # i += 1
             # xs.append([j for i in tr1s for j in i])
             # ys.append([j for i in tr2s for j in i])
@@ -196,31 +196,31 @@ if __name__ == '__main__':
     x2CIminus = [i - j for i, j in zip(meanx2, x2CI)]
 
     plt.style.use('ggplot')
-    plt.plot(ts, meanx1, label='Mean x(t)')
-    plt.plot(ts, x1CIplus, label='CI 99% upper bound')
-    plt.plot(ts, x1CIminus, label='CI 99% lower bound')
-    plt.xlabel('Time (seconds)', fontweight='bold')
-    plt.ylabel(r'$x(t)$ (units)', fontweight='bold')
-    plt.savefig('motionstochasticxsminlp.pdf', bbox_inches='tight')
-    plt.show()
-    plt.close()
+    # plt.plot(ts, meanx1, label='Mean x(t)')
+    # plt.plot(ts, x1CIplus, label='CI 99% upper bound')
+    # plt.plot(ts, x1CIminus, label='CI 99% lower bound')
+    # plt.xlabel('Time (seconds)', fontweight='bold')
+    # plt.ylabel(r'$x(t)$ (units)', fontweight='bold')
+    # plt.savefig('motionstochasticxsminlp.pdf', bbox_inches='tight')
+    # plt.show()
+    # plt.close()
 
-    plt.plot(ts, meanx2, label='Mean x2(t)')
-    plt.plot(ts, x2CIplus, label='CI 99% upper bound')
-    plt.plot(ts, x2CIminus, label='CI 99% lower bound')
-    plt.xlabel('Time (seconds)', fontweight='bold')
-    plt.ylabel(r'$y(t)$ (units)', fontweight='bold')
-    plt.savefig('motionstochasticysminlp.pdf', bbox_inches='tight')
-    plt.show()
-    plt.close()
+    # plt.plot(ts, meanx2, label='Mean x2(t)')
+    # plt.plot(ts, x2CIplus, label='CI 99% upper bound')
+    # plt.plot(ts, x2CIminus, label='CI 99% lower bound')
+    # plt.xlabel('Time (seconds)', fontweight='bold')
+    # plt.ylabel(r'$y(t)$ (units)', fontweight='bold')
+    # plt.savefig('motionstochasticysminlp.pdf', bbox_inches='tight')
+    # plt.show()
+    # plt.close()
 
     fig, ax = plt.subplots()
-    ax.plot(x1CIminus, x2CIminus, marker='1', label='CI 99% lower bound',
-            markevery=5)
+    # ax.plot(x1CIminus, x2CIminus, marker='1', label='CI 99% lower bound',
+    #         markevery=5)
     ax.plot(meanx1, meanx2, linestyle='--', marker='+',
-            label='Mean Trajectory', markevery=5)
-    ax.plot(x1CIplus, x2CIplus, marker='2', label='CI 99% upper bound',
-            markevery=5)
+            label='Robot trajectory', markevery=5)
+    # ax.plot(x1CIplus, x2CIplus, marker='2', label='CI 99% upper bound',
+    #         markevery=5)
     ax.add_patch(Rectangle((3, 4), 1, 6))
     ax.add_patch(Rectangle((3, 0), 1, 2))
     plt.xlabel(r'x(t)', fontweight='bold')
@@ -228,7 +228,7 @@ if __name__ == '__main__':
     plt.xticks(weight='bold', fontsize='large')
     plt.yticks(weight='bold', fontsize='large')
     plt.legend(loc='best')
-    plt.savefig('motionplanning.pdf', bbox_inches='tight')
+    plt.savefig('motionplanningone.pdf', bbox_inches='tight')
     plt.show()
     plt.close()
 
@@ -239,12 +239,17 @@ if __name__ == '__main__':
     # plt.show()
     # plt.close()
 
-    # plt.plot(ts[:len(ts)-1], ps)
-    # plt.xlabel('Time (seconds)', fontweight='bold')
-    # plt.ylabel(r'$p(t)$ (units)', fontweight='bold')
-    # plt.savefig('/tmp/motionstochasticurefminlp.pdf', bbox_inches='tight')
-    # plt.show()
-    # plt.close()
+    plt.plot(ts[:len(ts)-1], ps, label=r'$p(t)$', marker='*', markevery=5)
+    plt.plot(ts[:len(ts)-1], qs, label=r'$q(t)$', marker='^', markevery=4)
+    plt.plot(ts[:len(ts)-1], gs, label=r'$\omega(t)$', marker='o', markevery=3)
+    plt.xlabel('Time (seconds)', fontweight='bold')
+    plt.ylabel(r'$p(t), q(t), \omega(t)$ (units)', fontweight='bold')
+    plt.xticks(weight='bold', fontsize='large')
+    plt.yticks(weight='bold', fontsize='large')
+    plt.legend(loc='best')
+    plt.savefig('motioncontrols.pdf', bbox_inches='tight')
+    plt.show()
+    plt.close()
 
     # plt.plot(ts[:len(ts)-1], qs)
     # plt.xlabel('Time (seconds)', fontweight='bold')
