@@ -1,5 +1,5 @@
 [
     { "directory": "c:/Users/amal029/Documents/eha/cpp",
-      "command": "clang++ -DWITHOUT_NUMPY -std=c++2a -Ic:/msys64/opt/include -Lc:/msys64/opt/lib -IC:/Users/amal029/AppData/Local/Programs/Python/Python39/include -I. -IC:/msys64/mingw64/include/boost -Ic:/msys64/mingw64/include/eigen3 -L./lib -O1 robotgshs_par.cpp -o robot -lcln -lginac -lpython3.8 -lsolver",
+      "command": "clang++ -DWITHOUT_NUMPY -std=c++2a -Ic:/msys64/opt/include -Lc:/msys64/opt/lib -IC:/Users/amal029/AppData/Local/Programs/Python/Python39/include -I. -Ic:/Users/amal029/AppData/Local/boost_1_77_0 -Ic:/msys64/opt/eigen-3.4.0 -L./lib -O1 robotgshs_par.cpp -o robot -lcln -lginac -lpython3.8 -lsolver",
       "file": "robotgshs_par.cpp" }
 ]
