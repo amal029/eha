@@ -49,7 +49,7 @@ struct Solver {
   static int p;
   static int R;
   static double DEFAULT_STEP;
-  static double ε; 
+  static double u; 
 private:
   // XXX: This will have the required private data
   const int iter_count = 50;
@@ -69,5 +69,5 @@ private:
 
 int Solver::p = 3;
 int Solver::R = std::pow(2, p);
-double Solver::ε = 1e-3;
+double Solver::u = 1e-3;
 double Solver::DEFAULT_STEP = 1.0;

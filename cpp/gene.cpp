@@ -123,7 +123,7 @@ int F(std::vector<std::vector<double>> &xss,
       std::vector<std::vector<double>> &tss) {
   double SIM_TIME = 2000;
   Solver::DEFAULT_STEP = 1;
-  Solver::ε = 1e-3;
+  Solver::u = 1e-3;
 
   // Solver
   const Solver s{};
