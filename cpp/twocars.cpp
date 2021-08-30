@@ -14,7 +14,7 @@
 
 using namespace GiNaC;
 
-namespace plt = matplotlibcpp;
+// namespace plt = matplotlibcpp;
 // The enumeration for the states of the system
 enum STATES { C = 0, K = 1, B = 2 };
 typedef std::map<STATES, exT> derT;
@@ -122,7 +122,7 @@ int F(std::vector<std::vector<double>> &x1ss,
   // Solver
   const Solver s{};
   s.DEFAULT_STEP = 1;
-  s.ε = 1e-3;
+  s.u = 1e-3;
 
   // Symbols
   symbol x1("x1"), x2("x2"), v1("v1");
@@ -327,36 +327,37 @@ int main(void) {
   }
   std::vector<double> time(msize, 0);
   std::iota(time.begin(), time.end(), 0);
-  plt::plot(time, meanx2, {{"label", "mean"}});
-  plt::plot(time, mplusCIx2, {{"label", "CI 95% upper bound"}});
-  plt::plot(time, mminusCIx2, {{"label", "CI 95% lower bound"}});
-  plt::xlabel("Time (sec)");
-  plt::ylabel("$x1(t)$ (units)");
-  plt::grid();
-  plt::legend();
-  plt::tight_layout();
-  plt::savefig("twocarsx1.pdf", {{"bbox_inches", "tight"}});
-  plt::show();
+  // plt::plot(time, meanx2, {{"label", "mean"}});
+  // plt::plot(time, mplusCIx2, {{"label", "CI 95% upper bound"}});
+  // plt::plot(time, mminusCIx2, {{"label", "CI 95% lower bound"}});
+  // plt::xlabel("Time (sec)");
+  // plt::ylabel("$x1(t)$ (units)");
+  // plt::grid();
+  // plt::legend();
+  // plt::tight_layout();
+  // plt::savefig("twocarsx1.pdf", {{"bbox_inches", "tight"}});
+  // plt::show();
 
-  plt::plot(time, meanx1, {{"label", "mean"}});
-  plt::plot(time, mplusCIx1, {{"label", "CI 95% upper bound"}});
-  plt::plot(time, mminusCIx1, {{"label", "CI 95% lower bound"}});
-  plt::xlabel("Time (sec)");
-  plt::ylabel("$x2(t)$ (units)");
-  plt::grid();
-  plt::legend();
-  plt::tight_layout();
-  plt::savefig("twocarsx2.pdf", {{"bbox_inches", "tight"}});
-  plt::show();
+  // plt::plot(time, meanx1, {{"label", "mean"}});
+  // plt::plot(time, mplusCIx1, {{"label", "CI 95% upper bound"}});
+  // plt::plot(time, mminusCIx1, {{"label", "CI 95% lower bound"}});
+  // plt::xlabel("Time (sec)");
+  // plt::ylabel("$x2(t)$ (units)");
+  // plt::grid();
+  // plt::legend();
+  // plt::tight_layout();
+  // plt::savefig("twocarsx2.pdf", {{"bbox_inches", "tight"}});
+  // plt::show();
 
   // XXX: Write to the file
   const std::string fName = "twocars.csv";
   std::ofstream ostrm(fName);
-  ostrm << "ts,meanx1,CIx1,meanx2,CIx2\n";
+  ostrm << "time,meanx1,mplusCIx1,mminusCIx1,meanx2,mplusCIx2,mminusCIx2\n";
   for (size_t i = 0; i < msize; ++i) {
     // XXX: Plot everything
-    ostrm << time[i] << "," << meanx1[i] << "," << x1CI[i] << "," << meanx2[i]
-          << "," << x2CI[i] << "\n";
+    ostrm << time[i] << "," << meanx1[i] << "," << mplusCIx1[i] << ","
+          << mminusCIx1[i] << "," << meanx2[i] << "," << mplusCIx2[i] << ","
+          << mminusCIx2[i] << "\n";
   }
   ostrm.flush();
   ostrm.close();

@@ -2,11 +2,12 @@
 #include "libInterpolate/Interpolate.hpp"
 #include "matplotlibcpp.h"
 #include <cstddef>
+#include <stdio.h>
 #include <vector>
 
 using namespace GiNaC;
 
-namespace plt = matplotlibcpp;
+// namespace plt = matplotlibcpp;
 // The enumeration for the states of the system
 enum STATES { S1 = 0, S2 = 1, S3 = 2 };
 typedef std::map<STATES, exT> derT;
@@ -157,14 +158,23 @@ int F(std::vector<std::vector<double>> &xss,
     switch (s) {
     case S1:
       return "S1";
+      break;
     case S2:
       return "S2";
+      break;
     case S3:
       return "S3";
+      break;
     default:
       break;
     }
   };
+
+#ifdef DEBUG
+  std::cout << "Entering the main sim loop"
+            << "\n";
+#endif // DEBUG
+
   // Now run the simulation
   while (time <= SIM_TIME) {
     // Generate the sample path for the Euler-Maruyama step
@@ -175,6 +185,9 @@ int F(std::vector<std::vector<double>> &xss,
 
     // Calling the HIOAs
     double d = HIOA(x, ders, vars, cs, ns, toret, dWts, s, time);
+#ifdef DEBUG
+    std::cout << "d is:" << d << "\n";
+#endif // DEBUG
 
     // Update the next state
     cs = ns;
@@ -206,11 +219,12 @@ int F(std::vector<std::vector<double>> &xss,
   tss.push_back(ts);
 #ifdef PRINT
   // Plot
-  plt::plot(ts, xs);
-  plt::ylabel("$x(t)$ (units)");
-  plt::xlabel("Time (sec)");
-  plt::tight_layout();
-  plt::show();
+  // FIXME: Make this into a csv later
+  // plt::plot(ts, xs);
+  // plt::ylabel("$x(t)$ (units)");
+  // plt::xlabel("Time (sec)");
+  // plt::tight_layout();
+  // plt::show();
 #endif // PRINT
 #endif // TIME
   return 0;
@@ -227,8 +241,13 @@ int main(int argc, char *argv[]) {
   constexpr size_t N = 31;
   constexpr double tn = 1.96; // with 2 samples and df = 1
   constexpr double msize = 20;
-  for (size_t i = 0; i < N; ++i)
+  for (size_t i = 0; i < N; ++i) {
+#ifdef DEBUG
+    std::cout << "Doing F"
+              << "\n";
+#endif // DEBUG
     F(x1ss, tss);
+  }
   // XXX: Make the interpolators for only x2ss
   std::vector<_1D::LinearInterpolator<double>> interps1;
   for (size_t i = 0; i < N; ++i) {
@@ -274,17 +293,27 @@ int main(int argc, char *argv[]) {
   }
   // XXX: Now plot it
   std::vector<double> time(msize, 0);
+  FILE *fd = NULL;
   std::iota(time.begin(), time.end(), 0);
-  plt::plot(time, meanx1, {{"label", "mean"}});
-  plt::plot(time, mplusCIx1, {{"label", "CI 95% upper bound"}});
-  plt::plot(time, mminusCIx1, {{"label", "CI 95% lower bound"}});
-  plt::xlabel("Time (seconds)");
-  plt::ylabel("$x(t)$ (units)");
-  plt::grid();
-  plt::legend();
-  plt::tight_layout();
-  plt::savefig("driver.pdf", {{"bbox_inches", "tight"}});
-  plt::show();
+  if (!fopen_s(&fd, "driverCI.csv", "w")) {
+    // Write the header
+    fprintf(fd, "time,mean,plusCI,minusCI\n");
+    for (int i = 0; i < msize; ++i) {
+      fprintf(fd, "%f,%f,%f,%f\n", time[i], meanx1[i], mplusCIx1[i],
+              mminusCIx1[i]);
+    }
+    fclose(fd);
+  }
+  // plt::plot(time, meanx1, {{"label", "mean"}});
+  // plt::plot(time, mplusCIx1, {{"label", "CI 95% upper bound"}});
+  // plt::plot(time, mminusCIx1, {{"label", "CI 95% lower bound"}});
+  // plt::xlabel("Time (seconds)");
+  // plt::ylabel("$x(t)$ (units)");
+  // plt::grid();
+  // plt::legend();
+  // plt::tight_layout();
+  // plt::savefig("driver.pdf", {{"bbox_inches", "tight"}});
+  // plt::show();
 
 #ifdef TIME
   auto t2 = std::chrono::high_resolution_clock::now();

@@ -5,7 +5,7 @@ OBJ2 = driver.o
 OBJ3 = gene.o
 OBJ4 = twocars.o
 OBJS = ${OBJ1} ${OBJ2} ${OBJ3} ${OBJ4}
-CFLAGS = -O3 -mavx2 -mavx -ffast-math
+CFLAGS = -O2 -mavx2 -mavx -ffast-math
 SYSROOT = `xcrun --show-sdk-path`
 ifeq ($(TIME), 1)
 	CFLAGS += -DTIME
@@ -13,9 +13,25 @@ endif
 ifeq ($(PRINT), 1)
 	CFLAGS += -DPRINT
 endif
+ifeq ($(DEBUG), 1)
+	CFLAGS += -DDEBUG
+endif
 ifeq ($(GCC), 1)
 	CC = g++-10 -std=c++20
 	LIBDIR += -L/opt/ginac/lib -L/opt/cln/lib
+else ifeq ($(MSYS), 1)
+	CC = g++ -std=c++20
+	CFLAGS += `pkg-config --cflags ginac`
+	CFLAGS += `pkg-config --cflags cln`
+	CFLAGS += -I/c/Users/amal029/AppData/Local/boost_1_77_0
+	CFLAGS += -I/opt/eigen-3.4.0
+	CFLAGS += -I/c/Users/amal029/AppData/Roaming/Python/Python39/site-packages/numpy/core/include
+	CFLAGS += `pkg-config --cflags python3`
+	LIBDIR += `pkg-config --libs-only-L cln`
+	LIBDIR += `pkg-config --libs-only-L ginac`
+	LIBDIR += -LC:/Users/amal029/AppData/Local/Programs/Python/Python39
+# LIBDIR += `pkg-config --libs-only-L python3`
+	LIBDIR += `pkg-config --libs-only-L gmp`
 else
 	CC = clang++ -isysroot ${SYSROOT} -std=c++2a
 	LIBDIR = -L/usr/local/Cellar/ginac/1.8.0/lib -L/usr/local/Cellar/cln/1.3.6/lib
@@ -33,6 +49,11 @@ LIBDIR += -L/usr/local/Frameworks/Python.framework/Versions/Current/lib
 LIBDIR += -L./lib
 LIBDIR += -L/usr/local/opt/llvm/lib -L/usr/lib
 LIBS = -lcln -lginac -lpython3.9 -lsolver
+ifeq ($(MSYS), 1)
+	LIBS += `pkg-config --libs-only-l ginac`
+	LIBS += `pkg-config --libs-only-other ginac`
+	LIBS += `pkg-config --libs-only-l gmp`
+endif
 
 all:	lib robotgshs_par driver gene twocars
 
@@ -71,7 +92,7 @@ runtwocars:
 	DYLD_FALLBACK_LIBRARY_PATH=/Users/amal029_old/eha/cpp/lib ./twocars
 
 clean:
-	-rm -f *.o *.core robotgshs_par driver all gene twocars
+	-rm -f *.o *.core *.csv robotgshs_par driver all gene twocars
 	cd src && make cleanall
 
 .cpp.o:

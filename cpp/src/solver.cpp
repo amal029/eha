@@ -4,6 +4,11 @@
 using namespace std;
 using namespace GiNaC;
 
+int Solver::p = 3;
+int Solver::R = std::pow(2, p);
+double Solver::u = 1e-3;
+double Solver::DEFAULT_STEP = 1.0;
+
 bool Solver::var_compute(const exT &deps,
                          const map<ex, vector<double>, ex_is_less> &dWts,
                          const exmap &vars, double T, const ex &Dtv,
@@ -37,8 +42,8 @@ bool Solver::var_compute(const exT &deps,
   vector<bool> errs;
   for (auto it = nvars.begin(); it != nvars.end(); ++it) {
     errs.push_back(move(abs(toret[it->first] - nvars[it->first]) /
-                            (nvars[it->first] + ε) <=
-                        ε));
+                            (nvars[it->first] + u) <=
+                        u));
   }
 #ifdef DEBUG
   cout << "Dtv: " << Dtv << ", dtv: " << dtv << "\n";
@@ -272,9 +277,9 @@ double Solver::gstep(const ex &expr, const exT &deps, const exmap &vars,
   bool err;
   count = 0;
   while (true) {
-    // const ex &root1 = build_eq_g(dt, fp, sp, L, T);
-    // const ex &root2 = build_eq_g(dt, fp, sp, -L, T);
 #ifdef DEBUG
+    const ex &root1 = build_eq_g(dt, fp, sp, L, T);
+    const ex &root2 = build_eq_g(dt, fp, sp, -L, T);
     cout << "Guard roots: " << root1 << "," << root2 << "\n";
 #endif
     ex Dtv{move(min(build_eq_g(dt, fp, sp, L, T), build_eq_g(dt, fp, sp, -L, T))

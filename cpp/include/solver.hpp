@@ -67,7 +67,3 @@ private:
             const double T) const;
 };
 
-int Solver::p = 3;
-int Solver::R = std::pow(2, p);
-double Solver::u = 1e-3;
-double Solver::DEFAULT_STEP = 1.0;

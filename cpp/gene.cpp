@@ -8,7 +8,7 @@
 
 using namespace GiNaC;
 
-namespace plt = matplotlibcpp;
+// namespace plt = matplotlibcpp;
 // The enumeration for the states of the system
 enum STATES { X0 = 0, X1 = 1, D = 2 };
 typedef std::map<STATES, exT> derT;
@@ -249,10 +249,11 @@ int F(std::vector<std::vector<double>> &xss,
   tss.push_back(ts);
 #ifdef PRINT
   // Plot
-  plt::plot(ts, xs);
-  plt::xlabel("Time (sec)");
-  plt::ylabel("$x(t)$ (units)");
-  plt::show();
+  // FIXME: This needs to be fixed later
+  // plt::plot(ts, xs);
+  // plt::xlabel("Time (sec)");
+  // plt::ylabel("$x(t)$ (units)");
+  // plt::show();
 #endif // PRINT
 #endif // TIME
   return 0;
@@ -316,17 +317,27 @@ int main(int argc, char *argv[]) {
   }
   // XXX: Now plot it
   std::vector<double> time(msize, 0);
+  FILE *fd = NULL;
   std::iota(time.begin(), time.end(), 0);
-  plt::plot(time, meanx1, {{"label", "mean"}});
-  plt::plot(time, mplusCIx1, {{"label", "CI 95% upper bound"}});
-  plt::plot(time, mminusCIx1, {{"label", "CI 95% lower bound"}});
-  plt::xlabel("Time (sec)");
-  plt::ylabel("$x(t)$ (units)");
-  plt::grid();
-  plt::legend();
-  plt::tight_layout();
-  plt::savefig("gene.pdf", {{"bbox_inches", "tight"}});
-  plt::show();
+  if (!fopen_s(&fd, "geneCI.csv", "w")) {
+    // Write the header
+    fprintf(fd, "time,mean,plusCI,minusCI\n");
+    for (int i = 0; i < msize; ++i) {
+      fprintf(fd, "%f,%f,%f,%f\n", time[i], meanx1[i], mplusCIx1[i],
+              mminusCIx1[i]);
+    }
+    fclose(fd);
+  }
+  // plt::plot(time, meanx1, {{"label", "mean"}});
+  // plt::plot(time, mplusCIx1, {{"label", "CI 95% upper bound"}});
+  // plt::plot(time, mminusCIx1, {{"label", "CI 95% lower bound"}});
+  // plt::xlabel("Time (sec)");
+  // plt::ylabel("$x(t)$ (units)");
+  // plt::grid();
+  // plt::legend();
+  // plt::tight_layout();
+  // plt::savefig("gene.pdf", {{"bbox_inches", "tight"}});
+  // plt::show();
 
 #ifdef TIME
   auto t2 = std::chrono::high_resolution_clock::now();
