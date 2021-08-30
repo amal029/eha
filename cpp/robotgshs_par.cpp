@@ -9,7 +9,7 @@
 using namespace std;
 using namespace GiNaC;
 
-namespace plt = matplotlibcpp;
+// namespace plt = matplotlibcpp;
 
 // The enumeration for the states of the system
 enum STATES { MOVE = 0, INNER = 1, OUTTER = 2, CT = 3, NCT = 4 };
@@ -373,11 +373,12 @@ int F(int argc, char **argv, vector<vector<double>> &xss,
 
 #ifndef TIME
 #ifdef PRINT
-  plt::plot(ts, xy2);
-  plt::xlabel("Time (sec)");
-  plt::ylabel("$x^2(t) + y^2(t)$ (units)");
-  plt::tight_layout();
-  plt::show();
+  // FIXME: This needs to be fixed
+  // plt::plot(ts, xy2);
+  // plt::xlabel("Time (sec)");
+  // plt::ylabel("$x^2(t) + y^2(t)$ (units)");
+  // plt::tight_layout();
+  // plt::show();
 #endif // PRINT
 #endif // TIME
   return 0;
@@ -450,16 +451,27 @@ int main(int argc, char *argv[])
   // XXX: Making steps of 0.1 seconds.
   std::transform(time.begin(), time.end(), time.begin(),
                  [](double i) { return i * INTERVAL; });
-  plt::plot(time, meanx1, {{"label", "mean"}});
-  plt::plot(time, mplusCIx1, {{"label", "CI 95% upper bound"}});
-  plt::plot(time, mminusCIx1, {{"label", "CI 95% lower bound"}});
-  plt::xlabel("Time (sec)");
-  plt::ylabel("$x^2(t) + y^2(t)$ (units)");
-  plt::grid();
-  plt::legend();
-  plt::tight_layout();
-  plt::savefig("robot.pdf", {{"bbox_inches", "tight"}});
-  plt::show();
+
+  FILE *fd = NULL;
+  if (!fopen_s(&fd, "robotCI.csv", "w")) {
+    // Write the header
+    fprintf(fd, "time,mean,plusCI,minusCI\n");
+    for (int i = 0; i < msize; ++i) {
+      fprintf(fd, "%f,%f,%f,%f\n", time[i], meanx1[i], mplusCIx1[i],
+              mminusCIx1[i]);
+    }
+    fclose(fd);
+  }
+  // plt::plot(time, meanx1, {{"label", "mean"}});
+  // plt::plot(time, mplusCIx1, {{"label", "CI 95% upper bound"}});
+  // plt::plot(time, mminusCIx1, {{"label", "CI 95% lower bound"}});
+  // plt::xlabel("Time (sec)");
+  // plt::ylabel("$x^2(t) + y^2(t)$ (units)");
+  // plt::grid();
+  // plt::legend();
+  // plt::tight_layout();
+  // plt::savefig("robot.pdf", {{"bbox_inches", "tight"}});
+  // plt::show();
 
 #ifdef TIME
   auto t2 = std::chrono::high_resolution_clock::now();
